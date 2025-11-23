@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.excell44.educam.ui.screen.subjects
 
 import androidx.compose.foundation.layout.*

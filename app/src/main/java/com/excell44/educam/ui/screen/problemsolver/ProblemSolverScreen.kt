@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
+
 package com.excell44.educam.ui.screen.problemsolver
 
 import android.net.Uri
@@ -16,7 +18,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 
-@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun ProblemSolverScreen(
     onNavigateBack: () -> Unit,
