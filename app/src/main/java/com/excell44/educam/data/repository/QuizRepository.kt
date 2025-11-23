@@ -22,10 +22,14 @@ class QuizRepository @Inject constructor(
         count: Int,
         difficulty: Difficulty? = null
     ): List<QuizQuestion> {
-        return if (difficulty != null) {
-            quizQuestionDao.getQuestionsByDifficulty(subject, gradeLevel, difficulty, count)
-        } else {
-            quizQuestionDao.getRandomQuestions(subject, gradeLevel, count)
+        return try {
+            if (difficulty != null) {
+                quizQuestionDao.getQuestionsByDifficulty(subject, gradeLevel, difficulty, count)
+            } else {
+                quizQuestionDao.getRandomQuestions(subject, gradeLevel, count)
+            }
+        } catch (e: Exception) {
+            emptyList() // Retourner une liste vide en cas d'erreur plutôt que de planter
         }
     }
 

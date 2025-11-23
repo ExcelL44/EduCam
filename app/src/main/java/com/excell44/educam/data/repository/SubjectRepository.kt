@@ -15,7 +15,11 @@ class SubjectRepository @Inject constructor(
     }
 
     suspend fun getSubjectById(id: String): Subject? {
-        return subjectDao.getSubjectById(id)
+        return try {
+            subjectDao.getSubjectById(id)
+        } catch (e: Exception) {
+            null // Retourner null en cas d'erreur
+        }
     }
 
     fun getAllSubjects(): Flow<List<String>> {

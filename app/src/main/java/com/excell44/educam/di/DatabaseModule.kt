@@ -24,8 +24,13 @@ object DatabaseModule {
         return Room.databaseBuilder(
             context,
             EduCamDatabase::class.java,
-            "educam_database"
-        ).build()
+            EduCamDatabase.DATABASE_NAME
+        )
+            // Pour le développement, on utilise fallbackToDestructiveMigration
+            // En production, ajouter des migrations spécifiques :
+            // .addMigrations(MIGRATION_1_2, MIGRATION_2_3, ...)
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     @Provides

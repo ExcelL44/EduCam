@@ -32,5 +32,9 @@ abstract class EduCamDatabase : RoomDatabase() {
     abstract fun quizSessionDao(): QuizSessionDao
     abstract fun subjectDao(): SubjectDao
     abstract fun problemSolutionDao(): ProblemSolutionDao
+
+    companion object {
+        const val DATABASE_NAME = "educam_database"
+    }
 }
 

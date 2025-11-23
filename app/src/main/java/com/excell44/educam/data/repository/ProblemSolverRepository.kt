@@ -24,6 +24,10 @@ class ProblemSolverRepository @Inject constructor(
     ): ProblemSolution {
         // TODO: Intégrer avec une API ML ou un modèle local pour résoudre le problème
         // Pour l'instant, on simule une solution
+        if (recognizedText.isBlank()) {
+            throw IllegalArgumentException("Le texte reconnu ne peut pas être vide")
+        }
+        
         val solution = generateSolution(recognizedText, gradeLevel)
         val steps = generateSolutionSteps(recognizedText, gradeLevel)
         
@@ -39,7 +43,13 @@ class ProblemSolverRepository @Inject constructor(
             topic = detectTopic(recognizedText)
         )
         
-        problemSolutionDao.insertSolution(problemSolution)
+        try {
+            problemSolutionDao.insertSolution(problemSolution)
+        } catch (e: Exception) {
+            // Log l'erreur mais continue quand même
+            // En production, utiliser un système de logging
+        }
+        
         return problemSolution
     }
 

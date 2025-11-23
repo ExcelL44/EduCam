@@ -12,7 +12,7 @@ android {
 
     defaultConfig {
         applicationId = "com.excell44.educam"
-        minSdk = 23
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -21,6 +21,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            isDebuggable = true
+            applicationIdSuffix = ".debug"
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -38,6 +42,12 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
     }
 }
 

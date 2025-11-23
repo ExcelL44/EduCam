@@ -7,43 +7,59 @@ import com.excell44.educam.data.model.QuizMode
 
 class Converters {
     @TypeConverter
-    fun fromStringList(value: String): List<String> {
-        return value.split(",").map { it.trim() }
+    fun fromStringList(value: String?): List<String> {
+        if (value.isNullOrBlank()) return emptyList()
+        return value.split(",").map { it.trim() }.filter { it.isNotBlank() }
     }
 
     @TypeConverter
-    fun toStringList(list: List<String>): String {
-        return list.joinToString(",")
+    fun toStringList(list: List<String>?): String {
+        return list?.joinToString(",") ?: ""
     }
 
     @TypeConverter
-    fun fromQuestionType(value: QuestionType): String {
+    fun fromQuestionType(value: String?): QuestionType {
+        if (value.isNullOrBlank()) return QuestionType.MULTIPLE_CHOICE
+        return try {
+            QuestionType.valueOf(value)
+        } catch (e: IllegalArgumentException) {
+            QuestionType.MULTIPLE_CHOICE // Valeur par défaut en cas d'erreur
+        }
+    }
+
+    @TypeConverter
+    fun toQuestionType(value: QuestionType): String {
         return value.name
     }
 
     @TypeConverter
-    fun toQuestionType(value: String): QuestionType {
-        return QuestionType.valueOf(value)
+    fun fromDifficulty(value: String?): Difficulty {
+        if (value.isNullOrBlank()) return Difficulty.MEDIUM
+        return try {
+            Difficulty.valueOf(value)
+        } catch (e: IllegalArgumentException) {
+            Difficulty.MEDIUM // Valeur par défaut en cas d'erreur
+        }
     }
 
     @TypeConverter
-    fun fromDifficulty(value: Difficulty): String {
+    fun toDifficulty(value: Difficulty): String {
         return value.name
     }
 
     @TypeConverter
-    fun toDifficulty(value: String): Difficulty {
-        return Difficulty.valueOf(value)
+    fun fromQuizMode(value: String?): QuizMode {
+        if (value.isNullOrBlank()) return QuizMode.FAST
+        return try {
+            QuizMode.valueOf(value)
+        } catch (e: IllegalArgumentException) {
+            QuizMode.FAST // Valeur par défaut en cas d'erreur
+        }
     }
 
     @TypeConverter
-    fun fromQuizMode(value: QuizMode): String {
+    fun toQuizMode(value: QuizMode): String {
         return value.name
-    }
-
-    @TypeConverter
-    fun toQuizMode(value: String): QuizMode {
-        return QuizMode.valueOf(value)
     }
 }
 
