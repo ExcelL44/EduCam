@@ -1,0 +1,46 @@
+package com.excell44.educam.data.repository
+
+import com.excell44.educam.data.dao.UserDao
+import com.excell44.educam.data.model.User
+import kotlinx.coroutines.flow.Flow
+import java.util.UUID
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class AuthRepository @Inject constructor(
+    private val userDao: UserDao
+) {
+    suspend fun login(email: String, password: String): Result<User> {
+        val user = userDao.getUserByEmail(email)
+        return if (user != null && user.passwordHash == password.hashCode().toString()) {
+            Result.success(user)
+        } else {
+            Result.failure(Exception("Email ou mot de passe incorrect"))
+        }
+    }
+
+    suspend fun register(email: String, password: String, name: String, gradeLevel: String): Result<User> {
+        val existingUser = userDao.getUserByEmail(email)
+        return if (existingUser != null) {
+            Result.failure(Exception("Cet email est déjà utilisé"))
+        } else {
+            val user = User(
+                id = UUID.randomUUID().toString(),
+                email = email,
+                passwordHash = password.hashCode().toString(), // En production, utiliser bcrypt ou similar
+                name = name,
+                gradeLevel = gradeLevel
+            )
+            userDao.insertUser(user)
+            Result.success(user)
+        }
+    }
+
+    fun getCurrentUser(userId: String): Flow<User?> = userDao.getUserById(userId)
+
+    suspend fun updateGradeLevel(userId: String, gradeLevel: String) {
+        userDao.updateGradeLevel(userId, gradeLevel)
+    }
+}
+
