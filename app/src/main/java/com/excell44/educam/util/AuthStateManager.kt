@@ -12,6 +12,7 @@ class AuthStateManager @Inject constructor(
 ) {
     private val prefs: SharedPreferences = context.getSharedPreferences("educam_prefs", Context.MODE_PRIVATE)
 
+    // Basic user id storage
     fun saveUserId(userId: String) {
         prefs.edit().putString("user_id", userId).apply()
     }
@@ -27,5 +28,61 @@ class AuthStateManager @Inject constructor(
     fun isLoggedIn(): Boolean {
         return getUserId() != null
     }
+
+    // Account type: ACTIVE, PASSIVE, GUEST, BETA
+    fun saveAccountType(type: String) {
+        prefs.edit().putString("account_type", type).apply()
+    }
+
+    fun getAccountType(): String = prefs.getString("account_type", "GUEST") ?: "GUEST"
+
+    // Guest attempts (3 by default)
+    fun getGuestAttemptsRemaining(): Int {
+        return prefs.getInt("guest_attempts_remaining", 3)
+    }
+
+    fun resetGuestAttempts() {
+        prefs.edit().putInt("guest_attempts_remaining", 3).apply()
+    }
+
+    fun decrementGuestAttempts(): Int {
+        val remain = getGuestAttemptsRemaining()
+        val next = if (remain > 0) remain - 1 else 0
+        prefs.edit().putInt("guest_attempts_remaining", next).apply()
+        return next
+    }
+
+    fun setGuestMode() {
+        saveAccountType("GUEST")
+        // generate a temporary guest id
+        val guestId = prefs.getString("user_id", null) ?: "guest_${System.currentTimeMillis()}"
+        saveUserId(guestId)
+    }
+
+    fun clearGuestMode() {
+        clearUserId()
+        saveAccountType("GUEST")
+        resetGuestAttempts()
+    }
+
+    // Phone -> account count (to limit 3 accounts per phone)
+    fun incAccountsForPhone(phone: String) {
+        val key = "phone_count_$phone"
+        val count = prefs.getInt(key, 0) + 1
+        prefs.edit().putInt(key, count).apply()
+    }
+
+    fun getAccountsForPhone(phone: String): Int {
+        val key = "phone_count_$phone"
+        return prefs.getInt(key, 0)
+    }
+
+    // Small storage for profile JSON (optional)
+    fun saveProfileJson(userId: String, json: String) {
+        prefs.edit().putString("profile_$userId", json).apply()
+    }
+
+    fun getProfileJson(userId: String): String? = prefs.getString("profile_$userId", null)
 }
+
 

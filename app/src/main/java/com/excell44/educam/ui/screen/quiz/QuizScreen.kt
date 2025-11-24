@@ -36,7 +36,7 @@ fun QuizScreen(
                 title = { Text("Quiz Adaptatif") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Retour")
                     }
                 }
             )
@@ -100,20 +100,12 @@ fun QuizScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                Button(
+                com.excell44.educam.ui.components.PrimaryButton(
                     onClick = { viewModel.startQuiz() },
+                    text = if (uiState.isLoading) "..." else "Commencer le quiz",
                     modifier = Modifier.fillMaxWidth(),
                     enabled = uiState.selectedSubject != null && !uiState.isLoading
-                ) {
-                    if (uiState.isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    } else {
-                        Text("Commencer le quiz")
-                    }
-                }
+                )
             } else {
                 // Affichage de la question
                 uiState.currentQuestion?.let { question ->
@@ -132,9 +124,11 @@ fun QuizScreen(
             // Résultats
             if (uiState.showResults) {
                 Spacer(modifier = Modifier.height(24.dp))
+                val remaining = if (viewModel.isGuestMode()) viewModel.guestAttemptsRemaining() else null
                 ResultsCard(
                     score = uiState.score,
                     totalQuestions = uiState.totalQuestions,
+                    remainingAttempts = remaining,
                     onRestart = { viewModel.restartQuiz() },
                     onBack = onNavigateBack
                 )
@@ -188,13 +182,12 @@ fun QuestionCard(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-            Button(
+            com.excell44.educam.ui.components.PrimaryButton(
                 onClick = onNext,
+                text = if (isLastQuestion) "Terminer" else "Suivant",
                 modifier = Modifier.fillMaxWidth(),
                 enabled = selectedAnswer != null
-            ) {
-                Text(if (isLastQuestion) "Terminer" else "Suivant")
-            }
+            )
         }
     }
 }
@@ -228,6 +221,7 @@ fun AnswerOption(
 fun ResultsCard(
     score: Int,
     totalQuestions: Int,
+    remainingAttempts: Int? = null,
     onRestart: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -260,23 +254,31 @@ fun ResultsCard(
                 text = "${(score * 100 / totalQuestions)}% de réussite",
                 style = MaterialTheme.typography.bodyLarge
             )
+            Spacer(modifier = Modifier.height(8.dp))
+            remainingAttempts?.let { rem ->
+                val msg = if (rem > 0) "Essais restants (invité): $rem" else "Vous avez épuisé vos essais gratuits."
+                Text(
+                    text = msg,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
             Spacer(modifier = Modifier.height(24.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                OutlinedButton(
-                    onClick = onBack,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Retour")
-                }
-                Button(
-                    onClick = onRestart,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Recommencer")
-                }
+                    OutlinedButton(
+                        onClick = onBack,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Retour")
+                    }
+                    com.excell44.educam.ui.components.PrimaryButton(
+                        onClick = onRestart,
+                        text = "Recommencer",
+                        modifier = Modifier.weight(1f)
+                    )
             }
         }
     }

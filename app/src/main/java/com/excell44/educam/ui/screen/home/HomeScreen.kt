@@ -3,11 +3,15 @@ package com.excell44.educam.ui.screen.home
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.outlined.Quiz
 import androidx.compose.material.icons.outlined.MenuBook
+import com.excell44.educam.ui.components.FeatureCard
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,9 +25,13 @@ fun HomeScreen(
     onNavigateToQuiz: () -> Unit,
     onNavigateToSubjects: () -> Unit,
     onNavigateToProblemSolver: () -> Unit,
+    onNavigateToProfile: () -> Unit,
     onLogout: () -> Unit,
     authViewModel: AuthViewModel = hiltViewModel()
-) {
+ ) {
+    val isGuest = authViewModel.getAccountType() == "GUEST"
+    var showLockedDialog by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -46,16 +54,36 @@ fun HomeScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            IconButton(onClick = { authViewModel.logout(); onLogout() }) {
-                Icon(
-                    imageVector = Icons.Default.Logout,
-                    contentDescription = "Déconnexion",
-                    tint = MaterialTheme.colorScheme.primary
-                )
+            Row {
+                IconButton(onClick = onNavigateToProfile) {
+                    Icon(
+                        imageVector = Icons.Default.AccountCircle,
+                        contentDescription = "Profil",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                IconButton(onClick = { authViewModel.logout(); onLogout() }) {
+                    Icon(
+                        imageVector = Icons.Default.Logout,
+                        contentDescription = "Déconnexion",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
 
         Spacer(modifier = Modifier.height(32.dp))
+
+        // Accueil: message amélioré
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "Prépare ton examen avec EduCam AI en clin d'œil",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
 
         // Quiz Card
         FeatureCard(
@@ -63,7 +91,8 @@ fun HomeScreen(
             description = "Testez vos connaissances avec des quiz personnalisés",
             icon = Icons.Outlined.Quiz,
             onClick = onNavigateToQuiz,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = true
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -74,72 +103,45 @@ fun HomeScreen(
             description = "Accédez à une collection de sujets corrigés",
             icon = Icons.Outlined.MenuBook,
             onClick = onNavigateToSubjects,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !isGuest,
+            onLockedClick = { showLockedDialog = true }
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Problem Solver Card
+        // Problem Solver Card (Smarty)
         FeatureCard(
-            title = "Résolveur de Problèmes",
-            description = "Prenez une photo et obtenez la solution détaillée",
+            title = "Résolveur de Problèmes (Smarty)",
+            description = "Smarty vous aide à résoudre les problèmes en un clin d'œil",
             icon = Icons.Default.CameraAlt,
             onClick = onNavigateToProblemSolver,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !isGuest,
+            onLockedClick = { showLockedDialog = true }
+        )
+    }
+
+    if (showLockedDialog) {
+        AlertDialog(
+            onDismissRequest = { showLockedDialog = false },
+            title = { Text("Fonctionnalité réservée") },
+            text = { Text("Cette fonctionnalité est réservée aux utilisateurs inscrits. Voulez-vous créer un compte ?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showLockedDialog = false
+                    // navigate to register
+                    // using nav from params isn't available here, so call onNavigateToProfile as a conservative path
+                    onNavigateToProfile()
+                }) { Text("S'inscrire") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLockedDialog = false }) { Text("Fermer") }
+            }
         )
     }
 }
 
-@Composable
-fun FeatureCard(
-    title: String,
-    description: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        onClick = onClick,
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp)),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = title,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
+
+// FeatureCard is now provided by `com.excell44.educam.ui.components.FeatureCard`
 

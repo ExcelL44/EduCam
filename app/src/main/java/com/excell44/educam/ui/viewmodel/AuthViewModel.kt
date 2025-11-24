@@ -76,9 +76,86 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    // Extended registration flow used by the in-app form
+    fun registerFull(
+        pseudo: String,
+        password: String,
+        fullName: String,
+        gradeLevel: String,
+        school: String,
+        city: String,
+        neighborhood: String,
+        parentName: String?,
+        parentPhone: String?,
+        relation: String?,
+        promoCode: String?
+    ) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            // Check phone account limit
+            if (!parentPhone.isNullOrBlank()) {
+                val count = authStateManager.getAccountsForPhone(parentPhone)
+                if (count >= 3) {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = "Ce numéro de téléphone a déjà 3 comptes. Contactez le support pour autorisation."
+                    )
+                    return@launch
+                }
+            }
+
+            authRepository.registerFull(
+                pseudo = pseudo,
+                password = password,
+                fullName = fullName,
+                gradeLevel = gradeLevel,
+                school = school,
+                city = city,
+                neighborhood = neighborhood,
+                parentName = parentName,
+                parentPhone = parentPhone,
+                relation = relation,
+                promoCode = promoCode
+            ).onSuccess { user ->
+                // save account mapping for phone
+                parentPhone?.let { authStateManager.incAccountsForPhone(it) }
+                // Save user id and mark account active
+                authStateManager.saveUserId(user.id)
+                authStateManager.saveAccountType("ACTIVE")
+                // minimal profile storage
+                val profileJson = "{\"pseudo\":\"$pseudo\",\"school\":\"$school\",\"city\":\"$city\"}"
+                authStateManager.saveProfileJson(user.id, profileJson)
+
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    isLoggedIn = true,
+                    errorMessage = null
+                )
+            }.onFailure { exception ->
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = exception.message
+                )
+            }
+        }
+    }
+
     fun logout() {
         authStateManager.clearUserId()
         _uiState.value = _uiState.value.copy(isLoggedIn = false)
+    }
+
+    fun setGuestMode() {
+        authStateManager.setGuestMode()
+        _uiState.value = _uiState.value.copy(isLoggedIn = true)
+    }
+
+    // Expose small helpers for UI
+    fun getAccountType(): String = authStateManager.getAccountType()
+
+    fun getProfileJsonForCurrentUser(): String? {
+        val id = authStateManager.getUserId() ?: return null
+        return authStateManager.getProfileJson(id)
     }
 
     fun clearError() {

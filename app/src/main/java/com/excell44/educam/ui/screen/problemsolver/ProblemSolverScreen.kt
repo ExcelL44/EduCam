@@ -6,7 +6,7 @@ import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,7 +37,7 @@ fun ProblemSolverScreen(
                 title = { Text("Résolveur de Problèmes") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Retour")
                     }
                 }
             )
@@ -58,7 +58,7 @@ fun ProblemSolverScreen(
             )
 
             Text(
-                text = "Notre IA analysera le problème et vous fournira une solution détaillée",
+                text = "Smarty — notre résolveur : prenez une photo, Smarty vous donne la solution en un clin d'œil",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -66,7 +66,7 @@ fun ProblemSolverScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             // Bouton pour prendre une photo
-            Button(
+            com.excell44.educam.ui.components.PrimaryButton(
                 onClick = {
                     if (permissionsState.allPermissionsGranted) {
                         viewModel.captureImage()
@@ -74,28 +74,20 @@ fun ProblemSolverScreen(
                         permissionsState.launchMultiplePermissionRequest()
                     }
                 },
+                text = "Prendre une photo",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(64.dp),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Icon(Icons.Default.CameraAlt, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Prendre une photo")
-            }
+                    .height(64.dp)
+            )
 
             // Bouton pour sélectionner un PDF
-            OutlinedButton(
+            com.excell44.educam.ui.components.PrimaryButton(
                 onClick = { viewModel.selectPdf() },
+                text = "Sélectionner un PDF",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(64.dp),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Icon(Icons.Outlined.PictureAsPdf, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Sélectionner un PDF")
-            }
+                    .height(64.dp)
+            )
 
             // Affichage de l'image sélectionnée
             uiState.imageUri?.let { uri ->

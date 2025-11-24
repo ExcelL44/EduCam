@@ -32,7 +32,7 @@ fun SubjectsScreen(
                 title = { Text("Banque de Sujets") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Retour")
                     }
                 }
             )
@@ -133,9 +133,11 @@ fun SubjectsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { viewModel.clearSelectedSubject() }) {
-                    Text("Fermer")
-                }
+                // Use PrimaryButton for consistent primary action styling
+                com.excell44.educam.ui.components.PrimaryButton(
+                    onClick = { viewModel.clearSelectedSubject() },
+                    text = "Fermer"
+                )
             }
         )
     }

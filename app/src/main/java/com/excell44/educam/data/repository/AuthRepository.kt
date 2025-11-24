@@ -37,6 +37,39 @@ class AuthRepository @Inject constructor(
         }
     }
 
+    // Register with extended profile data (used by app registration flow)
+    suspend fun registerFull(
+        pseudo: String,
+        password: String,
+        fullName: String,
+        gradeLevel: String,
+        school: String,
+        city: String,
+        neighborhood: String,
+        parentName: String?,
+        parentPhone: String?,
+        relation: String?,
+        promoCode: String?
+    ): Result<User> {
+        // For local/offline storage, we construct a synthetic email based on pseudo
+        val email = "${pseudo.lowercase()}@local.excell"
+        val existingUser = userDao.getUserByEmail(email)
+        return if (existingUser != null) {
+            Result.failure(Exception("Ce pseudo est déjà utilisé"))
+        } else {
+            val user = User(
+                id = UUID.randomUUID().toString(),
+                email = email,
+                passwordHash = password.hashCode().toString(),
+                name = fullName,
+                gradeLevel = gradeLevel
+            )
+            userDao.insertUser(user)
+            // Additional profile details are persisted via preferences by AuthStateManager
+            Result.success(user)
+        }
+    }
+
     fun getCurrentUser(userId: String): Flow<User?> = userDao.getUserById(userId)
 
     suspend fun updateGradeLevel(userId: String, gradeLevel: String) {

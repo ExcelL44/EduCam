@@ -56,7 +56,14 @@ class QuizViewModel @Inject constructor(
 
     fun startQuiz() {
         val state = _uiState.value
-        val userId = authStateManager.getUserId() ?: return
+        // determine effective user id (allow guest mode)
+        val effectiveUserId: String? = authStateManager.getUserId() ?: run {
+            if (authStateManager.getAccountType() == "GUEST") {
+                authStateManager.setGuestMode()
+                authStateManager.getUserId()
+            } else null
+        }
+        if (effectiveUserId == null) return
         val subject = state.selectedSubject ?: return
         val mode = state.selectedMode ?: QuizMode.FAST
 
@@ -64,7 +71,7 @@ class QuizViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
                 // Créer une session
-                val session = quizRepository.createSession(userId, mode, subject)
+                val session = quizRepository.createSession(effectiveUserId, mode, subject)
 
                 // Charger les questions (adaptatif selon le mode)
                 val questionCount = if (mode == QuizMode.FAST) 10 else 20
@@ -117,6 +124,10 @@ class QuizViewModel @Inject constructor(
                 showResults = true,
                 score = newScore
             )
+            // If guest, decrement attempts remaining
+            if (authStateManager.getAccountType() == "GUEST") {
+                authStateManager.decrementGuestAttempts()
+            }
         } else {
             // Passer à la question suivante
             val nextIndex = currentIndex + 1
@@ -136,5 +147,11 @@ class QuizViewModel @Inject constructor(
             availableSubjects = _uiState.value.availableSubjects
         )
     }
+
+    fun guestAttemptsRemaining(): Int {
+        return authStateManager.getGuestAttemptsRemaining()
+    }
+
+    fun isGuestMode(): Boolean = authStateManager.getAccountType() == "GUEST"
 }
 

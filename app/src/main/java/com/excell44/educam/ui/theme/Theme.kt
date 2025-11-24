@@ -43,6 +43,7 @@ private val LightColorScheme = lightColorScheme(
     onError = EduCamOnPrimary
 )
 
+@Suppress("DEPRECATION")
 @Composable
 fun EduCamTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
