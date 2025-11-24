@@ -14,6 +14,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import android.media.AudioManager
+import android.media.ToneGenerator
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.excell44.educam.data.model.Difficulty
 import com.excell44.educam.data.model.QuizMode
@@ -57,6 +59,20 @@ fun QuizScreen(
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
+                // If there's a paused session, offer resume
+                if (uiState.isPaused) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    com.excell44.educam.ui.components.PrimaryButton(
+                        onClick = {
+                            val id = viewModel.getCurrentSessionId()
+                            if (id != null) viewModel.resumeSession(id)
+                        },
+                        text = "Reprendre la session en pause",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
                 // Sélection du mode
                 Text(
                     text = "Mode",
@@ -98,14 +114,39 @@ fun QuizScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                // Rapid mode options
+                var selectedTotalDuration by remember { mutableStateOf(if (uiState.totalQuestions > 0) uiState.totalDurationSeconds else 180) }
+                var selectedPerQuestionTimer by remember { mutableStateOf(uiState.perQuestionTimerSeconds.coerceAtLeast(10)) }
 
-                com.excell44.educam.ui.components.PrimaryButton(
-                    onClick = { viewModel.startQuiz() },
-                    text = if (uiState.isLoading) "..." else "Commencer le quiz",
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = uiState.selectedSubject != null && !uiState.isLoading
-                )
+                if (uiState.selectedMode == QuizMode.FAST) {
+                    Text(text = "Durée totale", style = MaterialTheme.typography.titleMedium)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        FilterChip(selected = selectedTotalDuration == 180, onClick = { selectedTotalDuration = 180 }, label = { Text("3 min") })
+                            FilterChip(selected = selectedTotalDuration == 300, onClick = { selectedTotalDuration = 300 }, label = { Text("5 min") })
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(text = "Timer question", style = MaterialTheme.typography.titleMedium)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        FilterChip(selected = selectedPerQuestionTimer == 10, onClick = { selectedPerQuestionTimer = 10 }, label = { Text("10s") })
+                        FilterChip(selected = selectedPerQuestionTimer == 30, onClick = { selectedPerQuestionTimer = 30 }, label = { Text("30s") })
+                        FilterChip(selected = selectedPerQuestionTimer == 60, onClick = { selectedPerQuestionTimer = 60 }, label = { Text("60s") })
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    com.excell44.educam.ui.components.PrimaryButton(
+                        onClick = { viewModel.startQuiz(perQuestionTimerSeconds = selectedPerQuestionTimer, totalDurationSeconds = selectedTotalDuration) },
+                        text = if (uiState.isLoading) "..." else "Commencer le quiz",
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = uiState.selectedSubject != null && !uiState.isLoading && (viewModel.isGuestMode().not() || viewModel.guestAttemptsRemaining() > 0)
+                    )
+                } else {
+                    com.excell44.educam.ui.components.PrimaryButton(
+                        onClick = { viewModel.startQuiz() },
+                        text = if (uiState.isLoading) "..." else "Commencer le quiz",
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = uiState.selectedSubject != null && !uiState.isLoading && (viewModel.isGuestMode().not() || viewModel.guestAttemptsRemaining() > 0)
+                    )
+                }
             } else {
                 // Affichage de la question
                 uiState.currentQuestion?.let { question ->
@@ -113,7 +154,10 @@ fun QuizScreen(
                         question = question,
                         selectedAnswer = uiState.selectedAnswer,
                         onAnswerSelected = { viewModel.selectAnswer(it) },
-                        onNext = { viewModel.nextQuestion() },
+                        onNextWithTimeLeft = { timeLeft -> viewModel.submitAnswerAndNext(timeLeft) },
+                        onHintRequested = { viewModel.recordHintUsed() },
+                        canShowHint = viewModel.canShowHint(),
+                        perQuestionTimerSeconds = uiState.perQuestionTimerSeconds,
                         isLastQuestion = uiState.isLastQuestion,
                         questionNumber = uiState.currentQuestionIndex + 1,
                         totalQuestions = uiState.totalQuestions
@@ -132,6 +176,17 @@ fun QuizScreen(
                     onRestart = { viewModel.restartQuiz() },
                     onBack = onNavigateBack
                 )
+
+                uiState.estimatedScoreOutOf20?.let { est ->
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(text = "Note estimative (sur 20)", style = MaterialTheme.typography.titleMedium)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(text = "${String.format("%.1f", est)} / 20", style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                }
             }
         }
     }
@@ -142,7 +197,10 @@ fun QuestionCard(
     question: QuizQuestion,
     selectedAnswer: String?,
     onAnswerSelected: (String) -> Unit,
-    onNext: () -> Unit,
+    onNextWithTimeLeft: (Int) -> Unit,
+    onHintRequested: () -> Unit,
+    canShowHint: Boolean,
+    perQuestionTimerSeconds: Int,
     isLastQuestion: Boolean,
     questionNumber: Int,
     totalQuestions: Int
@@ -169,6 +227,51 @@ fun QuestionCard(
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(24.dp))
+            // per-question timer and hint with visual progress and sound on expiry
+            var timeLeft by remember { mutableStateOf(perQuestionTimerSeconds) }
+            var showHint by remember { mutableStateOf(false) }
+
+            // play small beep when timer hits zero
+            val toneGen = remember { ToneGenerator(AudioManager.STREAM_MUSIC, 100) }
+
+            LaunchedEffect(key1 = question.id) {
+                timeLeft = perQuestionTimerSeconds
+                while (timeLeft > 0) {
+                    kotlinx.coroutines.delay(1000)
+                    timeLeft -= 1
+                }
+                // play beep and auto submit with 0 remaining
+                try {
+                    toneGen.startTone(ToneGenerator.TONE_PROP_BEEP, 250)
+                } catch (_: Exception) {
+                }
+                onNextWithTimeLeft(0)
+            }
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                // circular progress indicator showing remaining time
+                val progress = (timeLeft.toFloat() / perQuestionTimerSeconds.toFloat()).coerceIn(0f, 1f)
+                CircularProgressIndicator(progress = progress, modifier = Modifier.size(36.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = "${timeLeft}s", style = MaterialTheme.typography.bodySmall)
+                Spacer(modifier = Modifier.weight(1f))
+                TextButton(onClick = {
+                    if (canShowHint) {
+                        showHint = !showHint
+                        if (showHint) onHintRequested()
+                    }
+                }, enabled = canShowHint) {
+                    Text(if (canShowHint) "Indice" else "Indice (limité)")
+                }
+            }
+
+            if (showHint) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                    Text(text = question.explanation.take(160), modifier = Modifier.padding(12.dp))
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
 
             if (question.questionType == com.excell44.educam.data.model.QuestionType.MULTIPLE_CHOICE) {
                 question.options.forEach { option ->
@@ -183,7 +286,7 @@ fun QuestionCard(
 
             Spacer(modifier = Modifier.height(24.dp))
             com.excell44.educam.ui.components.PrimaryButton(
-                onClick = onNext,
+                onClick = { onNextWithTimeLeft(timeLeft) },
                 text = if (isLastQuestion) "Terminer" else "Suivant",
                 modifier = Modifier.fillMaxWidth(),
                 enabled = selectedAnswer != null

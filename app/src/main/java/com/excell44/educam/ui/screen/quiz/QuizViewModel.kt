@@ -27,10 +27,25 @@ data class QuizUiState(
     val showResults: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null
+    ,
+    val isPaused: Boolean = false,
+    // Rapid-mode settings
+    val perQuestionTimerSeconds: Int = 30,
+    val totalDurationSeconds: Int = 180,
+    val accumulatedTimeRemainingSeconds: Long = 0L,
+    val estimatedScoreOutOf20: Double? = null
 ) {
     val totalQuestions: Int get() = questions.size
     val isLastQuestion: Boolean get() = currentQuestionIndex == totalQuestions - 1
 }
+
+data class AnswerDetail(
+    val questionId: String,
+    val selectedAnswer: String?,
+    val isCorrect: Boolean,
+    val timeRemaining: Int
+)
+
 
 @HiltViewModel
 class QuizViewModel @Inject constructor(
@@ -40,6 +55,15 @@ class QuizViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(QuizUiState())
     val uiState: StateFlow<QuizUiState> = _uiState.asStateFlow()
+
+    // Keep reference to the currently active session so we can update it when quiz completes
+    private var currentSession: com.excell44.educam.data.model.QuizSession? = null
+    // accumulate per-question details during the quiz
+    private val answerDetails = mutableListOf<AnswerDetail>()
+
+    // hint usage tracking (limit for guests)
+    private var hintsUsed = 0
+    private val guestHintLimit = 3
 
     fun loadSubjects() {
         // Les sujets sont hardcodés pour l'instant
@@ -54,7 +78,7 @@ class QuizViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(selectedSubject = subject)
     }
 
-    fun startQuiz() {
+    fun startQuiz(perQuestionTimerSeconds: Int = 30, totalDurationSeconds: Int = 180) {
         val state = _uiState.value
         // determine effective user id (allow guest mode)
         val effectiveUserId: String? = authStateManager.getUserId() ?: run {
@@ -72,6 +96,10 @@ class QuizViewModel @Inject constructor(
             try {
                 // Créer une session
                 val session = quizRepository.createSession(effectiveUserId, mode, subject)
+                currentSession = session
+                // reset per-quiz accumulators
+                answerDetails.clear()
+                hintsUsed = 0
 
                 // Charger les questions (adaptatif selon le mode)
                 val questionCount = if (mode == QuizMode.FAST) 10 else 20
@@ -87,7 +115,11 @@ class QuizViewModel @Inject constructor(
                         questions = questions,
                         currentQuestionIndex = 0,
                         currentQuestion = questions[0],
-                        isLoading = false
+                        isLoading = false,
+                        perQuestionTimerSeconds = perQuestionTimerSeconds,
+                        totalDurationSeconds = totalDurationSeconds,
+                        accumulatedTimeRemainingSeconds = 0L,
+                        estimatedScoreOutOf20 = null
                     )
                 } else {
                     _uiState.value = _uiState.value.copy(
@@ -103,41 +135,98 @@ class QuizViewModel @Inject constructor(
             }
         }
     }
-
-    fun selectAnswer(answer: String) {
-        _uiState.value = _uiState.value.copy(selectedAnswer = answer)
-    }
-
-    fun nextQuestion() {
+    
+    /**
+     * Submit the currently selected answer and advance to the next question.
+     * Pass the remaining seconds for this question (used in scoring for rapid mode).
+     */
+    fun submitAnswerAndNext(timeRemainingSeconds: Int) {
         val state = _uiState.value
         val currentIndex = state.currentQuestionIndex
-        val selectedAnswer = state.selectedAnswer ?: return
+        val selectedAnswer = state.selectedAnswer ?: ""
 
-        // Vérifier la réponse
         val currentQuestion = state.currentQuestion
         val isCorrect = currentQuestion?.correctAnswer == selectedAnswer
-        val newScore = if (isCorrect) state.score + 1 else state.score
+        val newScoreCount = if (isCorrect) state.score + 1 else state.score
+        val newAccumulated = state.accumulatedTimeRemainingSeconds + timeRemainingSeconds
+
+        // record detail for this question
+        currentQuestion?.let { q ->
+            answerDetails.add(
+                AnswerDetail(
+                    questionId = q.id,
+                    selectedAnswer = if (selectedAnswer.isBlank()) null else selectedAnswer,
+                    isCorrect = isCorrect,
+                    timeRemaining = timeRemainingSeconds
+                )
+            )
+        }
 
         if (state.isLastQuestion) {
-            // Afficher les résultats
+            // compute estimated score out of 20 using correctness and average time remaining
+            val totalQ = state.totalQuestions.coerceAtLeast(1)
+            val fractionCorrect = newScoreCount.toDouble() / totalQ
+            val perQTimer = state.perQuestionTimerSeconds.coerceAtLeast(1)
+            val maxTimePool = totalQ * perQTimer.toDouble()
+            val avgTimeRemainingRatio = (newAccumulated.toDouble() / maxTimePool).coerceIn(0.0, 1.0)
+
+            val finalScore = ((fractionCorrect * 0.8) + (avgTimeRemainingRatio * 0.2)) * 20.0
+
             _uiState.value = _uiState.value.copy(
                 showResults = true,
-                score = newScore
+                score = newScoreCount,
+                accumulatedTimeRemainingSeconds = newAccumulated,
+                estimatedScoreOutOf20 = String.format("%.1f", finalScore).toDoubleOrNull() ?: finalScore
             )
-            // If guest, decrement attempts remaining
+
+            // Persist session results and detailsJson (best-effort)
+            viewModelScope.launch {
+                try {
+                    currentSession?.let { sess ->
+                        // build details JSON
+                        val arr = org.json.JSONArray()
+                        for (d in answerDetails) {
+                            val obj = org.json.JSONObject()
+                            obj.put("questionId", d.questionId)
+                            obj.put("selectedAnswer", d.selectedAnswer)
+                            obj.put("isCorrect", d.isCorrect)
+                            obj.put("timeRemaining", d.timeRemaining)
+                            arr.put(obj)
+                        }
+                        val updated = sess.copy(
+                            score = newScoreCount,
+                            totalQuestions = totalQ,
+                            endTime = System.currentTimeMillis(),
+                            isCompleted = true,
+                            detailsJson = arr.toString()
+                        )
+                        quizRepository.updateSession(updated)
+                    }
+                } catch (_: Exception) {
+                }
+            }
+
             if (authStateManager.getAccountType() == "GUEST") {
                 authStateManager.decrementGuestAttempts()
             }
         } else {
-            // Passer à la question suivante
             val nextIndex = currentIndex + 1
             _uiState.value = _uiState.value.copy(
                 currentQuestionIndex = nextIndex,
                 currentQuestion = state.questions[nextIndex],
                 selectedAnswer = null,
-                score = newScore
+                score = newScoreCount,
+                accumulatedTimeRemainingSeconds = newAccumulated
             )
         }
+    }
+
+    // Backwards-compatible nextQuestion (no timing info)
+    fun nextQuestion() {
+        submitAnswerAndNext(0)
+    }
+    fun selectAnswer(answer: String) {
+        _uiState.value = _uiState.value.copy(selectedAnswer = answer)
     }
 
     fun restartQuiz() {
@@ -153,5 +242,113 @@ class QuizViewModel @Inject constructor(
     }
 
     fun isGuestMode(): Boolean = authStateManager.getAccountType() == "GUEST"
+
+    fun canShowHint(): Boolean {
+        return if (isGuestMode()) hintsUsed < guestHintLimit else true
+    }
+
+    fun recordHintUsed() {
+        hintsUsed++
+    }
+
+    /**
+     * Pause the current quiz: persist partial progress into session.detailsJson
+     */
+    fun pauseQuiz() {
+        viewModelScope.launch {
+            try {
+                currentSession?.let { sess ->
+                    val state = _uiState.value
+                    val wrapper = org.json.JSONObject()
+                    wrapper.put("paused", true)
+                    wrapper.put("currentIndex", state.currentQuestionIndex)
+                    wrapper.put("accumulatedTimeRemainingSeconds", state.accumulatedTimeRemainingSeconds)
+                    wrapper.put("perQuestionTimerSeconds", state.perQuestionTimerSeconds)
+                    val arr = org.json.JSONArray()
+                    for (d in answerDetails) {
+                        val obj = org.json.JSONObject()
+                        obj.put("questionId", d.questionId)
+                        obj.put("selectedAnswer", d.selectedAnswer)
+                        obj.put("isCorrect", d.isCorrect)
+                        obj.put("timeRemaining", d.timeRemaining)
+                        arr.put(obj)
+                    }
+                    wrapper.put("answers", arr)
+                    val updated = sess.copy(
+                        detailsJson = wrapper.toString(),
+                        isCompleted = false
+                    )
+                    quizRepository.updateSession(updated)
+                    // update UI state
+                    _uiState.value = _uiState.value.copy(isQuizStarted = false, isPaused = true, isLoading = false)
+                }
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    /**
+     * Resume a paused session by id (restore answers list and current index)
+     */
+    fun resumeSession(sessionId: String) {
+        viewModelScope.launch {
+            try {
+                val sess = quizRepository.getSessionById(sessionId) ?: return@launch
+                currentSession = sess
+                // attempt to parse details
+                val details = sess.detailsJson
+                var resumeIndex = 0
+                answerDetails.clear()
+                if (!details.isNullOrBlank()) {
+                    try {
+                        val root = org.json.JSONObject(details)
+                        if (root.optBoolean("paused", false)) {
+                            resumeIndex = root.optInt("currentIndex", 0)
+                            val arr = root.optJSONArray("answers") ?: org.json.JSONArray()
+                            for (i in 0 until arr.length()) {
+                                val o = arr.getJSONObject(i)
+                                answerDetails.add(
+                                    AnswerDetail(
+                                        questionId = o.optString("questionId"),
+                                        selectedAnswer = if (o.has("selectedAnswer") && !o.isNull("selectedAnswer")) o.optString("selectedAnswer") else null,
+                                        isCorrect = o.optBoolean("isCorrect", false),
+                                        timeRemaining = o.optInt("timeRemaining", 0)
+                                    )
+                                )
+                            }
+                        } else {
+                            // previously saved as array only (completed session); fallback no resume
+                        }
+                    } catch (e: Exception) {
+                        // ignore parse errors
+                    }
+                }
+
+                // reload questions for the session
+                val questionCount = if (sess.mode == com.excell44.educam.data.model.QuizMode.FAST) 10 else 20
+                val questions = quizRepository.getQuestions(
+                    subject = sess.subject ?: "",
+                    gradeLevel = "Terminale",
+                    count = questionCount
+                )
+                if (questions.isNotEmpty()) {
+                    val idx = resumeIndex.coerceIn(0, questions.size - 1)
+                    _uiState.value = _uiState.value.copy(
+                        isQuizStarted = true,
+                        isPaused = false,
+                        questions = questions,
+                        currentQuestionIndex = idx,
+                        currentQuestion = questions[idx],
+                        selectedAnswer = null,
+                        score = answerDetails.count { it.isCorrect },
+                        accumulatedTimeRemainingSeconds = 0L
+                    )
+                }
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    fun getCurrentSessionId(): String? = currentSession?.id
 }
 

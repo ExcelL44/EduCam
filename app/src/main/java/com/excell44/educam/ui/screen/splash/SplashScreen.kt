@@ -53,6 +53,9 @@ fun SplashScreen(
         animationSpec = infiniteRepeatable(tween(700), RepeatMode.Reverse)
     )
 
+    // label fade anim
+    val labelAlpha = remember { Animatable(0f) }
+
     LaunchedEffect(Unit) {
         // stagger each letter with a lively easing
         for (i in 0 until steps) {
@@ -73,10 +76,12 @@ fun SplashScreen(
             delay(interval.toLong())
         }
 
-        // short tail to complete totalDurationMs and hide spinner
-        delay(300)
+        // once all letters have been revealed, show the promoter label
+        labelAlpha.animateTo(1f, animationSpec = tween(durationMillis = 500))
+
+        // small pause so the user sees the finished splash then navigate
+        delay(250)
         progressVisible = false
-        // navigate
         onNavigate(postSplashDestination)
     }
 
@@ -133,30 +138,29 @@ fun SplashScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (progressVisible) {
                 Spacer(modifier = Modifier.height(12.dp))
-                CircularProgressIndicator(
-                    color = MaterialTheme.colorScheme.tertiary,
-                    strokeWidth = 3.dp,
-                    modifier = Modifier.size(36.dp)
-                )
-            }
-        }
 
-        // bottom label
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 24.dp),
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            Text(
-                text = "Promote By Excellencia Corp",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+                if (progressVisible) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.tertiary,
+                        strokeWidth = 3.dp,
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // promoter label appears directly under the animation with fade-in
+                Text(
+                    text = "Promote by Excellencia",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier
+                        .alpha(labelAlpha.value)
+                        .padding(top = 6.dp)
+                )
         }
+        
     }
 }

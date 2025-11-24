@@ -14,7 +14,9 @@ data class QuizSession(
     val totalQuestions: Int = 0,
     val startTime: Long = System.currentTimeMillis(),
     val endTime: Long? = null,
-    val isCompleted: Boolean = false
+    val isCompleted: Boolean = false,
+    // JSON details per question or paused progress (answers/indices)
+    val detailsJson: String? = null
 )
 
 enum class QuizMode {

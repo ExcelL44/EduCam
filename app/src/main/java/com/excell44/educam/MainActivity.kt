@@ -4,6 +4,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -24,6 +27,19 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Initialisation DB: insérer les questions d'exemple si la table est vide
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val repo = com.excell44.educam.data.quiz.QuizRepository.getInstance(applicationContext)
+                val count = repo.countQuestions()
+                if (count == 0) {
+                    val samples = com.excell44.educam.data.quiz.SampleQuestionsProvider.sample()
+                    repo.insertSampleQuestions(samples)
+                }
+            } catch (t: Throwable) {
+                // Ne pas bloquer l'UI si l'init échoue; log peut être ajouté
+            }
+        }
         enableEdgeToEdge()
         setContent {
             EduCamTheme {

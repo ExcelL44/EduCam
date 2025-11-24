@@ -22,10 +22,17 @@ import kotlinx.coroutines.launch
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.Icon
 
@@ -48,6 +55,7 @@ fun RegisterScreen(
     val classOptions = listOf("Tle C", "Tle D", "1ère C", "1ère D")
     var classExpanded by remember { mutableStateOf(false) }
     var selectedClass by remember { mutableStateOf("") }
+    var classTextFieldSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
     var school by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordConfirm by remember { mutableStateOf("") }
@@ -60,6 +68,7 @@ fun RegisterScreen(
     val relationOptions = listOf("Père", "Mère", "Tuteur")
     var relationExpanded by remember { mutableStateOf(false) }
     var selectedRelation by remember { mutableStateOf("") }
+    var relationTextFieldSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
     var promoCode by remember { mutableStateOf("") }
 
     var agreedMajor by remember { mutableStateOf(false) }
@@ -76,124 +85,143 @@ fun RegisterScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .imePadding()
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "EduCam - Inscription",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.height(20.dp))
+        // Center the form and constrain max width for large screens to keep layout readable
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+            val isLargeScreen = maxWidth > 720.dp
+            Column(modifier = Modifier.fillMaxWidth().widthIn(max = 720.dp).padding(8.dp)) {
+                Text(
+                    text = "EduCam - Inscription",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-        // Progress indicator with numbered steps
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            StepIndicator(number = 1, label = "Infos perso", active = step == 1)
-            Divider(modifier = Modifier.weight(1f).align(Alignment.CenterVertically).padding(horizontal = 8.dp), color = MaterialTheme.colorScheme.surfaceVariant)
-            StepIndicator(number = 2, label = "Parent/Tutor", active = step == 2)
-            Divider(modifier = Modifier.weight(1f).align(Alignment.CenterVertically).padding(horizontal = 8.dp), color = MaterialTheme.colorScheme.surfaceVariant)
-            StepIndicator(number = 3, label = "Revue & Paiement", active = step == 3)
-        }
+                // Progress indicator with numbered steps
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    StepIndicator(number = 1, label = "Infos perso", active = step == 1)
+                    Divider(modifier = Modifier.weight(1f).align(Alignment.CenterVertically).padding(horizontal = 8.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                    StepIndicator(number = 2, label = "Parent/Tutor", active = step == 2)
+                    Divider(modifier = Modifier.weight(1f).align(Alignment.CenterVertically).padding(horizontal = 8.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                    StepIndicator(number = 3, label = "Revue & Paiement", active = step == 3)
+                }
 
-        Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.height(18.dp))
 
-        when (step) {
+            when (step) {
             1 -> {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = pseudo,
-                        onValueChange = { if (it.length <= 15) pseudo = it },
-                        label = { Text("Pseudo*") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
+                if (isLargeScreen) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            OutlinedTextField(
+                                value = pseudo,
+                                onValueChange = { if (it.length <= 15) pseudo = it },
+                                label = { Text("Pseudo*") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
 
-                    OutlinedTextField(
-                        value = fullName,
-                        onValueChange = { if (it.length <= 49) fullName = it },
-                        label = { Text("Nom & Prénom*") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
+                            OutlinedTextField(
+                                value = fullName,
+                                onValueChange = { if (it.length <= 49) fullName = it },
+                                label = { Text("Nom & Prénom*") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
 
-                    // Classe & Série dropdown (respecter la liste demandée)
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        OutlinedTextField(
-                            value = selectedClass,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Classe & Série*") },
-                            trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = null) },
-                            modifier = Modifier.fillMaxWidth()
-                                .clickable { classExpanded = true }
-                        )
-                        DropdownMenu(expanded = classExpanded, onDismissRequest = { classExpanded = false }) {
-                            classOptions.forEach { option ->
-                                DropdownMenuItem(text = { Text(option) }, onClick = {
-                                    selectedClass = option
-                                    classExpanded = false
-                                })
+                            // Classe & Série dropdown
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                val density = LocalDensity.current
+                                OutlinedTextField(
+                                    value = selectedClass,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Classe & Série*") },
+                                    trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = null) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .onGloballyPositioned { coords -> classTextFieldSize = coords.size }
+                                        .clickable { classExpanded = true }
+                                )
+                                DropdownMenu(
+                                    expanded = classExpanded,
+                                    onDismissRequest = { classExpanded = false },
+                                    offset = DpOffset(0.dp, with(density) { classTextFieldSize.height.toDp() }),
+                                    modifier = Modifier.width(with(density) { classTextFieldSize.width.toDp() })
+                                ) {
+                                    classOptions.forEach { option ->
+                                        DropdownMenuItem(text = { Text(option) }, onClick = {
+                                            selectedClass = option
+                                            classExpanded = false
+                                        })
+                                    }
+                                }
                             }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            OutlinedTextField(
+                                value = school,
+                                onValueChange = { if (it.length <= 49) school = it },
+                                label = { Text("Établissement*") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            OutlinedTextField(
+                                value = password,
+                                onValueChange = { if (it.length <= 4 && it.all { ch -> ch.isDigit() }) password = it },
+                                label = { Text("Mot de Passe (04 chiffres)*") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                visualTransformation = PasswordVisualTransformation(),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            OutlinedTextField(
+                                value = passwordConfirm,
+                                onValueChange = { if (it.length <= 4 && it.all { ch -> ch.isDigit() }) passwordConfirm = it },
+                                label = { Text("Confirmer Mot de Passe (04 chiffres)*") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                visualTransformation = PasswordVisualTransformation(),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            OutlinedTextField(
+                                value = city,
+                                onValueChange = { if (it.length <= 49) city = it },
+                                label = { Text("Ville") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            OutlinedTextField(
+                                value = neighborhood,
+                                onValueChange = { if (it.length <= 49) neighborhood = it },
+                                label = { Text("Quartier") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OutlinedTextField(
-                        value = school,
-                        onValueChange = { if (it.length <= 49) school = it },
-                        label = { Text("Établissement*") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OutlinedTextField(
-                        value = password,
-                        onValueChange = { if (it.length <= 4 && it.all { ch -> ch.isDigit() }) password = it },
-                        label = { Text("Mot de Passe (04 chiffres)*") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OutlinedTextField(
-                        value = passwordConfirm,
-                        onValueChange = { if (it.length <= 4 && it.all { ch -> ch.isDigit() }) passwordConfirm = it },
-                        label = { Text("Confirmer Mot de Passe (04 chiffres)*") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OutlinedTextField(
-                        value = city,
-                        onValueChange = { if (it.length <= 49) city = it },
-                        label = { Text("Ville") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OutlinedTextField(
-                        value = neighborhood,
-                        onValueChange = { if (it.length <= 49) neighborhood = it },
-                        label = { Text("Quartier") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
 
                     Spacer(modifier = Modifier.height(20.dp))
 
@@ -209,6 +237,127 @@ fun RegisterScreen(
                             text = "Suivant",
                             modifier = Modifier.widthIn(min = 140.dp)
                         )
+                    }
+                } else {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = pseudo,
+                            onValueChange = { if (it.length <= 15) pseudo = it },
+                            label = { Text("Pseudo*") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        OutlinedTextField(
+                            value = fullName,
+                            onValueChange = { if (it.length <= 49) fullName = it },
+                            label = { Text("Nom & Prénom*") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Classe & Série dropdown (respecter la liste demandée)
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            val density = LocalDensity.current
+                            OutlinedTextField(
+                                value = selectedClass,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Classe & Série*") },
+                                trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = null) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .onGloballyPositioned { coords -> classTextFieldSize = coords.size }
+                                    .clickable { classExpanded = true }
+                            )
+                            DropdownMenu(
+                                expanded = classExpanded,
+                                onDismissRequest = { classExpanded = false },
+                                offset = DpOffset(0.dp, with(density) { classTextFieldSize.height.toDp() }),
+                                modifier = Modifier.width(with(density) { classTextFieldSize.width.toDp() })
+                            ) {
+                                classOptions.forEach { option ->
+                                    DropdownMenuItem(text = { Text(option) }, onClick = {
+                                        selectedClass = option
+                                        classExpanded = false
+                                    })
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        OutlinedTextField(
+                            value = school,
+                            onValueChange = { if (it.length <= 49) school = it },
+                            label = { Text("Établissement*") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = { if (it.length <= 4 && it.all { ch -> ch.isDigit() }) password = it },
+                            label = { Text("Mot de Passe (04 chiffres)*") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        OutlinedTextField(
+                            value = passwordConfirm,
+                            onValueChange = { if (it.length <= 4 && it.all { ch -> ch.isDigit() }) passwordConfirm = it },
+                            label = { Text("Confirmer Mot de Passe (04 chiffres)*") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        OutlinedTextField(
+                            value = city,
+                            onValueChange = { if (it.length <= 49) city = it },
+                            label = { Text("Ville") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        OutlinedTextField(
+                            value = neighborhood,
+                            onValueChange = { if (it.length <= 49) neighborhood = it },
+                            label = { Text("Quartier") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            OutlinedButton(onClick = { /* go back to login */ onNavigateToLogin() }) {
+                                Icon(Icons.Filled.ArrowBack, contentDescription = "Retour")
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Retour")
+                            }
+
+                            com.excell44.educam.ui.components.PrimaryButton(
+                                onClick = { step = 2 },
+                                text = "Suivant",
+                                modifier = Modifier.widthIn(min = 140.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -241,16 +390,24 @@ fun RegisterScreen(
 
                     // Relation dropdown (Père/Mère/Tuteur)
                     Box(modifier = Modifier.fillMaxWidth()) {
+                        val density = LocalDensity.current
                         OutlinedTextField(
                             value = selectedRelation,
                             onValueChange = {},
                             readOnly = true,
                             label = { Text("Relation") },
                             trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = null) },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .onGloballyPositioned { coords -> relationTextFieldSize = coords.size }
                                 .clickable { relationExpanded = true }
                         )
-                        DropdownMenu(expanded = relationExpanded, onDismissRequest = { relationExpanded = false }) {
+                        DropdownMenu(
+                            expanded = relationExpanded,
+                            onDismissRequest = { relationExpanded = false },
+                            offset = DpOffset(0.dp, with(density) { relationTextFieldSize.height.toDp() }),
+                            modifier = Modifier.width(with(density) { relationTextFieldSize.width.toDp() })
+                        ) {
                             relationOptions.forEach { option ->
                                 DropdownMenuItem(text = { Text(option) }, onClick = {
                                     selectedRelation = option
@@ -390,6 +547,9 @@ fun RegisterScreen(
                         }
                     }
                 }
+            }
+        }
+
             }
         }
 
