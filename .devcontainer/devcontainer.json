@@ -1,0 +1,25 @@
+{
+    "name": "Android Dev",
+    "image": "mcr.microsoft.com/devcontainers/java:17",
+    "features": {
+        "ghcr.io/devcontainers/features/android:1": {
+            "components": "platform-tools,platforms;android-34,build-tools;34.0.0"
+        },
+        "ghcr.io/devcontainers/features/java:1": {
+            "version": "17",
+            "installGradle": true,
+            "installMaven": false
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "vscjava.vscode-java-pack",
+                "mathjon.vscode-kotlin",
+                "fwcd.kotlin",
+                "vscjava.vscode-gradle"
+            ]
+        }
+    },
+    "remoteUser": "vscode"
+}
