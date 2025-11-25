@@ -73,10 +73,42 @@ fun RegisterScreen(
     var relationTextFieldSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
     var promoCode by remember { mutableStateOf("") }
 
+    // Touched state for validation
+    var pseudoTouched by remember { mutableStateOf(false) }
+    var fullNameTouched by remember { mutableStateOf(false) }
+    var classTouched by remember { mutableStateOf(false) }
+    var schoolTouched by remember { mutableStateOf(false) }
+    var passwordTouched by remember { mutableStateOf(false) }
+    var passwordConfirmTouched by remember { mutableStateOf(false) }
+
     var agreedMajor by remember { mutableStateOf(false) }
     var agreedTerms by remember { mutableStateOf(false) }
     var paymentAttempts by remember { mutableStateOf(0) }
     val uiState by viewModel.uiState.collectAsState()
+
+    // Validation logic
+    val isPseudoValid = pseudo.isNotBlank() && pseudo.length <= 15
+    val isFullNameValid = fullName.isNotBlank() && fullName.length <= 49
+    val isClassValid = selectedClass.isNotBlank()
+    val isSchoolValid = school.isNotBlank() && school.length <= 49
+    val isPasswordValid = password.length == 4
+    val isPasswordConfirmValid = passwordConfirm.length == 4 && password == passwordConfirm
+
+    // Step 1 validation
+    val isStep1Valid = isPseudoValid && isFullNameValid && isClassValid && isSchoolValid && 
+                       isPasswordValid && isPasswordConfirmValid
+    
+    // Step 2 validation
+    val isStep2Valid = agreedMajor && agreedTerms
+
+    // Helper function for border color
+    fun getFieldColor(touched: Boolean, isValid: Boolean): Color {
+        return when {
+            !touched -> Color.Unspecified
+            isValid -> Color(0xFF4CAF50) // Green
+            else -> Color(0xFFF44336) // Red
+        }
+    }
 
     LaunchedEffect(uiState.isLoggedIn) {
         if (uiState.isLoggedIn) {
@@ -127,20 +159,36 @@ fun RegisterScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             OutlinedTextField(
                                 value = pseudo,
-                                onValueChange = { if (it.length <= 15) pseudo = it },
+                                onValueChange = { 
+                                    if (it.length <= 15) {
+                                        pseudo = it
+                                        pseudoTouched = true
+                                    }
+                                },
                                 label = { Text("Pseudo*") },
                                 modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    unfocusedBorderColor = getFieldColor(pseudoTouched, isPseudoValid)
+                                )
                             )
 
                             Spacer(modifier = Modifier.height(12.dp))
 
                             OutlinedTextField(
                                 value = fullName,
-                                onValueChange = { if (it.length <= 49) fullName = it },
+                                onValueChange = { 
+                                    if (it.length <= 49) {
+                                        fullName = it
+                                        fullNameTouched = true
+                                    }
+                                },
                                 label = { Text("Nom & Prénom*") },
                                 modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    unfocusedBorderColor = getFieldColor(fullNameTouched, isFullNameValid)
+                                )
                             )
 
                             Spacer(modifier = Modifier.height(12.dp))
@@ -157,7 +205,10 @@ fun RegisterScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .onGloballyPositioned { coords -> classTextFieldSize = coords.size }
-                                        .clickable { classExpanded = true }
+                                        .clickable { classExpanded = true },
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        unfocusedBorderColor = getFieldColor(classTouched, isClassValid)
+                                    )
                                 )
                                 DropdownMenu(
                                     expanded = classExpanded,
@@ -169,6 +220,7 @@ fun RegisterScreen(
                                         DropdownMenuItem(text = { Text(option) }, onClick = {
                                             selectedClass = option
                                             classExpanded = false
+                                            classTouched = true
                                         })
                                     }
                                 }
@@ -178,34 +230,58 @@ fun RegisterScreen(
 
                             OutlinedTextField(
                                 value = school,
-                                onValueChange = { if (it.length <= 49) school = it },
+                                onValueChange = { 
+                                    if (it.length <= 49) {
+                                        school = it
+                                        schoolTouched = true
+                                    }
+                                },
                                 label = { Text("Établissement*") },
                                 modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    unfocusedBorderColor = getFieldColor(schoolTouched, isSchoolValid)
+                                )
                             )
                         }
 
                         Column(modifier = Modifier.weight(1f)) {
                             OutlinedTextField(
                                 value = password,
-                                onValueChange = { if (it.length <= 4 && it.all { ch -> ch.isDigit() }) password = it },
+                                onValueChange = { 
+                                    if (it.length <= 4 && it.all { ch -> ch.isDigit() }) {
+                                        password = it
+                                        passwordTouched = true
+                                    }
+                                },
                                 label = { Text("Mot de Passe (04 chiffres)*") },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 visualTransformation = PasswordVisualTransformation(),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    unfocusedBorderColor = getFieldColor(passwordTouched, isPasswordValid)
+                                )
                             )
 
                             Spacer(modifier = Modifier.height(12.dp))
 
                             OutlinedTextField(
                                 value = passwordConfirm,
-                                onValueChange = { if (it.length <= 4 && it.all { ch -> ch.isDigit() }) passwordConfirm = it },
+                                onValueChange = { 
+                                    if (it.length <= 4 && it.all { ch -> ch.isDigit() }) {
+                                        passwordConfirm = it
+                                        passwordConfirmTouched = true
+                                    }
+                                },
                                 label = { Text("Confirmer Mot de Passe (04 chiffres)*") },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 visualTransformation = PasswordVisualTransformation(),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    unfocusedBorderColor = getFieldColor(passwordConfirmTouched, isPasswordConfirmValid)
+                                )
                             )
 
                             Spacer(modifier = Modifier.height(12.dp))
@@ -242,27 +318,44 @@ fun RegisterScreen(
                         com.excell44.educam.ui.components.PrimaryButton(
                             onClick = { step = 2 },
                             text = "Suivant",
-                            modifier = Modifier.widthIn(min = 140.dp)
+                            modifier = Modifier.widthIn(min = 140.dp),
+                            enabled = isStep1Valid
                         )
                     }
                 } else {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         OutlinedTextField(
                             value = pseudo,
-                            onValueChange = { if (it.length <= 15) pseudo = it },
+                            onValueChange = { 
+                                if (it.length <= 15) {
+                                    pseudo = it
+                                    pseudoTouched = true
+                                }
+                            },
                             label = { Text("Pseudo*") },
                             modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                unfocusedBorderColor = getFieldColor(pseudoTouched, isPseudoValid)
+                            )
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
 
                         OutlinedTextField(
                             value = fullName,
-                            onValueChange = { if (it.length <= 49) fullName = it },
+                            onValueChange = { 
+                                if (it.length <= 49) {
+                                    fullName = it
+                                    fullNameTouched = true
+                                }
+                            },
                             label = { Text("Nom & Prénom*") },
                             modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                unfocusedBorderColor = getFieldColor(fullNameTouched, isFullNameValid)
+                            )
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -279,7 +372,10 @@ fun RegisterScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .onGloballyPositioned { coords -> classTextFieldSize = coords.size }
-                                    .clickable { classExpanded = true }
+                                    .clickable { classExpanded = true },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    unfocusedBorderColor = getFieldColor(classTouched, isClassValid)
+                                )
                             )
                             DropdownMenu(
                                 expanded = classExpanded,
@@ -291,6 +387,7 @@ fun RegisterScreen(
                                     DropdownMenuItem(text = { Text(option) }, onClick = {
                                         selectedClass = option
                                         classExpanded = false
+                                        classTouched = true
                                     })
                                 }
                             }
@@ -300,34 +397,58 @@ fun RegisterScreen(
 
                         OutlinedTextField(
                             value = school,
-                            onValueChange = { if (it.length <= 49) school = it },
+                            onValueChange = { 
+                                if (it.length <= 49) {
+                                    school = it
+                                    schoolTouched = true
+                                }
+                            },
                             label = { Text("Établissement*") },
                             modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                unfocusedBorderColor = getFieldColor(schoolTouched, isSchoolValid)
+                            )
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
 
                         OutlinedTextField(
                             value = password,
-                            onValueChange = { if (it.length <= 4 && it.all { ch -> ch.isDigit() }) password = it },
+                            onValueChange = { 
+                                if (it.length <= 4 && it.all { ch -> ch.isDigit() }) {
+                                    password = it
+                                    passwordTouched = true
+                                }
+                            },
                             label = { Text("Mot de Passe (04 chiffres)*") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             visualTransformation = PasswordVisualTransformation(),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                unfocusedBorderColor = getFieldColor(passwordTouched, isPasswordValid)
+                            )
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
 
                         OutlinedTextField(
                             value = passwordConfirm,
-                            onValueChange = { if (it.length <= 4 && it.all { ch -> ch.isDigit() }) passwordConfirm = it },
+                            onValueChange = { 
+                                if (it.length <= 4 && it.all { ch -> ch.isDigit() }) {
+                                    passwordConfirm = it
+                                    passwordConfirmTouched = true
+                                }
+                            },
                             label = { Text("Confirmer Mot de Passe (04 chiffres)*") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             visualTransformation = PasswordVisualTransformation(),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                unfocusedBorderColor = getFieldColor(passwordConfirmTouched, isPasswordConfirmValid)
+                            )
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -362,7 +483,8 @@ fun RegisterScreen(
                             com.excell44.educam.ui.components.PrimaryButton(
                                 onClick = { step = 2 },
                                 text = "Suivant",
-                                modifier = Modifier.widthIn(min = 140.dp)
+                                modifier = Modifier.widthIn(min = 140.dp),
+                                enabled = isStep1Valid
                             )
                         }
                     }
@@ -461,7 +583,8 @@ fun RegisterScreen(
                         com.excell44.educam.ui.components.PrimaryButton(
                             onClick = { step = 3 },
                             text = "Suivant",
-                            modifier = Modifier.widthIn(min = 140.dp)
+                            modifier = Modifier.widthIn(min = 140.dp),
+                            enabled = isStep2Valid
                         )
                     }
                 }
