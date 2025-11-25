@@ -140,6 +140,37 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    fun registerOffline(
+        pseudo: String,
+        fullName: String,
+        gradeLevel: String
+    ) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            authRepository.registerOffline(pseudo, fullName, gradeLevel)
+                .onSuccess { user ->
+                    authStateManager.saveUserId(user.id)
+                    authStateManager.saveAccountType("TRIAL") // 7-day trial
+                    
+                    // minimal profile storage
+                    val profileJson = "{\"pseudo\":\"$pseudo\",\"isOffline\":true}"
+                    authStateManager.saveProfileJson(user.id, profileJson)
+
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        isLoggedIn = true,
+                        errorMessage = null
+                    )
+                }
+                .onFailure { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = exception.message
+                    )
+                }
+        }
+    }
+
     fun logout() {
         authStateManager.clearUserId()
         _uiState.value = _uiState.value.copy(isLoggedIn = false)

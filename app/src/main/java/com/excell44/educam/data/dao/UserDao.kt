@@ -20,5 +20,8 @@ interface UserDao {
 
     @Query("UPDATE users SET gradeLevel = :gradeLevel WHERE id = :userId")
     suspend fun updateGradeLevel(userId: String, gradeLevel: String)
+
+    @Query("SELECT COUNT(*) FROM users WHERE isOfflineAccount = 1")
+    suspend fun countOfflineUsers(): Int
 }
 

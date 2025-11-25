@@ -70,6 +70,40 @@ class AuthRepository @Inject constructor(
         }
     }
 
+    suspend fun registerOffline(
+        pseudo: String,
+        fullName: String,
+        gradeLevel: String
+    ): Result<User> {
+        // 1. Check limit (max 3 offline users)
+        val offlineCount = userDao.countOfflineUsers()
+        if (offlineCount >= 3) {
+            return Result.failure(Exception("Limite de 3 comptes hors ligne atteinte sur cet appareil."))
+        }
+
+        // 2. Check if pseudo exists
+        val email = "${pseudo.lowercase()}@local.excell"
+        val existingUser = userDao.getUserByEmail(email)
+        if (existingUser != null) {
+            return Result.failure(Exception("Ce pseudo est déjà utilisé"))
+        }
+
+        // 3. Create offline user with 7-day trial
+        val trialDuration = 7L * 24 * 60 * 60 * 1000 // 7 days in millis
+        val user = User(
+            id = UUID.randomUUID().toString(),
+            email = email,
+            passwordHash = "", // No password for offline/guest initially? Or simple one.
+            name = fullName,
+            gradeLevel = gradeLevel,
+            isOfflineAccount = true,
+            trialExpiresAt = System.currentTimeMillis() + trialDuration,
+            syncStatus = "PENDING_CREATE"
+        )
+        userDao.insertUser(user)
+        return Result.success(user)
+    }
+
     fun getCurrentUser(userId: String): Flow<User?> = userDao.getUserById(userId)
 
     suspend fun updateGradeLevel(userId: String, gradeLevel: String) {
