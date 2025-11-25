@@ -42,7 +42,10 @@ class MainActivity : ComponentActivity() {
         }
         enableEdgeToEdge()
         setContent {
-            EduCamTheme {
+            val themeManager = com.excell44.educam.util.ThemeManager(applicationContext)
+            val themeColor = themeManager.getThemeColor()
+            
+            EduCamTheme(backgroundColor = themeColor.color) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

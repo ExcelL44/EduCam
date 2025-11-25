@@ -48,15 +48,23 @@ private val LightColorScheme = lightColorScheme(
 fun EduCamTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false, // Désactivé pour garder notre palette
+    backgroundColor: androidx.compose.ui.graphics.Color? = null, // Custom background color
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
+    val baseColorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
+    }
+    
+    // Apply custom background color if provided
+    val colorScheme = if (backgroundColor != null) {
+        baseColorScheme.copy(background = backgroundColor)
+    } else {
+        baseColorScheme
     }
     
     val view = LocalView.current

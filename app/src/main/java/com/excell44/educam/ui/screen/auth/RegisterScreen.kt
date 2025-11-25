@@ -194,34 +194,37 @@ fun RegisterScreen(
                             Spacer(modifier = Modifier.height(12.dp))
 
                             // Classe & Série dropdown
-                            Box(modifier = Modifier.fillMaxWidth()) {
-                                val density = LocalDensity.current
+                            ExposedDropdownMenuBox(
+                                expanded = classExpanded,
+                                onExpandedChange = { classExpanded = it }
+                            ) {
                                 OutlinedTextField(
                                     value = selectedClass,
                                     onValueChange = {},
                                     readOnly = true,
                                     label = { Text("Classe & Série*") },
-                                    trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = null) },
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = classExpanded) },
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .onGloballyPositioned { coords -> classTextFieldSize = coords.size }
-                                        .clickable { classExpanded = true },
+                                        .menuAnchor(),
                                     colors = OutlinedTextFieldDefaults.colors(
                                         unfocusedBorderColor = getFieldColor(classTouched, isClassValid)
                                     )
                                 )
-                                DropdownMenu(
+                                ExposedDropdownMenu(
                                     expanded = classExpanded,
-                                    onDismissRequest = { classExpanded = false },
-                                    offset = DpOffset(0.dp, with(density) { classTextFieldSize.height.toDp() }),
-                                    modifier = Modifier.width(with(density) { classTextFieldSize.width.toDp() })
+                                    onDismissRequest = { classExpanded = false }
                                 ) {
                                     classOptions.forEach { option ->
-                                        DropdownMenuItem(text = { Text(option) }, onClick = {
-                                            selectedClass = option
-                                            classExpanded = false
-                                            classTouched = true
-                                        })
+                                        DropdownMenuItem(
+                                            text = { Text(option) },
+                                            onClick = {
+                                                selectedClass = option
+                                                classExpanded = false
+                                                classTouched = true
+                                            },
+                                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                                        )
                                     }
                                 }
                             }
@@ -361,34 +364,37 @@ fun RegisterScreen(
                         Spacer(modifier = Modifier.height(12.dp))
 
                         // Classe & Série dropdown (respecter la liste demandée)
-                        Box(modifier = Modifier.fillMaxWidth()) {
-                            val density = LocalDensity.current
+                        ExposedDropdownMenuBox(
+                            expanded = classExpanded,
+                            onExpandedChange = { classExpanded = it }
+                        ) {
                             OutlinedTextField(
                                 value = selectedClass,
                                 onValueChange = {},
                                 readOnly = true,
                                 label = { Text("Classe & Série*") },
-                                trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = null) },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = classExpanded) },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .onGloballyPositioned { coords -> classTextFieldSize = coords.size }
-                                    .clickable { classExpanded = true },
+                                    .menuAnchor(),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     unfocusedBorderColor = getFieldColor(classTouched, isClassValid)
                                 )
                             )
-                            DropdownMenu(
+                            ExposedDropdownMenu(
                                 expanded = classExpanded,
-                                onDismissRequest = { classExpanded = false },
-                                offset = DpOffset(0.dp, with(density) { classTextFieldSize.height.toDp() }),
-                                modifier = Modifier.width(with(density) { classTextFieldSize.width.toDp() })
+                                onDismissRequest = { classExpanded = false }
                             ) {
                                 classOptions.forEach { option ->
-                                    DropdownMenuItem(text = { Text(option) }, onClick = {
-                                        selectedClass = option
-                                        classExpanded = false
-                                        classTouched = true
-                                    })
+                                    DropdownMenuItem(
+                                        text = { Text(option) },
+                                        onClick = {
+                                            selectedClass = option
+                                            classExpanded = false
+                                            classTouched = true
+                                        },
+                                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                                    )
                                 }
                             }
                         }
@@ -518,30 +524,33 @@ fun RegisterScreen(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     // Relation dropdown (Père/Mère/Tuteur)
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        val density = LocalDensity.current
+                    ExposedDropdownMenuBox(
+                        expanded = relationExpanded,
+                        onExpandedChange = { relationExpanded = it }
+                    ) {
                         OutlinedTextField(
                             value = selectedRelation,
                             onValueChange = {},
                             readOnly = true,
                             label = { Text("Relation") },
-                            trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = null) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = relationExpanded) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .onGloballyPositioned { coords -> relationTextFieldSize = coords.size }
-                                .clickable { relationExpanded = true }
+                                .menuAnchor()
                         )
-                        DropdownMenu(
+                        ExposedDropdownMenu(
                             expanded = relationExpanded,
-                            onDismissRequest = { relationExpanded = false },
-                            offset = DpOffset(0.dp, with(density) { relationTextFieldSize.height.toDp() }),
-                            modifier = Modifier.width(with(density) { relationTextFieldSize.width.toDp() })
+                            onDismissRequest = { relationExpanded = false }
                         ) {
                             relationOptions.forEach { option ->
-                                DropdownMenuItem(text = { Text(option) }, onClick = {
-                                    selectedRelation = option
-                                    relationExpanded = false
-                                })
+                                DropdownMenuItem(
+                                    text = { Text(option) },
+                                    onClick = {
+                                        selectedRelation = option
+                                        relationExpanded = false
+                                    },
+                                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                                )
                             }
                         }
                     }

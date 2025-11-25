@@ -1,24 +1,21 @@
 package com.excell44.educam.ui.screen.profile
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.excell44.educam.data.model.UserMode
 import com.excell44.educam.ui.components.UserModeIndicator
 import com.excell44.educam.ui.viewmodel.AuthViewModel
-import kotlinx.coroutines.flow.firstOrNull
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,18 +25,11 @@ fun ProfileScreen(
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val accountType = viewModel.getAccountType()
-    var selectedAvatar by remember { mutableStateOf(0) }
     var pseudo by remember { mutableStateOf("") }
     var userMode by remember { mutableStateOf<UserMode?>(null) }
 
     // Fetch user mode
     LaunchedEffect(Unit) {
-        val userId = viewModel.uiState.value.let { 
-            // Get userId from AuthStateManager via viewModel
-            viewModel.getProfileJsonForCurrentUser()
-        }
-        // For now, we'll determine mode from accountType
-        // In a real scenario, we'd fetch the User from repository
         userMode = when (accountType) {
             "TRIAL" -> UserMode.PASSIVE
             "ACTIVE" -> UserMode.ACTIVE
@@ -56,6 +46,7 @@ fun ProfileScreen(
     }
 
     val isReadOnly = userMode == UserMode.GUEST
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -78,30 +69,30 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        Text(text = "Photo de profil", style = MaterialTheme.typography.titleMedium)
+        Text(text = "Couleur du thème", style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 7 avatar choices shown as neutral colored circles
+        // 7 theme color choices (from ThemeManager)
+        val themeManager = remember { com.excell44.educam.util.ThemeManager(context) }
+        val themeColors = com.excell44.educam.util.ThemeManager.ThemeColor.values()
+        var selectedThemeIndex by remember { mutableStateOf(themeManager.getThemeColorIndex()) }
+        
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            (1..7).forEach { i ->
-                val color = when (i % 7) {
-                    0 -> Color(0xFFBDBDBD)
-                    1 -> Color(0xFFB3E5FC)
-                    2 -> Color(0xFFC8E6C9)
-                    3 -> Color(0xFFFFF9C4)
-                    4 -> Color(0xFFFFCDD2)
-                    5 -> Color(0xFFD1C4E9)
-                    else -> Color(0xFFFFE0B2)
-                }
+            themeColors.forEachIndexed { index, themeColor ->
                 Box(
                     modifier = Modifier
                         .size(56.dp)
                         .clip(CircleShape)
-                        .background(color)
-                        .clickable(enabled = !isReadOnly) { selectedAvatar = i },
+                        .background(themeColor.color)
+                        .clickable(enabled = !isReadOnly) { 
+                            selectedThemeIndex = index
+                            themeManager.saveThemeColor(index)
+                            // Force recompose by recreating activity (theme will update)
+                            (context as? android.app.Activity)?.recreate()
+                        },
                     contentAlignment = Alignment.Center
                 ) {
-                    if (selectedAvatar == i) {
+                    if (selectedThemeIndex == index) {
                         Box(modifier = Modifier
                             .size(20.dp)
                             .clip(CircleShape)
