@@ -16,6 +16,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.excell44.educam.ui.viewmodel.AuthViewModel
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.platform.LocalContext
 import com.excell44.educam.data.repository.PaymentService
 import kotlinx.coroutines.launch
@@ -102,13 +104,18 @@ fun RegisterScreen(
                 Spacer(modifier = Modifier.height(20.dp))
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Progress indicator with numbered steps
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    StepIndicator(number = 1, label = "Infos perso", active = step == 1)
-                    Divider(modifier = Modifier.weight(1f).align(Alignment.CenterVertically).padding(horizontal = 8.dp), color = MaterialTheme.colorScheme.surfaceVariant)
-                    StepIndicator(number = 2, label = "Parent/Tutor", active = step == 2)
-                    Divider(modifier = Modifier.weight(1f).align(Alignment.CenterVertically).padding(horizontal = 8.dp), color = MaterialTheme.colorScheme.surfaceVariant)
-                    StepIndicator(number = 3, label = "Revue & Paiement", active = step == 3)
+                // Progress indicator: show full labeled stepper on large screens,
+                // otherwise show a compact segmented progress bar without text (fits all phones)
+                if (isLargeScreen) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        StepIndicator(number = 1, label = "Infos perso", active = step == 1)
+                        Divider(modifier = Modifier.weight(1f).align(Alignment.CenterVertically).padding(horizontal = 8.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                        StepIndicator(number = 2, label = "Parent/Tutor", active = step == 2)
+                        Divider(modifier = Modifier.weight(1f).align(Alignment.CenterVertically).padding(horizontal = 8.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                        StepIndicator(number = 3, label = "Revue & Paiement", active = step == 3)
+                    }
+                } else {
+                    CompactProgressBar(currentStep = step, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp))
                 }
 
                 Spacer(modifier = Modifier.height(18.dp))
@@ -576,6 +583,27 @@ fun StepIndicator(number: Int, label: String, active: Boolean) {
         }
         Spacer(modifier = Modifier.width(8.dp))
         Text(text = label, color = if (active) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+fun CompactProgressBar(currentStep: Int, modifier: Modifier = Modifier) {
+    val segments = 3
+    Row(
+        modifier = modifier.height(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        for (i in 1..segments) {
+            val color = if (i <= currentStep) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(color)
+            )
+        }
     }
 }
 
