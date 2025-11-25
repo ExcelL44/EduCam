@@ -22,6 +22,7 @@
         }
     },
     "remoteEnv": {
+        "ANDROID_SDK_ROOT": "/usr/local/android-sdk",
         "JAVA_HOME": "/usr/lib/jvm/msopenjdk-current"
     },
     "remoteUser": "vscode"
