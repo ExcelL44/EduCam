@@ -89,33 +89,107 @@ fun ProfileScreen(
         Text(text = "Couleur du thème", style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 7 theme color choices (from ThemeManager)
+        // Enhanced theme gradient choices with animations
         val themeManager = remember { com.excell44.educam.util.ThemeManager(context) }
-        val themeColors = com.excell44.educam.util.ThemeManager.ThemeColor.values()
+        val themeAnimations = themeManager.getCurrentAnimation()
+        val availableThemes = themeManager.getAvailableThemes()
         var selectedThemeIndex by remember { mutableStateOf(themeManager.getThemeColorIndex()) }
-        
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            themeColors.forEachIndexed { index, themeColor ->
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
-                        .background(themeColor.color)
-                        .clickable(enabled = !isReadOnly) { 
-                            selectedThemeIndex = index
-                            themeManager.saveThemeColor(index)
-                            // Force recompose by recreating activity (theme will update)
-                            (context as? android.app.Activity)?.recreate()
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (selectedThemeIndex == index) {
-                        Box(modifier = Modifier
-                            .size(20.dp)
-                            .clip(CircleShape)
-                            .background(Color.White))
+        var isAnimating by remember { mutableStateOf(false) }
+
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // Animated theme selector
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier
+                    .scale(themeAnimations.pulseScale.value.takeIf { isAnimating } ?: 1f)
+            ) {
+                availableThemes.forEachIndexed { index, themeColor ->
+                    val isSelected = selectedThemeIndex == index
+                    Box(
+                        modifier = Modifier
+                            .size(if (isSelected) 64.dp else 56.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(themeColor.gradient)
+                            .clickable(enabled = !isReadOnly) {
+                                selectedThemeIndex = index
+                                isAnimating = true
+                                themeManager.saveThemeColor(index)
+                                // Force recompose by recreating activity (theme will update)
+                                (context as? android.app.Activity)?.recreate()
+                            }
+                            .border(
+                                width = if (isSelected) 3.dp else 1.dp,
+                                color = if (isSelected) MaterialTheme.colorScheme.onBackground else Color.Transparent,
+                                shape = RoundedCornerShape(16.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isSelected) {
+                            Icon(
+                                Icons.Filled.Check,
+                                contentDescription = "Selected",
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+
+                        // Subtle animation overlay
+                        if (isSelected) {
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .alpha(0.3f)
+                                    .background(
+                                        Brush.radialGradient(
+                                            colors = listOf(
+                                                Color.White.copy(alpha = 0.6f),
+                                                Color.Transparent
+                                            )
+                                        )
+                                    )
+                            )
+                        }
                     }
                 }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Theme description
+            if (selectedThemeIndex < availableThemes.size) {
+                val currentTheme = availableThemes[selectedThemeIndex]
+                Text(
+                    text = currentTheme.label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.alpha(0.8f)
+                )
+
+                when (selectedThemeIndex) {
+                    0 -> Text(
+                        text = "Ocean Breeze - Calm focus for deep learning",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    1 -> Text(
+                        text = "Sunset Glow - Warm motivation for studying",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    2 -> Text(
+                        text = "Forest Dew - Fresh inspiration for growth",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        // Reset animation state after theme change
+        LaunchedEffect(selectedThemeIndex) {
+            if (isAnimating) {
+                kotlinx.coroutines.delay(500)
+                isAnimating = false
             }
         }
 

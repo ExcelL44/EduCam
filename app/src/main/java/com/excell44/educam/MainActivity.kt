@@ -27,19 +27,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Initialisation DB: insérer les questions d'exemple si la table est vide
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val repo = com.excell44.educam.data.quiz.QuizRepository.getInstance(applicationContext)
-                val count = repo.countQuestions()
-                if (count == 0) {
-                    val samples = com.excell44.educam.data.quiz.SampleQuestionsProvider.sample()
-                    repo.insertSampleQuestions(samples)
-                }
-            } catch (t: Throwable) {
-                // Ne pas bloquer l'UI si l'init échoue; log peut être ajouté
-            }
-        }
+        // No longer need manual DB initialization - questions are generated on-demand
         enableEdgeToEdge()
         setContent {
             val themeManager = com.excell44.educam.util.ThemeManager(applicationContext)
