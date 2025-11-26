@@ -31,7 +31,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 
 @Composable
-@Composable
 fun SplashScreen(
     postSplashDestination: String,
     onNavigate: (String) -> Unit,

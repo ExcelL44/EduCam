@@ -3,31 +3,32 @@ package com.excell44.educam.ui.theme
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.ontF
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.fo
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import com.excell44.educam.R
 
 // Police principale pour le contenu éducatif
 val EduCamFontFamily = FontFamily(
     Font(R.font.inter_regular, FontWeight.Normal),
-    Font(R.font.inter_medium, FontWeight.Medium),nt.FontWeight
-    Font(R.font.inter_semibold, FontWeight.SemiBold),import androidx.compose.ui.unit.sp
+    Font(R.font.inter_medium, FontWeight.Medium),
+    Font(R.font.inter_semibold, FontWeight.SemiBold),
     Font(R.font.inter_bold, FontWeight.Bold)
 )
 
 // Configuration typographique optimisée pour l'éducation
-impoEduCamrt com.excell44.educam.R
-  //Titresprincipaux - Lisibilité maximale
-    
-// Police principale EduCampour le coucatif
-val EduCamFontFamily = FontFamily(
-    Font(R.font.inter_regular, FontWeight.Normal),
-    Font(R.font.inter_medium, FontWeight.Medium),
-    Font(R.font.inter_seboFontWeight.SemiBold),
-    Font(R.font.inter_bold, FontWeight.Bold)
-)
-EduCam
+val EduCamTypography = Typography(
+
+    // Titres principaux - Lisibilité maximale
+    displayLarge = TextStyle(
+        fontFamily = EduCamFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 57.sp,
+        lineHeight = 64.sp,
+        letterSpacing = 0.sp
+    ),
+    displayMedium = TextStyle(
+        fontFamily = EduCamFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 45.sp,
         lineHeight = 52.sp,
