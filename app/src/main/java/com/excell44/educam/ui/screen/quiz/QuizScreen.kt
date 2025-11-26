@@ -123,7 +123,42 @@ fun WebViewContent(
     )
 }
 
-// ... (wrapHTMLContent reste inchangé)
+/**
+ * Enveloppe le contenu HTML avec du CSS pour le style
+ */
+private fun wrapHTMLContent(content: String): String {
+    return """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+            <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+            <style>
+                body {
+                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+                    padding: 16px;
+                    margin: 0;
+                    font-size: 16px;
+                    line-height: 1.6;
+                    color: #1A1A1A;
+                }
+                img {
+                    max-width: 100%;
+                    height: auto;
+                    border-radius: 8px;
+                }
+                .math {
+                    font-size: 1.1em;
+                }
+            </style>
+        </head>
+        <body>
+            $content
+        </body>
+        </html>
+    """.trimIndent()
+}
 
 /**
  * Grille de réponses 2x2 responsive (Implémentation manuelle stable)
