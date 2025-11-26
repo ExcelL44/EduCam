@@ -1,102 +1,3 @@
-package com.excell44.educam.ui.screen.profile
-
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.excell44.educam.data.model.UserMode
-import com.excell44.educam.ui.components.UserModeIndicator
-import com.excell44.educam.ui.viewmodel.AuthViewModel
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ProfileScreen(
-    onNavigateToBilan: () -> Unit,
-    onNavigateBack: () -> Unit,
-    viewModel: AuthViewModel = hiltViewModel()
-) {
-    val accountType = viewModel.getAccountType()
-    var pseudo by remember { mutableStateOf("") }
-    var userMode by remember { mutableStateOf<UserMode?>(null) }
-
-    // Fetch user mode
-    LaunchedEffect(Unit) {
-        userMode = when (accountType) {
-            "TRIAL" -> UserMode.PASSIVE
-            "ACTIVE" -> UserMode.ACTIVE
-            "BETA" -> UserMode.BETA_T
-            "ADMIN" -> UserMode.ADMIN
-            else -> UserMode.GUEST
-        }
-        
-        viewModel.getProfileJsonForCurrentUser()?.let { json ->
-            val regex = "\"pseudo\":\"(.*?)\"".toRegex()
-            val match = regex.find(json)
-            if (match != null) pseudo = match.groupValues[1]
-        }
-    }
-
-    val isReadOnly = userMode == UserMode.GUEST
-    val context = LocalContext.current
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        TopAppBar(
-            title = { Text("Profil") },
-            navigationIcon = {
-                IconButton(onClick = onNavigateBack) { Text("Retour") }
-            }
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // User Mode Indicator
-        userMode?.let {
-            UserModeIndicator(userMode = it)
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-
-        Text(text = "Couleur du thème", style = MaterialTheme.typography.titleMedium)
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // 7 theme color choices (from ThemeManager)
-        val themeManager = remember { com.excell44.educam.util.ThemeManager(context) }
-        val themeColors = com.excell44.educam.util.ThemeManager.ThemeColor.values()
-        var selectedThemeIndex by remember { mutableStateOf(themeManager.getThemeColorIndex()) }
-        
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            themeColors.forEachIndexed { index, themeColor ->
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
-                        .background(themeColor.color)
-                        .clickable(enabled = !isReadOnly) { 
-                            selectedThemeIndex = index
-                            themeManager.saveThemeColor(index)
-                            // Force recompose by recreating activity (theme will update)
-                            (context as? android.app.Activity)?.recreate()
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (selectedThemeIndex == index) {
-                        Box(modifier = Modifier
-                            .size(20.dp)
-                            .clip(CircleShape)
-                            .background(Color.White))
                     }
                 }
             }
@@ -153,11 +54,13 @@ fun ProfileScreen(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-        com.excell44.educam.ui.components.PrimaryButton(
+        Button(
             onClick = onNavigateToBilan,
-            text = "Bilan des activités",
-            modifier = Modifier.fillMaxWidth()
-        )
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium
+        ) {
+            Icon(Icons.Filled.Assessment, contentDescription = "Bilan des activités")
+        }
 
         Spacer(modifier = Modifier.height(12.dp))
         if (!isReadOnly) {
