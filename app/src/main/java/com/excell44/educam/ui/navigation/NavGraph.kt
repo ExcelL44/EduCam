@@ -8,7 +8,7 @@ import com.excell44.educam.ui.screen.auth.LoginScreen
 import com.excell44.educam.ui.screen.auth.RegisterScreen
 import com.excell44.educam.ui.screen.home.HomeScreen
 import com.excell44.educam.ui.screen.problemsolver.ProblemSolverScreen
-import com.excell44.educam.ui.screen.quiz.QuizScreen
+import com.excell44.educam.ui.screen.quiz.QuizFlow
 import com.excell44.educam.ui.screen.subjects.SubjectsScreen
 
 sealed class Screen(val route: String) {
@@ -72,7 +72,9 @@ fun NavGraph(
             )
         }
         composable(Screen.Quiz.route) {
-            QuizScreen(onNavigateBack = { navController.popBackStack() })
+            com.excell44.educam.ui.screen.quiz.QuizFlow(
+                onQuizComplete = { navController.popBackStack() }
+            )
         }
         composable(Screen.Subjects.route) {
             SubjectsScreen(onNavigateBack = { navController.popBackStack() })
