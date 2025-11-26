@@ -111,19 +111,27 @@ fun ProfileScreen(
             Row(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier
-                    .scale(themeAnimations.pulseScale.value.takeIf { isAnimating } ?: 1f)
             ) {
-                availableThemes.forEachIndexed { index, themeColor ->
+                availableThemes.forEachIndexed { index, theme ->
                     val isSelected = selectedThemeIndex == index
+                    // Créer un gradient simple pour visualisation du thème
+                    val themeGradient = Brush.horizontalGradient(
+                        colors = listOf(
+                            theme.colors.primary,
+                            theme.colors.secondary
+                        )
+                    )
+                    
                     Box(
                         modifier = Modifier
                             .size(if (isSelected) 64.dp else 56.dp)
                             .clip(RoundedCornerShape(16.dp))
-                            .background(themeColor.gradient)
+                            .background(themeGradient)
                             .clickable(enabled = !isReadOnly) {
                                 selectedThemeIndex = index
                                 isAnimating = true
-                                themeManager.saveThemeColor(index)
+                                // Sauvegarder le thème sélectionné
+                                prefs.edit().putInt("theme_index", index).apply()
                                 // Force recompose by recreating activity (theme will update)
                                 (context as? android.app.Activity)?.recreate()
                             }
@@ -169,29 +177,17 @@ fun ProfileScreen(
             if (selectedThemeIndex < availableThemes.size) {
                 val currentTheme = availableThemes[selectedThemeIndex]
                 Text(
-                    text = currentTheme.label,
+                    text = currentTheme.name,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.alpha(0.8f)
                 )
-
-                when (selectedThemeIndex) {
-                    0 -> Text(
-                        text = "Ocean Breeze - Calm focus for deep learning",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    1 -> Text(
-                        text = "Sunset Glow - Warm motivation for studying",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    2 -> Text(
-                        text = "Forest Dew - Fresh inspiration for growth",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                
+                Text(
+                    text = currentTheme.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
 
