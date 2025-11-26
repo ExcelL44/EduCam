@@ -10,6 +10,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -22,8 +24,8 @@ fun BilanScreen(onNavigateBack: () -> Unit) {
         TopAppBar(
             title = { Text("Bilan des activités") },
             navigationIcon = {
-                IconButton(onClick = onNavigateBack) { Text("Retour") }
-            }
+                IconButton(onClick = onNavigateBack) {
+                    Icon(Icons.Filled.ArrowBack, contentDescription = "Retour")
         )
 
         Spacer(modifier = Modifier.height(16.dp))
