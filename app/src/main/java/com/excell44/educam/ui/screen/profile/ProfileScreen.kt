@@ -40,13 +40,13 @@ fun ProfileScreen(
     // Fetch user mode
     LaunchedEffect(Unit) {
         userMode = when (accountType) {
-            "TRIAL" -> UserMode.PASSIVE
+            "TRIAL" -> UserMode.TRIAL
             "ACTIVE" -> UserMode.ACTIVE
             "BETA" -> UserMode.BETA_T
             "ADMIN" -> UserMode.ADMIN
             else -> UserMode.GUEST
         }
-        
+
         viewModel.getProfileJsonForCurrentUser()?.let { json ->
             val regex = "\"pseudo\":\"(.*?)\"".toRegex()
             val match = regex.find(json)
@@ -56,12 +56,12 @@ fun ProfileScreen(
 
     val isReadOnly = userMode == UserMode.GUEST
     val context = LocalContext.current
-    
+
     // Fetch trial and guest info from AuthStateManager
     val authStateManager = remember { com.excell44.educam.util.AuthStateManager(context) }
     val guestAttemptsRemaining = remember { mutableStateOf(authStateManager.getGuestAttemptsRemaining()) }
     val trialStartDate = remember { mutableStateOf(authStateManager.getTrialStartDate()) }
-    
+
     // Calculate days remaining for trial
     val daysRemaining = if (trialStartDate.value > 0L) {
         val elapsed = System.currentTimeMillis() - trialStartDate.value
@@ -213,7 +213,7 @@ fun ProfileScreen(
         )
 
         Spacer(modifier = Modifier.height(12.dp))
-        
+
         // Mode-specific UI
         when (userMode) {
             UserMode.ACTIVE -> {
@@ -247,7 +247,7 @@ fun ProfileScreen(
                     Text("3/10 inscriptions", style = MaterialTheme.typography.bodySmall)
                 }
             }
-            UserMode.PASSIVE -> {
+            UserMode.TRIAL -> {
                 // Display trial period countdown
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
@@ -324,4 +324,3 @@ fun ProfileScreen(
         }
         }
     }
-}
