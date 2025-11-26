@@ -30,10 +30,11 @@ class MainActivity : ComponentActivity() {
         // No longer need manual DB initialization - questions are generated on-demand
         enableEdgeToEdge()
         setContent {
-            val themeManager = com.excell44.educam.util.ThemeManager(applicationContext)
-            val themeColor = themeManager.getThemeColor()
-            
-            EduCamTheme(backgroundColor = themeColor.primary) {
+            // Charger le thème sauvegardé (défaut = 0: Focus Clair)
+            val prefs = getSharedPreferences("educam_prefs", MODE_PRIVATE)
+            val themeIndex = prefs.getInt("theme_index", 0)
+
+            EduCamTheme(themeIndex = themeIndex) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
