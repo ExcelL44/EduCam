@@ -22,7 +22,18 @@ fun BilanScreen(onNavigateBack: () -> Unit) {
             .padding(24.dp)
     ) {
         TopAppBar(
+            title = { Text("Bilan des activités") },
+            navigationIcon = {
+                IconButton(onClick = onNavigateBack) {
+                    Icon(Icons.Filled.ArrowBack, contentDescription = "Retour")
+                }
+            }
+        )
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(text = "Synthèse rapide", style = MaterialTheme.typography.headlineSmall)
+        Spacer(modifier = Modifier.height(12.dp))
         // Simple visual bars for subjects (static demo data)
         val subjects = listOf("Math" to 75, "Physics" to 52, "Chemistry" to 38)
         subjects.forEach { (name, percent) ->
@@ -30,13 +41,15 @@ fun BilanScreen(onNavigateBack: () -> Unit) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .height(16.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(percent / 100f)
                         .height(16.dp)
                         .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
-                )
+                ) {}
             }
             Spacer(modifier = Modifier.height(12.dp))
         }
