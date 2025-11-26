@@ -4,16 +4,46 @@ import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.excell44.educam.R
 
-// Police principale pour le contenu éducatif
+// Police principale optimale pour le contenu éducatif : Inter
+// Inter est spécialement conçue pour la lisibilité sur écrans numériques
 val EduCamFontFamily = FontFamily(
-    Font(R.font.inter_regular, FontWeight.Normal),
-    Font(R.font.inter_medium, FontWeight.Medium),
-    Font(R.font.inter_semibold, FontWeight.SemiBold),
-    Font(R.font.inter_bold, FontWeight.Bold)
+    // Police variable Inter - Normal
+    Font(
+        resId = R.font.inter_variablefont_opsz_wght,
+        weight = FontWeight.Normal,
+        style = FontStyle.Normal
+    ),
+    Font(
+        resId = R.font.inter_variablefont_opsz_wght,
+        weight = FontWeight.Medium,
+        style = FontStyle.Normal
+    ),
+    Font(
+        resId = R.font.inter_variablefont_opsz_wght,
+        weight = FontWeight.SemiBold,
+        style = FontStyle.Normal
+    ),
+    Font(
+        resId = R.font.inter_variablefont_opsz_wght,
+        weight = FontWeight.Bold,
+        style = FontStyle.Normal
+    ),
+    // Police variable Inter - Italic
+    Font(
+        resId = R.font.inter_italic_variablefont_opsz_wght,
+        weight = FontWeight.Normal,
+        style = FontStyle.Italic
+    ),
+    Font(
+        resId = R.font.inter_italic_variablefont_opsz_wght,
+        weight = FontWeight.Medium,
+        style = FontStyle.Italic
+    )
 )
 
 // Configuration typographique optimisée pour l'éducation
