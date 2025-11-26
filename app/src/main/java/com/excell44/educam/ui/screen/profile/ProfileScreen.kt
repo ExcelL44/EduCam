@@ -69,22 +69,25 @@ fun ProfileScreen(
         (7 - daysElapsed).coerceAtLeast(0)
     } else 7L
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        TopAppBar(
-            title = { Text("Profil") },
-            navigationIcon = {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(Icons.Filled.ArrowBack, contentDescription = "Retour")
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Profil") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Retour")
+                    }
                 }
-            }
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
 
         // User Mode Indicator
         userMode?.let {
@@ -318,6 +321,7 @@ fun ProfileScreen(
             OutlinedButton(onClick = { /* Edit profile save logic could go here */ }, modifier = Modifier.fillMaxWidth()) {
                 Text("Enregistrer")
             }
+        }
         }
     }
 }

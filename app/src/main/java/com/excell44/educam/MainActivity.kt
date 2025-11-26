@@ -33,7 +33,7 @@ class MainActivity : ComponentActivity() {
             val themeManager = com.excell44.educam.util.ThemeManager(applicationContext)
             val themeColor = themeManager.getThemeColor()
             
-            EduCamTheme(backgroundColor = themeColor.color) {
+            EduCamTheme(backgroundColor = themeColor.primary) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

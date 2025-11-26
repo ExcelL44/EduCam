@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.excell44.educam.data.model.Difficulty
 import com.excell44.educam.data.model.QuizMode
 import com.excell44.educam.data.model.QuizQuestion
-import com.excell44.educam.data.quiz.QuizRepository
+import com.excell44.educam.data.repository.QuizRepository
 import com.excell44.educam.util.AuthStateManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow

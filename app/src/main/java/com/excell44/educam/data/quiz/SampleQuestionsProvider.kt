@@ -1,5 +1,8 @@
 package com.excell44.educam.data.quiz
 
+import com.excell44.educam.data.quiz.Question
+import com.excell44.educam.data.quiz.OptionEntity
+
 /**
  * Enhanced provider of sample questions for guest users with meaningful educational content.
  * Focuses on Terminale level mathematics and sciences for Cameroonian students.
