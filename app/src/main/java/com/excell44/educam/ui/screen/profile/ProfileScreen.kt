@@ -98,11 +98,12 @@ fun ProfileScreen(
         Text(text = "Couleur du thème", style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Enhanced theme gradient choices with animations
-        val themeManager = remember { com.excell44.educam.util.ThemeManager(context) }
-        val themeAnimations = themeManager.getCurrentAnimation()
-        val availableThemes = themeManager.getAvailableThemes()
-        var selectedThemeIndex by remember { mutableStateOf(themeManager.getThemeColorIndex()) }
+        // Enhanced theme Material3 choices
+        val availableThemes = com.excell44.educam.ui.theme.EduCamThemes
+        val prefs = remember { context.getSharedPreferences("educam_prefs", android.content.Context.MODE_PRIVATE) }
+        var selectedThemeIndex by remember {
+            mutableStateOf(prefs.getInt("theme_index", 0))
+        }
         var isAnimating by remember { mutableStateOf(false) }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -217,18 +218,11 @@ fun ProfileScreen(
         // Mode-specific UI
         when (userMode) {
             UserMode.ACTIVE -> {
-                Button(
+                com.excell44.educam.ui.components.PrimaryButton(
                     onClick = { /* Navigate to BetaT registration */ },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF4CAF50) // Green
-                    ),
+                    text = "🌟 Devenir Beta Testeur",
                     modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "BetaTesteur",
-                        color = Color(0xFFFFD700) // Gold
-                    )
-                }
+                )
                 Text(
                     text = "Contribue au développement de l'application et devient Beta Testeur !!!",
                     style = MaterialTheme.typography.bodySmall,
@@ -291,15 +285,11 @@ fun ProfileScreen(
                         style = MaterialTheme.typography.bodySmall
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Button(
+                    com.excell44.educam.ui.components.PrimaryButton(
                         onClick = { /* TODO: Implement admin panel */ },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFFF0000) // Red for admin
-                        )
-                    ) {
-                        Text("Panneau d'administration")
-                    }
+                        text = "⚙️ Panneau d'administration",
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
             else -> {
@@ -308,19 +298,19 @@ fun ProfileScreen(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-        Button(
+        com.excell44.educam.ui.components.PrimaryButton(
             onClick = onNavigateToBilan,
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.medium
-        ) {
-            Icon(Icons.Filled.Assessment, contentDescription = "Bilan des activités")
-        }
+            text = "📊 Bilan des activités",
+            modifier = Modifier.fillMaxWidth()
+        )
 
         Spacer(modifier = Modifier.height(12.dp))
         if (!isReadOnly) {
-            OutlinedButton(onClick = { /* Edit profile save logic could go here */ }, modifier = Modifier.fillMaxWidth()) {
-                Text("Enregistrer")
-            }
+            com.excell44.educam.ui.components.SecondaryButton(
+                onClick = { /* Edit profile save logic could go here */ },
+                text = "💾 Enregistrer",
+                modifier = Modifier.fillMaxWidth()
+            )
         }
         }
     }

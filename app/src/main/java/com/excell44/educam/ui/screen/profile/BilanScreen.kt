@@ -60,8 +60,10 @@ fun BilanScreen(onNavigateBack: () -> Unit) {
         Text(text = "Félicitations, vous dépassez 50% des candidats en Mathématiques. Des efforts sont à fournir en Chimie.")
 
         Spacer(modifier = Modifier.height(24.dp))
-        OutlinedButton(onClick = onNavigateBack, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-            Text("Terminé")
-        }
+        com.excell44.educam.ui.components.PrimaryButton(
+            onClick = onNavigateBack,
+            text = "✅ Terminé",
+            modifier = Modifier.align(Alignment.CenterHorizontally).width(200.dp)
+        )
     }
 }
