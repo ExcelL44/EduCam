@@ -12,7 +12,7 @@ enum class UserMode(
         color = Color(0xFFFFC0CB), // Rose (Pink)
         description = "Accès limité (3 essais)"
     ),
-    PASSIVE(
+    TRIAL(
         label = "Mode Passif",
         color = Color(0xFFD4C48B), // Gris-Jaune (Gray-Yellow)
         description = "Période d'essai (7 jours)"

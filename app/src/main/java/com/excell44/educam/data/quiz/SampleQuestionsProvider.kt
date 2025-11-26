@@ -148,9 +148,6 @@ object SampleQuestionsProvider {
      * Get introductory questions for new users (easier level)
      */
     fun getIntroQuestions(): List<Pair<Question, List<OptionEntity>>> {
-        return sample().filter { questionPair ->
-            // Filter for easier Terminale questions that can serve as introduction
-            questionPair.first.difficulty != "Difficile"
-        }.take(6)
+        return sample().shuffled().take(6)
     }
 }
