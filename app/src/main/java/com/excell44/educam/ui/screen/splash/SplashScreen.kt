@@ -121,7 +121,8 @@ fun SplashScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0F0F23)), // Deep space blue
+            .background(Color(0xFF0F0F23)) // Deep space blue
+            .systemBarsPadding(), // Handle system bars
         contentAlignment = Alignment.Center
     ) {
         // Dynamic particle whirlpool background
@@ -173,52 +174,60 @@ fun SplashScreen(
             }
         }
 
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+        // Main content container - Centered
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
         ) {
-            // Main logo that emerges from the sphere
-            if (animationProgress.value > 0.6f) {
-                Text(
-                    text = "ExcelL",
-                    fontSize = 42.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .scale(logoScale.value)
-                        .alpha(minOf(1f, (animationProgress.value - 0.6f) * 4f))
-                )
-
-                // Tagline appears with logo
-                if (animationProgress.value > 0.65f) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.offset(y = (-20).dp) // Slight visual correction upwards
+            ) {
+                // Main logo that emerges from the sphere
+                if (animationProgress.value > 0.6f) {
                     Text(
-                        text = "Excellence Beyond Boundaries",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.White.copy(alpha = 0.8f),
+                        text = "ExcelL",
+                        fontSize = 42.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.alpha(minOf(1f, (animationProgress.value - 0.65f) * 6f))
+                        modifier = Modifier
+                            .scale(logoScale.value)
+                            .alpha(minOf(1f, (animationProgress.value - 0.6f) * 4f))
                     )
+
+                    // Tagline appears with logo
+                    if (animationProgress.value > 0.65f) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Excellence Beyond Boundaries",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color.White.copy(alpha = 0.8f),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.alpha(minOf(1f, (animationProgress.value - 0.65f) * 6f))
+                        )
+                    }
                 }
             }
+        }
 
-            // Promotion text appears at the bottom (adaptable to screen size)
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(bottom = 48.dp), // Ensure not too close to bottom
-                contentAlignment = Alignment.BottomCenter
-            ) {
-                Text(
-                    text = "Promoted by Excellencia",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Light,
-                    color = Color.White.copy(alpha = promotionAlpha.value),
-                    textAlign = TextAlign.Center,
-                    letterSpacing = 0.5.sp
-                )
-            }
+        // Promotion text appears at the bottom (moved up)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 80.dp), // Increased padding to move text up
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Text(
+                text = "Promoted by Excellencia",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Light,
+                color = Color.White.copy(alpha = promotionAlpha.value),
+                textAlign = TextAlign.Center,
+                letterSpacing = 0.5.sp
+            )
         }
     }
 }
