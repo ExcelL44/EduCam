@@ -27,6 +27,8 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(
