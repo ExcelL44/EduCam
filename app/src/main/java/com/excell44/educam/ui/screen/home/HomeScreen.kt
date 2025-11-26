@@ -33,6 +33,7 @@ fun HomeScreen(
  ) {
     val isGuest = authViewModel.getAccountType() == "GUEST"
     var showLockedDialog by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     Column(
         modifier = Modifier
@@ -66,7 +67,16 @@ fun HomeScreen(
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                IconButton(onClick = { authViewModel.logout(); onLogout() }) {
+                IconButton(onClick = { 
+                    // Réinitialiser le thème au défaut
+                    context.getSharedPreferences("educam_prefs", android.content.Context.MODE_PRIVATE)
+                        .edit()
+                        .putInt("theme_index", 0)
+                        .apply()
+                    
+                    authViewModel.logout()
+                    onLogout()
+                }) {
                     Icon(
                         imageVector = Icons.Default.Logout,
                         contentDescription = "Déconnexion",
@@ -76,7 +86,7 @@ fun HomeScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(48.dp))
 
         // Accueil: message amélioré
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -85,8 +95,10 @@ fun HomeScreen(
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         }
+        
+        Spacer(modifier = Modifier.height(24.dp))
 
         // Quiz Card
         FeatureCard(

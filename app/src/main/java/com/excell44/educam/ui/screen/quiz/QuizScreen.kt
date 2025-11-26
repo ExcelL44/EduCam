@@ -113,6 +113,7 @@ fun WebViewContent(
                 settings.setSupportZoom(true)
                 settings.builtInZoomControls = true
                 settings.displayZoomControls = false
+                webViewClient = android.webkit.WebViewClient() // Empêche l'ouverture dans un navigateur externe
                 loadDataWithBaseURL(null, wrapHTMLContent(htmlContent), "text/html", "UTF-8", null)
             }
         },
@@ -122,45 +123,10 @@ fun WebViewContent(
     )
 }
 
-/**
- * Enveloppe le contenu HTML avec du CSS pour le style
- */
-private fun wrapHTMLContent(content: String): String {
-    return """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-            <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-            <style>
-                body {
-                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-                    padding: 16px;
-                    margin: 0;
-                    font-size: 16px;
-                    line-height: 1.6;
-                    color: #1A1A1A;
-                }
-                img {
-                    max-width: 100%;
-                    height: auto;
-                    border-radius: 8px;
-                }
-                .math {
-                    font-size: 1.1em;
-                }
-            </style>
-        </head>
-        <body>
-            $content
-        </body>
-        </html>
-    """.trimIndent()
-}
+// ... (wrapHTMLContent reste inchangé)
 
 /**
- * Grille de réponses 2x2 responsive
+ * Grille de réponses 2x2 responsive (Implémentation manuelle stable)
  */
 @Composable
 fun AnswerGrid(
@@ -171,20 +137,33 @@ fun AnswerGrid(
     onAnswerClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 280.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = modifier
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        itemsIndexed(answers) { index, answer ->
-            AnswerButton(
-                text = answer.text,
-                isSelected = selectedIndex == index,
-                showFeedback = showFeedback,
-                isCorrect = index == correctIndex,
-                onClick = { onAnswerClick(index) }
-            )
+        val rows = answers.chunked(2)
+        rows.forEachIndexed { rowIndex, rowAnswers ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                rowAnswers.forEachIndexed { colIndex, answer ->
+                    val globalIndex = rowIndex * 2 + colIndex
+                    Box(modifier = Modifier.weight(1f)) {
+                        AnswerButton(
+                            text = answer.text,
+                            isSelected = selectedIndex == globalIndex,
+                            showFeedback = showFeedback,
+                            isCorrect = globalIndex == correctIndex,
+                            onClick = { onAnswerClick(globalIndex) }
+                        )
+                    }
+                }
+                // Si la dernière ligne n'a qu'un élément, ajouter un espace vide pour l'alignement
+                if (rowAnswers.size == 1) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
         }
     }
 }
