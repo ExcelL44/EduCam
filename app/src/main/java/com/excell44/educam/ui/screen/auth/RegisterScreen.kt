@@ -683,11 +683,21 @@ fun RegisterScreen(
                                         }
                                     }
                                 },
-                                text = "Payer & Créer le compte",
+                                text = "S'inscrire",
                                 modifier = Modifier.widthIn(min = 180.dp)
                             )
                         }
                     }
+                    
+                    // Mention de paiement symbolique
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "💳 L'inscription nécessite un paiement symbolique de 1000 Fcfa (OM/MoMo). Réduction appliquée si le code promo correctement saisi.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
         }
