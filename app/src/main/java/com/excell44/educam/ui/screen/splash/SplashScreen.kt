@@ -41,15 +41,24 @@ fun SplashScreen(
     val promotionAlpha = remember { Animatable(0f) }
     val particleCount = 150
 
+    // Data class for type safety
+    data class Particle(
+        val x: Animatable<Float, AnimationVector1D>,
+        val y: Animatable<Float, AnimationVector1D>,
+        val size: Float,
+        val color: Int,
+        val phase: Float
+    )
+
     // Particle positions and colors for whirlpool effect
     val particles = remember {
         List(particleCount) {
-            mutableStateMapOf(
-                "x" to Animatable(0f),
-                "y" to Animatable(0f),
-                "size" to Random.nextFloat() * 6f + 2f,
-                "color" to Random.nextInt(0xFF000000.toInt(), 0xFFFFFFFF.toInt()),
-                "phase" to Random.nextFloat() * 2 * PI.toFloat()
+            Particle(
+                x = Animatable(0f),
+                y = Animatable(0f),
+                size = Random.nextFloat() * 6f + 2f,
+                color = Random.nextInt(0xFF000000.toInt(), 0xFFFFFFFF.toInt()),
+                phase = Random.nextFloat() * 2 * PI.toFloat()
             )
         }
     }
@@ -64,15 +73,15 @@ fun SplashScreen(
 
         // Animate particles in circular motion
         particles.forEachIndexed { index, particle ->
-            val angle = (index * 360f / particleCount + particle["phase"]!! * 57.3f) % 360f
+            val angle = (index * 360f / particleCount + particle.phase * 57.3f) % 360f
             val radius = 80f + index * 0.5f
 
             launch {
-                particle["x"]?.animateTo(
+                particle.x.animateTo(
                     targetValue = cos(angle * PI.toFloat() / 180f) * radius,
                     animationSpec = tween(1200)
                 )
-                particle["y"]?.animateTo(
+                particle.y.animateTo(
                     targetValue = sin(angle * PI.toFloat() / 180f) * radius,
                     animationSpec = tween(1200)
                 )
@@ -123,13 +132,12 @@ fun SplashScreen(
             if (animationProgress.value < 0.5f) {
                 // Draw particles
                 particles.forEach { particle ->
-                    val x = centerX + (particle["x"]?.value ?: 0f)
-                    val y = centerY + (particle["y"]?.value ?: 0f)
-                    val particleSize = particle["size"] ?: 4f
-
+                    val x = centerX + particle.x.value
+                    val y = centerY + particle.y.value
+                    
                     drawCircle(
-                        color = Color(particle["color"] ?: 0xFFFFFFFF.toInt()),
-                        radius = particleSize,
+                        color = Color(particle.color),
+                        radius = particle.size,
                         center = Offset(x, y),
                         alpha = minOf(1f, animationProgress.value * 2.5f)
                     )
