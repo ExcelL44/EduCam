@@ -17,10 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.*
-import androidx.compose.material2.LinearProgressIndicator
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import com.excell44.educam.data.model.UserMode
 import com.excell44.educam.ui.components.UserModeIndicator
 import com.excell44.educam.ui.viewmodel.AuthViewModel
