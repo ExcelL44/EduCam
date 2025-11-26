@@ -80,6 +80,30 @@ class QuizViewModel @Inject constructor(
 
     fun startQuiz(perQuestionTimerSeconds: Int = 30, totalDurationSeconds: Int = 180) {
         val state = _uiState.value
+        
+        // Check Guest mode restrictions
+        if (authStateManager.getAccountType() == "GUEST") {
+            val remaining = authStateManager.getGuestAttemptsRemaining()
+            if (remaining <= 0) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = "Mode Invité: Vous avez épuisé vos 3 essais. Créez un compte pour continuer."
+                )
+                return
+            }
+        }
+        
+        // Check Passive mode (Trial) restrictions
+        if (authStateManager.getAccountType() == "TRIAL") {
+            if (authStateManager.isTrialExpired()) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = "Mode Passif: Votre période d'essai de 7 jours a expiré. Activez votre compte."
+                )
+                return
+            }
+        }
+        
         // determine effective user id (allow guest mode)
         val effectiveUserId: String? = authStateManager.getUserId() ?: run {
             if (authStateManager.getAccountType() == "GUEST") {

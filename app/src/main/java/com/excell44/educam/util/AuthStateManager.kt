@@ -83,6 +83,22 @@ class AuthStateManager @Inject constructor(
     }
 
     fun getProfileJson(userId: String): String? = prefs.getString("profile_$userId", null)
+
+    // Trial period logic (7 days)
+    fun saveTrialStartDate(timestamp: Long) {
+        prefs.edit().putLong("trial_start_date", timestamp).apply()
+    }
+
+    fun getTrialStartDate(): Long {
+        return prefs.getLong("trial_start_date", 0L)
+    }
+
+    fun isTrialExpired(): Boolean {
+        val start = getTrialStartDate()
+        if (start == 0L) return false // Not started or not applicable
+        val sevenDaysMillis = 7 * 24 * 60 * 60 * 1000L
+        return (System.currentTimeMillis() - start) > sevenDaysMillis
+    }
 }
 
 

@@ -50,6 +50,18 @@ fun ProfileScreen(
 
     val isReadOnly = userMode == UserMode.GUEST
     val context = LocalContext.current
+    
+    // Fetch trial and guest info from AuthStateManager
+    val authStateManager = remember { com.excell44.educam.util.AuthStateManager(context) }
+    val guestAttemptsRemaining = remember { mutableStateOf(authStateManager.getGuestAttemptsRemaining()) }
+    val trialStartDate = remember { mutableStateOf(authStateManager.getTrialStartDate()) }
+    
+    // Calculate days remaining for trial
+    val daysRemaining = if (trialStartDate.value > 0L) {
+        val elapsed = System.currentTimeMillis() - trialStartDate.value
+        val daysElapsed = elapsed / (24 * 60 * 60 * 1000L)
+        (7 - daysElapsed).coerceAtLeast(0)
+    } else 7L
 
     Column(
         modifier = Modifier
@@ -125,7 +137,7 @@ fun ProfileScreen(
                 Button(
                     onClick = { /* Navigate to BetaT registration */ },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF800080) // Violet
+                        containerColor = Color(0xFF4CAF50) // Green
                     ),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -150,6 +162,61 @@ fun ProfileScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                     Text("3/10 inscriptions", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            UserMode.PASSIVE -> {
+                // Display trial period countdown
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Période d'essai: $daysRemaining jours restants",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (daysRemaining <= 2) Color(0xFFFF6B6B) else MaterialTheme.colorScheme.onSurface
+                    )
+                    LinearProgressIndicator(
+                        progress = (daysRemaining / 7f),
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                    )
+                }
+            }
+            UserMode.GUEST -> {
+                // Display attempts remaining
+                Text(
+                    text = "Essais restants: ${guestAttemptsRemaining.value}/3",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (guestAttemptsRemaining.value == 0) Color(0xFFFF6B6B) else MaterialTheme.colorScheme.onSurface
+                )
+            }
+            UserMode.ADMIN -> {
+                // Admin capabilities
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Mode Super User",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "• Connexion à distance sur tous les comptes",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Text(
+                        text = "• Gestion des utilisateurs et contenus",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Text(
+                        text = "• Accès aux statistiques globales",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = { /* TODO: Implement admin panel */ },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFFF0000) // Red for admin
+                        )
+                    ) {
+                        Text("Panneau d'administration")
+                    }
                 }
             }
             else -> {
