@@ -25,7 +25,7 @@ data class User(
             isOfflineAccount -> {
                 val now = System.currentTimeMillis()
                 if (trialExpiresAt != null && now < trialExpiresAt) {
-                    UserMode.PASSIVE
+                    UserMode.TRIAL
                 } else {
                     UserMode.GUEST
                 }
@@ -34,4 +34,3 @@ data class User(
         }
     }
 }
-
