@@ -31,10 +31,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 
 @Composable
+@Composable
 fun SplashScreen(
     postSplashDestination: String,
     onNavigate: (String) -> Unit,
-    totalDurationMs: Int = 4000 // Extended for complex animation
+    totalDurationMs: Int = 6000 // Slower, more fluid animation
 ) {
     // Animation states
     val animationProgress = remember { Animatable(0f) }
@@ -67,10 +68,10 @@ fun SplashScreen(
 
     // Main animation sequence
     LaunchedEffect(Unit) {
-        // Phase 1: Whirlpool formation (0-1500ms)
+        // Phase 1: Whirlpool formation (0-2000ms) - Slower
         animationProgress.animateTo(
             targetValue = 0.4f,
-            animationSpec = tween(1500, easing = FastOutSlowInEasing)
+            animationSpec = tween(2000, easing = FastOutSlowInEasing)
         )
 
         // Animate particles in circular motion
@@ -81,40 +82,40 @@ fun SplashScreen(
             launch {
                 particle.x.animateTo(
                     targetValue = cos(angle * PI.toFloat() / 180f) * radius,
-                    animationSpec = tween(1200)
+                    animationSpec = tween(1500)
                 )
                 particle.y.animateTo(
                     targetValue = sin(angle * PI.toFloat() / 180f) * radius,
-                    animationSpec = tween(1200)
+                    animationSpec = tween(1500)
                 )
             }
         }
 
-        // Phase 2: Particles coalesce into sphere (1500-2000ms)
+        // Phase 2: Particles coalesce into sphere (2000-2800ms)
         animationProgress.animateTo(
             targetValue = 0.55f,
-            animationSpec = tween(500, easing = FastOutSlowInEasing)
-        )
-
-        // Phase 3: Sphere expands and bursts to reveal logo (2000-2800ms)
-        animationProgress.animateTo(
-            targetValue = 0.75f,
             animationSpec = tween(800, easing = FastOutSlowInEasing)
         )
 
-        logoScale.animateTo(1.3f, animationSpec = tween(400))
-        logoScale.animateTo(1f, animationSpec = tween(200))
-
-        // Phase 4: Promotion text appears (2800-4000ms)
+        // Phase 3: Sphere expands and bursts to reveal logo (2800-4000ms)
         animationProgress.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(1200)
+            targetValue = 0.75f,
+            animationSpec = tween(1200, easing = FastOutSlowInEasing)
         )
 
-        promotionAlpha.animateTo(1f, animationSpec = tween(800))
+        logoScale.animateTo(1.3f, animationSpec = tween(600))
+        logoScale.animateTo(1f, animationSpec = tween(400))
 
-        // Navigate after complete animation
-        kotlinx.coroutines.delay(500) // Small pause after animation
+        // Phase 4: Promotion text appears (4000-6000ms)
+        animationProgress.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(2000)
+        )
+
+        promotionAlpha.animateTo(1f, animationSpec = tween(1500))
+
+        // Navigate after complete animation - allow time to read
+        kotlinx.coroutines.delay(1500) 
         onNavigate(postSplashDestination)
     }
 
@@ -182,7 +183,7 @@ fun SplashScreen(
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
-                modifier = Modifier.offset(y = (-20).dp) // Slight visual correction upwards
+                modifier = Modifier.offset(y = (-64).dp) // Move UP by approx 1cm
             ) {
                 // Main logo that emerges from the sphere
                 if (animationProgress.value > 0.6f) {
@@ -197,9 +198,9 @@ fun SplashScreen(
                             .alpha(minOf(1f, (animationProgress.value - 0.6f) * 4f))
                     )
 
-                    // Tagline appears with logo
+                    // Tagline appears with logo - Spaced out by approx 1cm
                     if (animationProgress.value > 0.65f) {
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(64.dp)) // 1cm spacing
                         Text(
                             text = "Excellence Beyond Boundaries",
                             fontSize = 14.sp,
