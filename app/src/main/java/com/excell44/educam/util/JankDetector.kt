@@ -1,3 +1,5 @@
+package com.excell44.educam.util
+
 import android.os.Build
 import android.view.Choreographer
 import androidx.compose.runtime.*
