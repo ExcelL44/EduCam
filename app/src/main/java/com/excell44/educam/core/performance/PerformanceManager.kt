@@ -51,7 +51,11 @@ class PerformanceManager(private val context: Context) {
      * Obtient la température de la batterie en Celsius.
      */
     fun getBatteryTemperature(): Float {
-        return batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_TEMPERATURE) / 10f
+        val batteryStatus: Intent? = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { filter ->
+            context.registerReceiver(null, filter)
+        }
+        val temperature = batteryStatus?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0) ?: 0
+        return temperature / 10f  // Temperature is in tenths of degree
     }
     
     /**

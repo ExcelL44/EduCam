@@ -32,7 +32,7 @@ Après analyse approfondie de l'expertise pédagogique et technique fournie, je 
 
 ### ✅ MathJax + KaTeX + mhchem = Standard Industriel
 - **Performance** : KaTeX 20x plus rapide que MathJax classique
-- **Offline-first** : Pas de dépendance réseau pour les formules
+- **Offline-first** : Ressources MathJax intégrées localement (pas de CDN)
 - **Chimie complète** : mhchem gère cycles aromatiques, formules semi-développées, réactions
 
 ### ✅ SVG pour Tous les Schémas

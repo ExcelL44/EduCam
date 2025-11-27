@@ -39,7 +39,7 @@ fun HealthMonitorScreen(
             .screenPadding()
     ) {
         // Top Bar
-        SmallTopAppBar(
+        TopAppBar(
             title = { Text("Health Monitor") },
             navigationIcon = {
                 IconButton(onClick = onNavigateBack) {

@@ -18,24 +18,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 @Composable
 fun <T : Any> rememberSaveableState(
     initialValue: T,
-    key: String? = null,
-    saver: Saver<T, out Any> = autoSaver()
+    key: String? = null
 ): MutableState<T> {
-    return rememberSaveable(
-        key = key,
-        saver = saver,
-        init = { mutableStateOf(initialValue) }
-    )
+    return rememberSaveable(key = key) {
+        mutableStateOf(initialValue)
+    }
 }
-
-/**
- * Crée un saver automatique pour les types basiques.
- */
-@Suppress("UNCHECKED_CAST")
-private fun <T : Any> autoSaver(): Saver<T, Any> = Saver(
-    save = { it },
-    restore = { it as T }
-)
 
 /**
  * Pattern pour State Hoisting propre.

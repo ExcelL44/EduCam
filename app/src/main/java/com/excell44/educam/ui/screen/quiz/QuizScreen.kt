@@ -126,7 +126,7 @@ fun WebViewContent(
 }
 
 /**
- * Enveloppe le contenu HTML avec du CSS pour le style
+ * Enveloppe le contenu HTML avec du CSS pour le style et KaTeX offline
  */
 private fun wrapHTMLContent(content: String): String {
     return """
@@ -134,8 +134,23 @@ private fun wrapHTMLContent(content: String): String {
         <html>
         <head>
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-            <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+            <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/mhchem.min.js"></script>
+            <script>
+                document.addEventListener("DOMContentLoaded", function() {
+                    renderMathInElement(document.body, {
+                        delimiters: [
+                            {left: "$$", right: "$$", display: true},
+                            {left: "$", right: "$", display: false}
+                        ],
+                        macros: {
+                            "\\ce": "\\ce"
+                        }
+                    });
+                });
+            </script>
             <style>
                 body {
                     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -150,7 +165,7 @@ private fun wrapHTMLContent(content: String): String {
                     height: auto;
                     border-radius: 8px;
                 }
-                .math {
+                .katex {
                     font-size: 1.1em;
                 }
             </style>

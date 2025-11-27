@@ -1,11 +1,12 @@
-package com.excell44.educam.util
-
 import android.os.Build
 import android.view.Choreographer
 import androidx.compose.runtime.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 
 /**
  * Détecteur de jank (frame drops) pour identifier les problèmes de performance.
@@ -80,16 +81,14 @@ object JankDetector {
     }
 }
 
-/**
- * Composable pour monitorer automatiquement les janks dans un écran.
- */
 @Composable
 fun MonitorJank(
     screenName: String,
     onJankDetected: ((JankDetector.JankEvent) -> Unit)? = null
 ) {
     DisposableEffect(screenName) {
-        val job = kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+        val scope = CoroutineScope(Dispatchers.Main)
+        val job = scope.launch {
             JankDetector.startMonitoring().collect { event ->
                 println("🎯 Jank in $screenName: ${event.frameTimeMs.toInt()}ms (${event.droppedFrames} frames)")
                 onJankDetected?.invoke(event)
