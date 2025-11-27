@@ -25,33 +25,25 @@ fun SplashScreen(
     postSplashDestination: String,
     onNavigate: (String) -> Unit
 ) {
-    // Animation principale : 0f → 1f sur 2.5s
-    val animationProgress by rememberInfiniteTransition(label = "progress").animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2500, easing = EaseInOutQuart),
-            repeatMode = RepeatMode.Restart
-        )
-    )
+    // Animation principale : 0f → 1f sur 2.5s (UNE SEULE FOIS)
+    val animationProgress = remember { Animatable(0f) }
 
-    // Détecteur de fin d'animation (une fois)
-    LaunchedEffect(animationProgress) {
-        if (animationProgress >= 1f) {
-            delay(500) // Pause sur le final frame
-            onNavigate(postSplashDestination)
-        }
+    // Lancer l'animation au démarrage
+    LaunchedEffect(Unit) {
+        animationProgress.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(
+                durationMillis = 2500,
+                easing = EaseInOutQuart
+            )
+        )
+        // Attendre un peu avant de naviguer
+        delay(500)
+        onNavigate(postSplashDestination)
     }
 
-    // Fond animé avec dégradé qui pulse
-    val backgroundPulse by animateFloatAsState(
-        targetValue = 0.4f + (animationProgress * 0.3f),
-        animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = EaseInOut),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "bgPulse"
-    )
+    // Fond animé avec dégradé qui pulse (lié à l'animation principale)
+    val backgroundPulse = 0.4f + (animationProgress.value * 0.3f)
 
     Box(
         modifier = Modifier
@@ -77,12 +69,12 @@ fun SplashScreen(
             Spacer(modifier = Modifier.weight(0.3f))
 
             // ===== PHASE 1 : Cercles concentriques (début à 0.2f) =====
-            if (animationProgress > 0.2f) {
-                ConcentricCircles(animationProgress = animationProgress)
+            if (animationProgress.value > 0.2f) {
+                ConcentricCircles(animationProgress = animationProgress.value)
             }
 
             // ===== PHASE 2 : Logo avec bounce (début à 0.5f) =====
-            if (animationProgress > 0.5f) {
+            if (animationProgress.value > 0.5f) {
                 val logoScale by animateFloatAsState(
                     targetValue = 1f,
                     animationSpec = spring(
@@ -100,12 +92,12 @@ fun SplashScreen(
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .scale(logoScale)
-                        .alpha(minOf(1f, (animationProgress - 0.5f) * 3f))
+                        .alpha(minOf(1f, (animationProgress.value - 0.5f) * 3f))
                 )
             }
 
             // ===== PHASE 3 : Tagline avec slide (début à 0.7f) =====
-            if (animationProgress > 0.7f) {
+            if (animationProgress.value > 0.7f) {
                 val taglineOffset by animateFloatAsState(
                     targetValue = 0f,
                     animationSpec = tween(
@@ -125,12 +117,12 @@ fun SplashScreen(
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .offset(y = taglineOffset.dp)
-                        .alpha(minOf(1f, (animationProgress - 0.7f) * 4f))
+                        .alpha(minOf(1f, (animationProgress.value - 0.7f) * 4f))
                 )
             }
 
             // ===== PHASE 4 : Texte promotionnel (début à 0.85f) =====
-            if (animationProgress > 0.85f) {
+            if (animationProgress.value > 0.85f) {
                 Spacer(modifier = Modifier.weight(0.4f))
 
                 val promoAlpha by animateFloatAsState(
