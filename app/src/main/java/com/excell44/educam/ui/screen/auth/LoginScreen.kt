@@ -19,6 +19,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.excell44.educam.ui.viewmodel.AuthViewModel
 import com.excell44.educam.ui.viewmodel.AuthAction
 import androidx.compose.ui.platform.LocalContext
+import com.excell44.educam.ui.util.screenPadding
 
 @Composable
 fun LoginScreen(
@@ -45,7 +46,7 @@ fun LoginScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .imePadding()
+            .screenPadding()  // Gère status bar, nav bar et clavier
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center

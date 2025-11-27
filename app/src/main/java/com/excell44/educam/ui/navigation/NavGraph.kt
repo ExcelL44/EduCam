@@ -41,7 +41,7 @@ fun NavGraph(
             com.excell44.educam.ui.screen.splash.SplashScreen(
                 postSplashDestination = postSplashDestination,
                 onNavigate = { dest ->
-                    navController.navigate(dest) {
+                    navController.navigateSafe(dest) {
                         popUpTo(Screen.Splash.route) { inclusive = true }
                     }
                 }
@@ -49,67 +49,67 @@ fun NavGraph(
         }
         composable(Screen.Login.route) {
             LoginScreen(
-                onLoginSuccess = { navController.navigate(Screen.Home.route) {
+                onLoginSuccess = { navController.navigateSafe(Screen.Home.route) {
                     popUpTo(Screen.Login.route) { inclusive = true }
                 } },
-                onNavigateToRegister = { navController.navigate(Screen.Register.route) }
+                onNavigateToRegister = { navController.navigateSafe(Screen.Register.route) }
             )
         }
         composable(Screen.Register.route) {
             RegisterScreen(
-                onRegisterSuccess = { navController.navigate(Screen.Home.route) {
+                onRegisterSuccess = { navController.navigateSafe(Screen.Home.route) {
                     popUpTo(Screen.Register.route) { inclusive = true }
                 } },
-                onNavigateToLogin = { navController.popBackStack() }
+                onNavigateToLogin = { navController.popBackStackSafe() }
             )
         }
         composable(Screen.Home.route) {
             HomeScreen(
-                onNavigateToQuiz = { navController.navigate(Screen.Quiz.route) },
-                onNavigateToSubjects = { navController.navigate(Screen.Subjects.route) },
-                onNavigateToProblemSolver = { navController.navigate(Screen.ProblemSolver.route) },
-                onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
-                onNavigateToAdmin = { navController.navigate(Screen.AdminMenu.route) },
-                onLogout = { navController.navigate(Screen.Login.route) {
+                onNavigateToQuiz = { navController.navigateSafe(Screen.Quiz.route) },
+                onNavigateToSubjects = { navController.navigateSafe(Screen.Subjects.route) },
+                onNavigateToProblemSolver = { navController.navigateSafe(Screen.ProblemSolver.route) },
+                onNavigateToProfile = { navController.navigateSafe(Screen.Profile.route) },
+                onNavigateToAdmin = { navController.navigateSafe(Screen.AdminMenu.route) },
+                onLogout = { navController.navigateSafe(Screen.Login.route) {
                     popUpTo(0) { inclusive = true }
                 } }
             )
         }
         composable(Screen.Quiz.route) {
             com.excell44.educam.ui.screen.quiz.QuizFlow(
-                onQuizComplete = { navController.popBackStack() }
+                onQuizComplete = { navController.popBackStackSafe() }
             )
         }
         composable(Screen.Subjects.route) {
-            SubjectsScreen(onNavigateBack = { navController.popBackStack() })
+            SubjectsScreen(onNavigateBack = { navController.popBackStackSafe() })
         }
         composable(Screen.ProblemSolver.route) {
-            ProblemSolverScreen(onNavigateBack = { navController.popBackStack() })
+            ProblemSolverScreen(onNavigateBack = { navController.popBackStackSafe() })
         }
         composable(Screen.Profile.route) {
             com.excell44.educam.ui.screen.profile.ProfileScreen(
-                onNavigateToBilan = { navController.navigate(Screen.Bilan.route) },
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateToBilan = { navController.navigateSafe(Screen.Bilan.route) },
+                onNavigateBack = { navController.popBackStackSafe() }
             )
         }
         composable(Screen.Bilan.route) {
-            com.excell44.educam.ui.screen.profile.BilanScreen(onNavigateBack = { navController.popBackStack() })
+            com.excell44.educam.ui.screen.profile.BilanScreen(onNavigateBack = { navController.popBackStackSafe() })
         }
         composable(Screen.AdminMenu.route) {
             com.excell44.educam.ui.screen.admin.AdminMenuScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToRemoteDashboard = { navController.navigate(Screen.RemoteDashboard.route) },
-                onNavigateToLocalDatabase = { navController.navigate(Screen.LocalDatabase.route) }
+                onNavigateBack = { navController.popBackStackSafe() },
+                onNavigateToRemoteDashboard = { navController.navigateSafe(Screen.RemoteDashboard.route) },
+                onNavigateToLocalDatabase = { navController.navigateSafe(Screen.LocalDatabase.route) }
             )
         }
         composable(Screen.RemoteDashboard.route) {
             com.excell44.educam.ui.screen.admin.RemoteDashboardScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStackSafe() }
             )
         }
         composable(Screen.LocalDatabase.route) {
             com.excell44.educam.ui.screen.admin.LocalDatabaseScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStackSafe() }
             )
         }
     }

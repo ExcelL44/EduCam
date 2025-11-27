@@ -23,6 +23,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.excell44.educam.ui.util.screenPadding
 
 /**
  * Écran principal du quiz
@@ -43,6 +44,7 @@ fun QuizScreen(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .screenPadding()  // Gère tous les paddings système (status bar, nav bar, clavier)
             .padding(16.dp)
     ) {
         // Timer en haut (10min max)
