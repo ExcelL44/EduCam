@@ -17,6 +17,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+package com.excell44.educam.ui.screen.splash
+
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -28,38 +47,34 @@ fun SplashScreen(
     postSplashDestination: String,
     onNavigate: (String) -> Unit
 ) {
-    // ✅ SOLUTION 1 : State simple pour forcer la visibilité
-    var showCircles by remember { mutableStateOf(false) }
+    // State pour l'apparition progressive des textes
     var showLogo by remember { mutableStateOf(false) }
     var showTagline by remember { mutableStateOf(false) }
     var showPromo by remember { mutableStateOf(false) }
     
-    // ✅ SOLUTION 2 : Animation du fond (infinie et immédiate)
+    // Animation du fond (infinie)
     val infinitePulse = rememberInfiniteTransition(label = "bgPulse")
     val backgroundPulse by infinitePulse.animateFloat(
         initialValue = 0.4f,
         targetValue = 0.7f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = EaseInOut),
+            animation = tween(2000, easing = EaseInOut),
             repeatMode = RepeatMode.Reverse
         ),
         label = "pulse"
     )
 
-    // ✅ SOLUTION 3 : Lancer TOUT au démarrage sans condition
+    // Séquence d'apparition
     LaunchedEffect(Unit) {
-        launch {
-            // Séquence timingée (pas basée sur progression)
-            showCircles = true
-            delay(1500) // 1.5s
-            showLogo = true
-            delay(1300) // 2.25s total
-            showTagline = true
-            delay(350) // 3.75s total
-            showPromo = true
-            delay(1450) // 5.2s total
-            onNavigate(postSplashDestination)
-        }
+        // Les cercles sont affichés dès le début (via le composable directement)
+        delay(500) // Petit délai initial
+        showLogo = true
+        delay(1000) // Le logo apparait, on attend un peu
+        showTagline = true
+        delay(800) // La tagline apparait
+        showPromo = true
+        delay(2000) // On laisse tout affiché un moment
+        onNavigate(postSplashDestination)
     }
 
     Box(
@@ -85,27 +100,15 @@ fun SplashScreen(
             verticalArrangement = Arrangement.Center
         ) {
             
-            // ===== PHASE 1 : Cercles =====
-            AnimatedVisibility(
-                visible = showCircles,
-                enter = fadeIn(animationSpec = tween(500)) + scaleIn(
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
-                )
-            ) {
-                ConcentricCircles()
-            }
+            // Cercles qui pulsent en continu
+            PulsingCircles()
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // ===== PHASE 2 : Logo =====
+            // Logo "ExcelL"
             AnimatedVisibility(
                 visible = showLogo,
-                enter = fadeIn() + scaleIn(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow
-                    )
-                )
+                enter = fadeIn(animationSpec = tween(1000)) + expandVertically(expandFrom = Alignment.CenterVertically)
             ) {
                 Text(
                     text = "ExcelL",
@@ -118,11 +121,10 @@ fun SplashScreen(
 
             Spacer(modifier = Modifier.height(64.dp))
 
-            // ===== PHASE 3 : Tagline =====
+            // Tagline "Excellence Beyond Boundaries"
             AnimatedVisibility(
                 visible = showTagline,
-                enter = fadeIn(animationSpec = tween(400, easing = EaseOutCubic)) +
-                        slideInVertically(initialOffsetY = { 30 })
+                enter = fadeIn(animationSpec = tween(1000)) + slideInVertically(initialOffsetY = { 20 })
             ) {
                 Text(
                     text = "Excellence Beyond Boundaries",
@@ -135,10 +137,10 @@ fun SplashScreen(
 
             Spacer(modifier = Modifier.weight(0.5f))
 
-            // ===== PHASE 4 : Promotion =====
+            // Promo "Promoted by Excellencia"
             AnimatedVisibility(
                 visible = showPromo,
-                enter = fadeIn(animationSpec = tween(400, easing = EaseIn))
+                enter = fadeIn(animationSpec = tween(1000))
             ) {
                 Text(
                     text = "Promoted by Excellencia",
@@ -155,32 +157,60 @@ fun SplashScreen(
     }
 }
 
-// SIMPLIFIÉ : Pas besoin de paramètres
 @Composable
-fun ConcentricCircles() {
+fun PulsingCircles() {
+    val infiniteTransition = rememberInfiniteTransition(label = "circlePulse")
+    
+    // Animation de scale pour l'effet de battement de coeur
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 0.8f,
+        targetValue = 1.2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scale"
+    )
+
+    // Animation d'alpha pour l'effet de respiration
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.2f,
+        targetValue = 0.5f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alpha"
+    )
+
     Box(
         modifier = Modifier
             .size(200.dp)
-            .semantics { contentDescription = "Loading animation" },
+            .semantics { contentDescription = "Pulsing animation" },
         contentAlignment = Alignment.Center
     ) {
-        (0..2).forEach { index ->
-            val delay = index * 100L // 100ms entre chaque cercle
-            
-            LaunchedEffect(Unit) {
-                delay(delay) // ✅ Décalage simple
-            }
-            
-            Box(
-                modifier = Modifier
-                    .size(120.dp + (index * 30).dp)
-                    .scale(0.5f + (index * 0.17f)) // ✅ Scale fixe pour chaque cercle
-                    .alpha(0.3f)
-                    .background(
-                        color = Color.White.copy(alpha = 0.1f),
-                        shape = CircleShape
-                    )
-            )
-        }
+        // Cercle central
+        Box(
+            modifier = Modifier
+                .size(120.dp)
+                .scale(scale)
+                .alpha(alpha)
+                .background(
+                    color = Color.White.copy(alpha = 0.1f),
+                    shape = CircleShape
+                )
+        )
+        
+        // Cercle extérieur (décalé légèrement ou juste plus grand)
+        Box(
+            modifier = Modifier
+                .size(180.dp)
+                .scale(scale * 0.9f)
+                .alpha(alpha * 0.7f)
+                .background(
+                    color = Color.White.copy(alpha = 0.05f),
+                    shape = CircleShape
+                )
+        )
     }
 }
