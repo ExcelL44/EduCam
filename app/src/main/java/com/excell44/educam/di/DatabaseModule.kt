@@ -2,12 +2,11 @@ package com.excell44.educam.di
 
 import android.content.Context
 import androidx.room.Room
-import com.excell44.educam.data.dao.ProblemSolutionDao
-import com.excell44.educam.data.dao.QuizQuestionDao
-import com.excell44.educam.data.dao.QuizSessionDao
-import com.excell44.educam.data.dao.SubjectDao
-import com.excell44.educam.data.dao.UserDao
-import com.excell44.educam.data.database.EduCamDatabase
+import com.excell44.educam.data.local.AppDatabase
+import com.excell44.educam.data.local.dao.AnswerDao
+import com.excell44.educam.data.local.dao.QuestionDao
+import com.excell44.educam.data.local.dao.QuizDao
+import com.excell44.educam.data.local.dao.QuizResultDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -20,32 +19,24 @@ import javax.inject.Singleton
 object DatabaseModule {
     @Provides
     @Singleton
-    fun provideDatabase(@ApplicationContext context: Context): EduCamDatabase {
-        return Room.databaseBuilder(
+    fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
+        Room.databaseBuilder(
             context,
-            EduCamDatabase::class.java,
-            EduCamDatabase.DATABASE_NAME
+            AppDatabase::class.java,
+            "quiz_database"
         )
-            // Pour le développement, on utilise fallbackToDestructiveMigration
-            // En production, ajouter des migrations spécifiques :
-            // .addMigrations(MIGRATION_1_2, MIGRATION_2_3, ...)
-            .fallbackToDestructiveMigration()
-            .build()
-    }
+        .fallbackToDestructiveMigration()
+        .build()
+    
+    @Provides
+    fun provideQuizDao(db: AppDatabase): QuizDao = db.quizDao()
+    
+    @Provides
+    fun provideQuestionDao(db: AppDatabase): QuestionDao = db.questionDao()
 
     @Provides
-    fun provideUserDao(database: EduCamDatabase): UserDao = database.userDao()
+    fun provideAnswerDao(db: AppDatabase): AnswerDao = db.answerDao()
 
     @Provides
-    fun provideQuizQuestionDao(database: EduCamDatabase): QuizQuestionDao = database.quizQuestionDao()
-
-    @Provides
-    fun provideQuizSessionDao(database: EduCamDatabase): QuizSessionDao = database.quizSessionDao()
-
-    @Provides
-    fun provideSubjectDao(database: EduCamDatabase): SubjectDao = database.subjectDao()
-
-    @Provides
-    fun provideProblemSolutionDao(database: EduCamDatabase): ProblemSolutionDao = database.problemSolutionDao()
+    fun provideResultDao(db: AppDatabase): QuizResultDao = db.resultDao()
 }
-
