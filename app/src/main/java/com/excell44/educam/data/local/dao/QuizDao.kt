@@ -10,6 +10,9 @@ interface QuizDao {
     @Query("SELECT * FROM quizzes ORDER BY createdAt DESC")
     fun getAllQuizzes(): Flow<List<QuizEntity>>
     
+    @Query("SELECT * FROM quizzes ORDER BY createdAt DESC")
+    suspend fun getAllQuizzesSync(): List<QuizEntity>
+    
     @Query("SELECT * FROM quizzes WHERE isAIEnhanced = 1")
     fun getAIEnhancedQuizzes(): Flow<List<QuizEntity>>
     

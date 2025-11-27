@@ -14,6 +14,9 @@ interface QuizResultDao {
 
     @Query("SELECT * FROM quiz_results WHERE quizId = :quizId ORDER BY completedAt DESC")
     fun getResultsForQuiz(quizId: Long): Flow<List<QuizResultEntity>>
+    
+    @Query("SELECT * FROM quiz_results WHERE quizId = :quizId ORDER BY completedAt DESC")
+    suspend fun getResultsForQuizSync(quizId: Long): List<QuizResultEntity>
 
     @Query("SELECT * FROM quiz_results ORDER BY completedAt DESC")
     fun getAllResults(): Flow<List<QuizResultEntity>>
