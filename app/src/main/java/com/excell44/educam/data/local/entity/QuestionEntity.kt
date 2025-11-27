@@ -2,6 +2,7 @@ package com.excell44.educam.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
@@ -13,7 +14,8 @@ import androidx.room.PrimaryKey
             childColumns = ["quizId"],
             onDelete = ForeignKey.CASCADE
         )
-    ]
+    ],
+    indices = [Index(value = ["quizId"])]
 )
 data class QuestionEntity(
     @PrimaryKey(autoGenerate = true)
