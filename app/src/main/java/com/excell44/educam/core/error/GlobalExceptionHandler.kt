@@ -2,6 +2,7 @@ package com.excell44.educam.core.error
 
 import android.content.Context
 import android.content.Intent
+import com.excell44.educam.core.fallback.EmergencyFallback
 import kotlin.system.exitProcess
 
 /**
@@ -13,9 +14,14 @@ class GlobalExceptionHandler private constructor(
     private val defaultHandler: Thread.UncaughtExceptionHandler?
 ) : Thread.UncaughtExceptionHandler {
 
+    private val emergencyFallback = EmergencyFallback.getInstance(context)
+
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
         try {
-            // 1. Logger le crash
+            // 1. Enregistrer le crash dans le système d'urgence
+            emergencyFallback.recordCrash()
+            
+            // 2. Logger le crash
             logCrash(throwable)
             
             // 2. Sauvegarder l'état de l'app
