@@ -8,7 +8,7 @@ import javax.inject.Singleton
 
 @Singleton
 class AuthStateManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
 ) {
     private val prefs: SharedPreferences = context.getSharedPreferences("educam_prefs", Context.MODE_PRIVATE)
 
