@@ -65,9 +65,9 @@ class PerformanceManager(private val context: Context) {
      * Valeur entre 0.0 (surchauffe) et 1.0 (température idéale).
      * Retourne null si l'API n'est pas disponible.
      */
-    @RequiresApi(Build.VERSION_CODES.Q)
+    @RequiresApi(Build.VERSION_CODES.R)
     fun getThermalHeadroom(forecastSeconds: Int = 30): Float? {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             try {
                 powerManager.getThermalHeadroom(forecastSeconds)
             } catch (e: Exception) {
