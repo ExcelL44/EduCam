@@ -34,15 +34,20 @@ object MergeStrategies {
             // Garde le compte offline local
             isOfflineAccount = local.isOfflineAccount,
             
-            // Garde le trial le plus long
-            trialExpiresAt = maxOf(local.trialExpiresAt, server.trialExpiresAt),
-            
-            // Met à jour le dernier sync
-            lastSyncedAt = System.currentTimeMillis(),
+            // Garde le trial le plus long si les deux existent
+            trialExpiresAt = when {
+                local.trialExpiresAt == null -> server.trialExpiresAt
+                server.trialExpiresAt == null -> local.trialExpiresAt
+                else -> maxOf(local.trialExpiresAt, server.trialExpiresAt)
+            },
             
             // Garde les données serveur pour les champs critiques
             email = server.email,
-            passwordHash = server.passwordHash.takeIf { it.isNotBlank() } ?: local.passwordHash
+            passwordHash = server.passwordHash.takeIf { it.isNotBlank() } ?: local.passwordHash,
+            role = server.role,
+            
+            // Garde le createdAt le plus ancien
+            createdAt = minOf(local.createdAt, server.createdAt)
         )
     }
 
@@ -51,24 +56,25 @@ object MergeStrategies {
      * Priorité : Garde le meilleur score.
      * 
      * Règles :
-     * - Si même quiz, même user : garde le meilleur score
+     * - Si même quiz : garde le meilleur score
      * - Garde le temps le plus rapide en cas d'égalité
+     * 
+     * Note: QuizResultEntity n'a pas de userId, donc on ne peut pas vérifier
      */
     fun mergeQuizResults(local: QuizResultEntity, server: QuizResultEntity): QuizResultEntity {
-        // Vérifier qu'on parle bien du même quiz et même utilisateur
+        // Vérifier qu'on parle bien du même quiz
         require(local.quizId == server.quizId) { "Cannot merge results from different quizzes" }
-        require(local.userId == server.userId) { "Cannot merge results from different users" }
         
         return when {
-            // Si le score local est meilleur
-            local.score > server.score -> local
+            // Si le score local est meilleur (en pourcentage)
+            local.score * 100 / local.maxScore > server.score * 100 / server.maxScore -> local
             
             // Si le score serveur est meilleur
-            server.score > local.score -> server
+            server.score * 100 / server.maxScore > local.score * 100 / local.maxScore -> server
             
-            // Si scores égaux, garde le plus rapide (temps le plus court)
-            local.score == server.score -> {
-                if ((local.completedAt - local.startedAt) < (server.completedAt - server.startedAt)) {
+            // Si scores égaux, garde le temps le plus rapide
+            local.score * 100 / local.maxScore == server.score * 100 / server.maxScore -> {
+                if (local.completionTime < server.completionTime) {
                     local
                 } else {
                     server
