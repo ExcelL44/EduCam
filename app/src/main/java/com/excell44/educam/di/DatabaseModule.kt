@@ -43,4 +43,10 @@ object DatabaseModule {
 
     @Provides
     fun provideSubjectDao(db: AppDatabase): SubjectDao = db.subjectDao()
+
+    @Provides
+    fun provideQuizQuestionDao(db: AppDatabase): com.excell44.educam.data.dao.QuizQuestionDao = db.quizQuestionDao()
+
+    @Provides
+    fun provideQuizSessionDao(db: AppDatabase): com.excell44.educam.data.dao.QuizSessionDao = db.quizSessionDao()
 }
