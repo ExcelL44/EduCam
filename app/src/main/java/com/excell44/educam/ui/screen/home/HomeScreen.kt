@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.excell44.educam.ui.viewmodel.AuthViewModel
+import com.excell44.educam.ui.viewmodel.AuthAction
 
 @Composable
 fun HomeScreen(
@@ -77,7 +78,7 @@ fun HomeScreen(
                         .putInt("theme_index", 0)
                         .apply()
                     
-                    authViewModel.logout()
+                    authViewModel.submitAction(AuthAction.Logout)
                     onLogout()
                 }) {
                     Icon(

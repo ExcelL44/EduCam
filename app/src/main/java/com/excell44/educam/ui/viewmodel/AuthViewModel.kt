@@ -1,13 +1,13 @@
 package com.excell44.educam.ui.viewmodel
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.excell44.educam.data.repository.AuthRepository
+import com.excell44.educam.ui.base.BaseViewModel
+import com.excell44.educam.ui.base.UiAction
+import com.excell44.educam.ui.base.UiState
 import com.excell44.educam.util.AuthStateManager
+import com.excell44.educam.util.StateRollbackManager
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -15,171 +15,200 @@ data class AuthUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val isLoggedIn: Boolean = false
-)
+) : UiState
+
+sealed interface AuthAction : UiAction {
+    data class Login(val email: String, val pass: String) : AuthAction
+    data class Register(val email: String, val pass: String, val name: String, val grade: String) : AuthAction
+    data class RegisterFull(
+        val pseudo: String,
+        val pass: String,
+        val fullName: String,
+        val gradeLevel: String,
+        val school: String,
+        val city: String,
+        val neighborhood: String,
+        val parentName: String?,
+        val parentPhone: String?,
+        val relation: String?,
+        val promoCode: String?
+    ) : AuthAction
+    data class RegisterOffline(
+        val pseudo: String,
+        val pass: String,
+        val fullName: String,
+        val gradeLevel: String
+    ) : AuthAction
+    object Logout : AuthAction
+    object GuestMode : AuthAction
+    object ClearError : AuthAction
+}
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val authStateManager: AuthStateManager
-) : ViewModel() {
+) : BaseViewModel<AuthUiState, AuthAction>(
+    AuthUiState(isLoggedIn = authStateManager.isLoggedIn())
+) {
 
-    private val _uiState = MutableStateFlow(AuthUiState(isLoggedIn = authStateManager.isLoggedIn()))
-    val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
+    private val rollbackManager = StateRollbackManager<AuthUiState>()
 
     init {
-        checkAuthState()
+        // Initial check
+        updateState { copy(isLoggedIn = authStateManager.isLoggedIn()) }
     }
 
-    private fun checkAuthState() {
-        _uiState.value = _uiState.value.copy(isLoggedIn = authStateManager.isLoggedIn())
+    override fun handleAction(action: AuthAction) {
+        when (action) {
+            is AuthAction.Login -> login(action)
+            is AuthAction.Register -> register(action)
+            is AuthAction.RegisterFull -> registerFull(action)
+            is AuthAction.RegisterOffline -> registerOffline(action)
+            is AuthAction.Logout -> logout()
+            is AuthAction.GuestMode -> setGuestMode()
+            is AuthAction.ClearError -> clearError()
+        }
     }
 
-    fun login(email: String, password: String) {
+    private fun login(action: AuthAction.Login) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
-            authRepository.login(email, password)
+            saveStateForRollback()
+            updateState { copy(isLoading = true, errorMessage = null) }
+            
+            authRepository.login(action.email, action.pass)
                 .onSuccess { user ->
                     authStateManager.saveUserId(user.id)
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        isLoggedIn = true,
-                        errorMessage = null
-                    )
+                    updateState { 
+                        copy(isLoading = false, isLoggedIn = true, errorMessage = null) 
+                    }
                 }
                 .onFailure { exception ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        errorMessage = exception.message
-                    )
+                    // Rollback is optional here, but we usually just show error
+                    updateState { 
+                        copy(isLoading = false, errorMessage = exception.message) 
+                    }
                 }
         }
     }
 
-    fun register(email: String, password: String, name: String, gradeLevel: String) {
+    private fun register(action: AuthAction.Register) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
-            authRepository.register(email, password, name, gradeLevel)
+            saveStateForRollback()
+            updateState { copy(isLoading = true, errorMessage = null) }
+            
+            authRepository.register(action.email, action.pass, action.name, action.grade)
                 .onSuccess { user ->
                     authStateManager.saveUserId(user.id)
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        isLoggedIn = true,
-                        errorMessage = null
-                    )
+                    updateState { 
+                        copy(isLoading = false, isLoggedIn = true, errorMessage = null) 
+                    }
                 }
                 .onFailure { exception ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        errorMessage = exception.message
-                    )
+                    updateState { 
+                        copy(isLoading = false, errorMessage = exception.message) 
+                    }
                 }
         }
     }
 
-    // Extended registration flow used by the in-app form
-    fun registerFull(
-        pseudo: String,
-        password: String,
-        fullName: String,
-        gradeLevel: String,
-        school: String,
-        city: String,
-        neighborhood: String,
-        parentName: String?,
-        parentPhone: String?,
-        relation: String?,
-        promoCode: String?
-    ) {
+    private fun registerFull(action: AuthAction.RegisterFull) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            saveStateForRollback()
+            updateState { copy(isLoading = true, errorMessage = null) }
+            
             // Check phone account limit
-            if (!parentPhone.isNullOrBlank()) {
-                val count = authStateManager.getAccountsForPhone(parentPhone)
+            if (!action.parentPhone.isNullOrBlank()) {
+                val count = authStateManager.getAccountsForPhone(action.parentPhone)
                 if (count >= 3) {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        errorMessage = "Ce numéro de téléphone a déjà 3 comptes. Contactez le support pour autorisation."
-                    )
+                    updateState { 
+                        copy(isLoading = false, errorMessage = "Ce numéro de téléphone a déjà 3 comptes. Contactez le support pour autorisation.") 
+                    }
                     return@launch
                 }
             }
 
             authRepository.registerFull(
-                pseudo = pseudo,
-                password = password,
-                fullName = fullName,
-                gradeLevel = gradeLevel,
-                school = school,
-                city = city,
-                neighborhood = neighborhood,
-                parentName = parentName,
-                parentPhone = parentPhone,
-                relation = relation,
-                promoCode = promoCode
+                pseudo = action.pseudo,
+                password = action.pass,
+                fullName = action.fullName,
+                gradeLevel = action.gradeLevel,
+                school = action.school,
+                city = action.city,
+                neighborhood = action.neighborhood,
+                parentName = action.parentName,
+                parentPhone = action.parentPhone,
+                relation = action.relation,
+                promoCode = action.promoCode
             ).onSuccess { user ->
                 // save account mapping for phone
-                parentPhone?.let { authStateManager.incAccountsForPhone(it) }
+                action.parentPhone?.let { authStateManager.incAccountsForPhone(it) }
                 // Save user id and mark account active
                 authStateManager.saveUserId(user.id)
                 authStateManager.saveAccountType("ACTIVE")
                 // minimal profile storage
-                val profileJson = "{\"pseudo\":\"$pseudo\",\"school\":\"$school\",\"city\":\"$city\"}"
+                val profileJson = "{\"pseudo\":\"${action.pseudo}\",\"school\":\"${action.school}\",\"city\":\"${action.city}\"}"
                 authStateManager.saveProfileJson(user.id, profileJson)
 
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    isLoggedIn = true,
-                    errorMessage = null
-                )
+                updateState { 
+                    copy(isLoading = false, isLoggedIn = true, errorMessage = null) 
+                }
             }.onFailure { exception ->
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = exception.message
-                )
+                updateState { 
+                    copy(isLoading = false, errorMessage = exception.message) 
+                }
             }
         }
     }
 
-    fun registerOffline(
-        pseudo: String,
-        password: String,
-        fullName: String,
-        gradeLevel: String
-    ) {
+    private fun registerOffline(action: AuthAction.RegisterOffline) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
-            authRepository.registerOffline(pseudo, password, fullName, gradeLevel)
+            saveStateForRollback()
+            updateState { copy(isLoading = true, errorMessage = null) }
+            
+            authRepository.registerOffline(action.pseudo, action.pass, action.fullName, action.gradeLevel)
                 .onSuccess { user ->
                     authStateManager.saveUserId(user.id)
                     authStateManager.saveAccountType("TRIAL") // 7-day trial
                     
                     // minimal profile storage
-                    val profileJson = "{\"pseudo\":\"$pseudo\",\"isOffline\":true}"
+                    val profileJson = "{\"pseudo\":\"${action.pseudo}\",\"isOffline\":true}"
                     authStateManager.saveProfileJson(user.id, profileJson)
 
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        isLoggedIn = true,
-                        errorMessage = null
-                    )
+                    updateState { 
+                        copy(isLoading = false, isLoggedIn = true, errorMessage = null) 
+                    }
                 }
                 .onFailure { exception ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        errorMessage = exception.message
-                    )
+                    updateState { 
+                        copy(isLoading = false, errorMessage = exception.message) 
+                    }
                 }
         }
     }
 
-    fun logout() {
+    private fun logout() {
         authStateManager.clearUserId()
-        _uiState.value = _uiState.value.copy(isLoggedIn = false)
+        updateState { copy(isLoggedIn = false) }
     }
 
-    fun setGuestMode() {
+    private fun setGuestMode() {
         authStateManager.setGuestMode()
-        _uiState.value = _uiState.value.copy(isLoggedIn = true)
+        updateState { copy(isLoggedIn = true) }
+    }
+    
+    private fun clearError() {
+        updateState { copy(errorMessage = null) }
+    }
+
+    private fun saveStateForRollback() {
+        rollbackManager.saveState(uiState.value)
+    }
+    
+    fun restorePreviousState() {
+        rollbackManager.rollback()?.let { oldState ->
+            updateState { oldState }
+        }
     }
 
     // Expose small helpers for UI
@@ -188,10 +217,6 @@ class AuthViewModel @Inject constructor(
     fun getProfileJsonForCurrentUser(): String? {
         val id = authStateManager.getUserId() ?: return null
         return authStateManager.getProfileJson(id)
-    }
-
-    fun clearError() {
-        _uiState.value = _uiState.value.copy(errorMessage = null)
     }
 }
 

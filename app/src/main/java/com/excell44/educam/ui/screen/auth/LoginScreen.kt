@@ -17,6 +17,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.excell44.educam.ui.viewmodel.AuthViewModel
+import com.excell44.educam.ui.viewmodel.AuthAction
 import androidx.compose.ui.platform.LocalContext
 
 @Composable
@@ -102,7 +103,7 @@ fun LoginScreen(
             )
         } else {
             com.excell44.educam.ui.components.PrimaryButton(
-                onClick = { viewModel.login("${pseudo.lowercase()}@local.excell", code) },
+                onClick = { viewModel.submitAction(AuthAction.Login("${pseudo.lowercase()}@local.excell", code)) },
                 text = "Se connecter",
                 modifier = Modifier
                     .fillMaxWidth()
@@ -121,9 +122,9 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(8.dp))
         TextButton(onClick = {
             // Enable guest mode and navigate
-            viewModel.clearError()
-            viewModel.setGuestMode()
-            onLoginSuccess()
+            viewModel.submitAction(AuthAction.ClearError)
+            viewModel.submitAction(AuthAction.GuestMode)
+            // Navigation handled by LaunchedEffect
         }) {
             Text("Continuer en tant qu'invité (3 essais max)")
         }

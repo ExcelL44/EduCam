@@ -16,6 +16,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.excell44.educam.ui.viewmodel.AuthViewModel
+import com.excell44.educam.ui.viewmodel.AuthAction
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.platform.LocalContext
@@ -657,9 +658,10 @@ fun RegisterScreen(
                                             if (ok) {
                                                 success = true
                                                 // create account locally
-                                                viewModel.registerFull(
+                                                // create account locally
+                                                viewModel.submitAction(AuthAction.RegisterFull(
                                                     pseudo = pseudo,
-                                                    password = password,
+                                                    pass = password,
                                                     fullName = fullName,
                                                     gradeLevel = selectedClass,
                                                     school = school,
@@ -669,7 +671,7 @@ fun RegisterScreen(
                                                     parentPhone = parentPhone.ifBlank { null },
                                                     relation = selectedRelation.ifBlank { null },
                                                     promoCode = promoCode.ifBlank { null }
-                                                )
+                                                ))
                                             }
                                         }
 

@@ -58,7 +58,7 @@ fun PrimaryButton(
                 .background(gradient)
                 .fillMaxWidth()
                 .alpha(if (enabled) 1f else 0.5f)
-                .clickable(enabled = enabled, onClick = onClick),
+                .debounceClickable(enabled = enabled, onClick = onClick),
             contentAlignment = Alignment.Center
         ) {
             Text(
