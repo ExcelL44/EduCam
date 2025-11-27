@@ -135,7 +135,7 @@ class QuizRepositoryImpl @Inject constructor(
     /**
      * Sauvegarde un résultat de quiz de manière thread-safe.
      */
-    override suspend fun saveQuizResult(result: QuizResultEntity) = withContext(ioDispatcher) {
+    override suspend fun saveQuizResult(result: QuizResultEntity): Unit = withContext(ioDispatcher) {
         try {
             writeMutex.withLock {
                 withTimeout(5_000L) {

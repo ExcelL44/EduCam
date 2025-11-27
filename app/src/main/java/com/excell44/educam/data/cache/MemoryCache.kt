@@ -42,7 +42,7 @@ class MemoryCache<K, V>(
      * @param value La valeur
      * @param ttlMs Durée de vie personnalisée (optionnel)
      */
-    suspend fun put(key: K, value: V, ttlMs: Long = defaultTtlMs) = mutex.withLock {
+    suspend fun put(key: K, value: V, ttlMs: Long = defaultTtlMs): Unit = mutex.withLock {
         val expiresAt = System.currentTimeMillis() + ttlMs
         cache[key] = CacheEntry(value, expiresAt)
     }

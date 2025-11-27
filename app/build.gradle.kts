@@ -97,6 +97,9 @@ dependencies {
     // Permissions
     implementation(libs.accompanist.permissions)
     
+    // WorkManager
+    implementation(libs.androidx.work.runtime.ktx)
+    
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
