@@ -7,6 +7,7 @@ import com.excell44.educam.data.local.dao.AnswerDao
 import com.excell44.educam.data.local.dao.QuestionDao
 import com.excell44.educam.data.local.dao.QuizDao
 import com.excell44.educam.data.local.dao.QuizResultDao
+import com.excell44.educam.data.dao.SubjectDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -39,4 +40,7 @@ object DatabaseModule {
 
     @Provides
     fun provideResultDao(db: AppDatabase): QuizResultDao = db.resultDao()
+
+    @Provides
+    fun provideSubjectDao(db: AppDatabase): SubjectDao = db.subjectDao()
 }
