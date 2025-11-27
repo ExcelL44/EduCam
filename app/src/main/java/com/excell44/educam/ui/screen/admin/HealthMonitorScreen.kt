@@ -21,6 +21,7 @@ import java.util.*
  * Écran de monitoring de la santé de l'application.
  * Affiche les métriques en temps réel, crashs, et performances.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HealthMonitorScreen(
     onNavigateBack: () -> Unit,

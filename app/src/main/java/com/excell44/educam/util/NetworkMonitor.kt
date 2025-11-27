@@ -1,3 +1,13 @@
+package com.excell44.educam.util
+
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -88,9 +98,9 @@ class NetworkMonitor(private val context: Context) {
 /**
  * Extension Composable pour observer l'état du réseau.
  */
-@androidx.compose.runtime.Composable
-fun rememberNetworkState(context: Context): androidx.compose.runtime.State<Boolean> {
-    val networkMonitor = androidx.compose.runtime.remember { NetworkMonitor(context) }
+@Composable
+fun rememberNetworkState(context: Context): State<Boolean> {
+    val networkMonitor = remember { NetworkMonitor(context) }
     return networkMonitor.observeNetworkState()
         .collectAsState(initial = networkMonitor.isNetworkAvailable())
 }

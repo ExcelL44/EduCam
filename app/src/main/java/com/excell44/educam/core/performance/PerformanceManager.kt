@@ -1,6 +1,8 @@
 package com.excell44.educam.core.performance
 
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.BatteryManager
 import android.os.Build
 import android.os.PowerManager
