@@ -120,7 +120,6 @@ fun SplashScreen(
             if (animationProgress > 0.7f) {
                 val taglineOffset by animateFloatAsState(
                     targetValue = 0f,
-                    initialValue = 30f,
                     animationSpec = tween(
                         durationMillis = 600,
                         easing = EaseOutCubic
