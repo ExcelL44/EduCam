@@ -199,10 +199,4 @@ fun DatabaseActionCard(
     }
 }
 
-// ViewModel pour gérer les stats et actions
-data class DatabaseStats(
-    val userCount: Int = 0,
-    val quizQuestionCount: Int = 0,
-    val subjectCount: Int = 0,
-    val solutionCount: Int = 0
-)
+// DatabaseStats is now defined in LocalDatabaseViewModel.kt
