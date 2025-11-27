@@ -6,6 +6,11 @@ import androidx.room.TypeConverters
 import com.excell44.educam.data.local.dao.AnswerDao
 import com.excell44.educam.data.local.dao.QuestionDao
 import com.excell44.educam.data.local.dao.QuizDao
+import com.excell44.educam.data.local.dao.QuizResultDao
+import com.excell44.educam.data.local.entity.AnswerEntity
+import com.excell44.educam.data.local.entity.QuestionEntity
+import com.excell44.educam.data.local.entity.QuizEntity
+import com.excell44.educam.data.local.entity.QuizResultEntity
 import com.excell44.educam.data.dao.SubjectDao
 import com.excell44.educam.data.model.Subject
 
