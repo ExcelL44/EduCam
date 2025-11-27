@@ -12,11 +12,25 @@ class AuthRepository @Inject constructor(
     private val userDao: UserDao
 ) {
     suspend fun login(email: String, password: String): Result<User> {
+        // Ensure user exists
         val user = userDao.getUserByEmail(email)
-        return if (user != null && user.passwordHash == password.hashCode().toString()) {
+        
+        if (user == null) {
+            return Result.failure(Exception("Aucun compte trouvé avec ce pseudo"))
+        }
+        
+        // Validate password (check if empty password for offline accounts without password)
+        val isPasswordValid = if (user.passwordHash.isEmpty()) {
+            // Offline account without password - should not be allowed to login this way
+            false
+        } else {
+            user.passwordHash == password.hashCode().toString()
+        }
+        
+        return if (isPasswordValid) {
             Result.success(user)
         } else {
-            Result.failure(Exception("Email ou mot de passe incorrect"))
+            Result.failure(Exception("Code incorrect"))
         }
     }
 
@@ -72,6 +86,7 @@ class AuthRepository @Inject constructor(
 
     suspend fun registerOffline(
         pseudo: String,
+        password: String,
         fullName: String,
         gradeLevel: String
     ): Result<User> {
@@ -88,12 +103,12 @@ class AuthRepository @Inject constructor(
             return Result.failure(Exception("Ce pseudo est déjà utilisé"))
         }
 
-        // 3. Create offline user with 7-day trial
+        // 3. Create offline user with 7-day trial and password
         val trialDuration = 7L * 24 * 60 * 60 * 1000 // 7 days in millis
         val user = User(
             id = UUID.randomUUID().toString(),
             email = email,
-            passwordHash = "", // No password for offline/guest initially? Or simple one.
+            passwordHash = password.hashCode().toString(), // Hash the password properly
             name = fullName,
             gradeLevel = gradeLevel,
             isOfflineAccount = true,
@@ -110,4 +125,3 @@ class AuthRepository @Inject constructor(
         userDao.updateGradeLevel(userId, gradeLevel)
     }
 }
-

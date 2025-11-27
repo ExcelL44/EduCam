@@ -21,6 +21,9 @@ sealed class Screen(val route: String) {
     object ProblemSolver : Screen("problem_solver")
     object Profile : Screen("profile")
     object Bilan : Screen("bilan")
+    object AdminMenu : Screen("admin_menu")
+    object RemoteDashboard : Screen("remote_dashboard")
+    object LocalDatabase : Screen("local_database")
 }
 
 @Composable
@@ -66,6 +69,7 @@ fun NavGraph(
                 onNavigateToSubjects = { navController.navigate(Screen.Subjects.route) },
                 onNavigateToProblemSolver = { navController.navigate(Screen.ProblemSolver.route) },
                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
+                onNavigateToAdmin = { navController.navigate(Screen.AdminMenu.route) },
                 onLogout = { navController.navigate(Screen.Login.route) {
                     popUpTo(0) { inclusive = true }
                 } }
@@ -91,6 +95,22 @@ fun NavGraph(
         composable(Screen.Bilan.route) {
             com.excell44.educam.ui.screen.profile.BilanScreen(onNavigateBack = { navController.popBackStack() })
         }
+        composable(Screen.AdminMenu.route) {
+            com.excell44.educam.ui.screen.admin.AdminMenuScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToRemoteDashboard = { navController.navigate(Screen.RemoteDashboard.route) },
+                onNavigateToLocalDatabase = { navController.navigate(Screen.LocalDatabase.route) }
+            )
+        }
+        composable(Screen.RemoteDashboard.route) {
+            com.excell44.educam.ui.screen.admin.RemoteDashboardScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.LocalDatabase.route) {
+            com.excell44.educam.ui.screen.admin.LocalDatabaseScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
     }
 }
-

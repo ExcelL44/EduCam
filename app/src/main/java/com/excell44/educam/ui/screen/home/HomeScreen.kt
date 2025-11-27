@@ -1,5 +1,6 @@
 package com.excell44.educam.ui.screen.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,10 +29,12 @@ fun HomeScreen(
     onNavigateToSubjects: () -> Unit,
     onNavigateToProblemSolver: () -> Unit,
     onNavigateToProfile: () -> Unit,
+    onNavigateToAdmin: () -> Unit,
     onLogout: () -> Unit,
     authViewModel: AuthViewModel = hiltViewModel()
  ) {
     val isGuest = authViewModel.getAccountType() == "GUEST"
+    val isAdmin = authViewModel.getAccountType() == "ADMIN"
     var showLockedDialog by remember { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
 
@@ -135,6 +138,50 @@ fun HomeScreen(
             enabled = !isGuest,
             onLockedClick = { showLockedDialog = true }
         )
+
+        // Admin Management Card (visible only for admins)
+        if (isAdmin) {
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onNavigateToAdmin() }
+                        .padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "Gérer",
+                        modifier = Modifier.size(32.dp),
+                        tint = MaterialTheme.colorScheme.onErrorContainer
+                    )
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Gérer",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Text(
+                            text = "Administration et contrôle système",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            }
+        }
     }
 
     if (showLockedDialog) {
@@ -159,4 +206,3 @@ fun HomeScreen(
 
 
 // FeatureCard is now provided by `com.excell44.educam.ui.components.FeatureCard`
-

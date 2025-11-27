@@ -142,12 +142,13 @@ class AuthViewModel @Inject constructor(
 
     fun registerOffline(
         pseudo: String,
+        password: String,
         fullName: String,
         gradeLevel: String
     ) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
-            authRepository.registerOffline(pseudo, fullName, gradeLevel)
+            authRepository.registerOffline(pseudo, password, fullName, gradeLevel)
                 .onSuccess { user ->
                     authStateManager.saveUserId(user.id)
                     authStateManager.saveAccountType("TRIAL") // 7-day trial
