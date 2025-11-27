@@ -127,8 +127,8 @@ fun HomeScreen(
 
         // Problem Solver Card (Smarty)
         FeatureCard(
-            title = "Résolveur de Problèmes (Smarty)",
-            description = "Smarty vous aide à résoudre les problèmes en un clin d'œil",
+            title = "Smarty IA",
+            description = "Résout vos exercices avec l'IA en un clin d'œil",
             icon = Icons.Default.CameraAlt,
             onClick = onNavigateToProblemSolver,
             modifier = Modifier.fillMaxWidth(),

@@ -34,7 +34,7 @@ fun ProblemSolverScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Résolveur de Problèmes") },
+                title = { Text("Smarty IA") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Retour")
@@ -58,7 +58,7 @@ fun ProblemSolverScreen(
             )
 
             Text(
-                text = "Smarty — notre résolveur : prenez une photo, Smarty vous donne la solution en un clin d'œil",
+                text = "Smarty IA résout vos exercices : prenez une photo, et obtenez la solution en un clin d'œil",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -84,6 +84,15 @@ fun ProblemSolverScreen(
             com.excell44.educam.ui.components.PrimaryButton(
                 onClick = { viewModel.selectPdf() },
                 text = "Sélectionner un PDF",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(64.dp)
+            )
+
+            // Nouveau bouton pour discuter avec Smarty
+            com.excell44.educam.ui.components.SecondaryButton(
+                onClick = { /* TODO: Navigation vers le chat Smarty */ },
+                text = "💬 Discuter avec Smarty",
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(64.dp)
