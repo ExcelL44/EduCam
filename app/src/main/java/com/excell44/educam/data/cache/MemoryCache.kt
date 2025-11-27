@@ -50,14 +50,15 @@ class MemoryCache<K, V>(
     /**
      * Supprime une entrée du cache.
      */
-    suspend fun remove(key: K) = mutex.withLock {
+    suspend fun remove(key: K): Unit = mutex.withLock {
         cache.remove(key)
+        Unit
     }
 
     /**
      * Vide complètement le cache.
      */
-    suspend fun clear() = mutex.withLock {
+    suspend fun clear(): Unit = mutex.withLock {
         cache.clear()
     }
 
