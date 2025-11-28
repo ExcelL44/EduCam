@@ -37,7 +37,8 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: ⚡ Run Critical Test Suite
-        run: ./gradlew test lint --no-daemon --stacktrace
+        run: ./gradlew clean test lint --no-daemon --stacktrace
+        # ✅ AJOUT DE 'clean' ici aussi pour s'assurer de la fraîcheur
 
       - name: 📊 Upload Test Reports (if failed)
         uses: actions/upload-artifact@v4
@@ -71,14 +72,19 @@ jobs:
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
-
-      - name: 🔨 Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon --no-build-cache
+        
+      # 🎯 ÉTAPE CLÉ : Clean + Build avec invalidation totale
+      - name: 🧹 Clean & Build Debug APK
+        run: |
+          ./gradlew clean
+          ./gradlew assembleDebug --no-daemon --no-build-cache --rerun-tasks
+        # ✅ --rerun-tasks force la ré-exécution de TOUTES les tâches
 
       - name: 🚀 Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-${{ github.sha }}
+          name: app-debug-${{ github.sha }}-${{ github.run_number }}
+          # ✅ AJOUT du run_number pour garantir l'unicité
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 7
 
