@@ -33,16 +33,6 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      - name: 💾 Cache Gradle & Android SDK
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-            /usr/local/lib/android/sdk/platforms/android-36
-            /usr/local/lib/android/sdk/build-tools/34.0.0
-          key: ${{ runner.os }}-gradle-sdk-${{ hashFiles('**/*.gradle*') }}
-
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
 
@@ -60,13 +50,13 @@ jobs:
           retention-days: 3
 
   # ═════════════════════════════════════════════════════════════
-  #  🎫 JOB 2 : BUILD & PACKAGE (dépend des tests)
+  #  🎫 JOB 2 : BUILD DEBUG APK (dépend des tests)
   # ═════════════════════════════════════════════════════════════
-  build-and-package:
-    name: 🏗️ Build & Package
+  build-debug:
+    name: 📦 Build Debug APK
     runs-on: ubuntu-latest
-    needs: critical-tests  # ✅ Ne build que si tests passent
-    timeout-minutes: 20
+    needs: critical-tests
+    timeout-minutes: 15
     
     steps:
       - name: 📥 Checkout Code
@@ -79,24 +69,17 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      - name: 💾 Restore Cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-            /usr/local/lib/android/sdk/platforms/android-36
-            /usr/local/lib/android/sdk/build-tools/34.0.0
-          key: ${{ runner.os }}-gradle-sdk-${{ hashFiles('**/*.gradle*') }}
+      - name: 🤖 Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: 🔨 Build & Assemble APKs
-        run: ./gradlew assembleDebug assembleRelease --no-daemon --no-build-cache
+      - name: 🔨 Build Debug APK
+        run: ./gradlew assembleDebug --no-daemon --no-build-cache
 
-      - name: 🚀 Upload APKs
+      - name: 🚀 Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: apks-${{ github.sha }}
-          path: app/build/outputs/apk/*/*.apk
+          name: app-debug-${{ github.sha }}
+          path: app/build/outputs/apk/debug/*.apk
           retention-days: 7
 
   # ═════════════════════════════════════════════════════════════
@@ -105,12 +88,11 @@ jobs:
   final-report:
     name: ✅ Final Report
     runs-on: ubuntu-latest
-    needs: [critical-tests, build-and-package]
+    needs: [critical-tests, build-debug]
     if: always()
     
     steps:
       - name: 🎉 Build Status
         run: |
           echo "Tests: ${{ needs.critical-tests.result }}"
-          echo "Build: ${{ needs.build-and-package.result }}"
-          echo "APKs disponibles dans les artefacts si réussi"
+          echo "Debug APK: ${{ needs.build-debug.result }}"
