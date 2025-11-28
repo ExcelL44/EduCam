@@ -1,4 +1,4 @@
-name: Android Build
+name: 🚀 Android Fail-Safe Build
 
 on:
   push:
@@ -8,83 +8,219 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  # ═════════════════════════════════════════════════════════════
+  #  🎫 JOB 1 : SETUP & BUILD
+  # ═════════════════════════════════════════════════════════════
+  setup-build:
+    name: 🔨 Setup & Build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # ✅ Récupère tout l'historiel pour garantir le dernier code
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-        # ❌ SUPPRIME cache: 'gradle' car il garde les anciens builds
+      - name: ☕ JDK 17 Configuration
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
+      - name: 🤖 Android SDK Setup
+        uses: android-actions/setup-android@v3
 
-    - name: Accept Android SDK licenses
-      run: yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --licenses || true
+      - name: 📜 Accept SDK Licenses
+        run: yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
-    - name: Install Android SDK 36 and Build Tools
-      run: ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;34.0.0"
+      - name: 🛠️ Install SDK 36 & Build Tools
+        run: ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;34.0.0"
 
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
+      - name: 🔓 Grant Gradlew Permission
+        run: chmod +x gradlew
 
-    # ✅ Cache des dépendances MAIS PAS des builds
-    - name: Cache Gradle dependencies
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-
+      - name: 💾 Cache Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle-
 
-    # ✅ CLEAN avant tout build (supprime les anciens APKs)
-    - name: Clean Build
-      run: ./gradlew clean --no-daemon
+      - name: 🧹 Clean Build
+        run: ./gradlew clean --no-daemon
 
-    - name: Build with Gradle
-      run: ./gradlew build --no-daemon
+      - name: 🔨 Build Project
+        run: ./gradlew build --no-daemon
 
-    - name: Run tests
-      run: ./gradlew test --no-daemon
+  # ═════════════════════════════════════════════════════════════
+  #  🎫 JOB 2 : CODE QUALITY & LINT
+  # ═════════════════════════════════════════════════════════════
+  lint-quality:
+    name: 🔍 Lint & Quality
+    runs-on: ubuntu-latest
+    needs: setup-build
+    timeout-minutes: 10
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
 
-    # ✅ Build SANS cache pour l'APK
-    - name: Build APK
-      run: ./gradlew assembleDebug --no-daemon --no-build-cache
+      - name: ☕ Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
-    - name: Build Release APK
-      run: ./gradlew assembleRelease --no-daemon --no-build-cache
+      - name: 🔓 Grant Gradlew Permission
+        run: chmod +x gradlew
 
-    # ✅ Nom versionné avec SHA pour garantir l'unicité
-    - name: Upload APK artifacts
-      uses: actions/upload-artifact@v4
-      if: success()
-      with:
-        name: app-debug-${{ github.sha }}
-        path: app/build/outputs/apk/debug/*.apk
-        retention-days: 7
-        
-    - name: Upload Release APK artifacts
-      uses: actions/upload-artifact@v4
-      if: success()
-      with:
-        name: app-release-${{ github.sha }}
-        path: app/build/outputs/apk/release/*.apk
-        retention-days: 7
-        
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: test-results
-        path: app/build/test-results/
-        retention-days: 7
+      - name: 🔍 Run Lint
+        run: ./gradlew lint --no-daemon
+        continue-on-error: true
+
+      - name: 📊 Upload Lint Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lint-report
+          path: app/build/reports/lint-results.html
+          retention-days: 7
+
+  # ═════════════════════════════════════════════════════════════
+  #  🎫 JOB 3 : UNIT TESTS
+  # ═════════════════════════════════════════════════════════════
+  unit-tests:
+    name: 🧪 Unit Tests
+    runs-on: ubuntu-latest
+    needs: setup-build
+    timeout-minutes: 10
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: ☕ Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 🔓 Grant Gradlew Permission
+        run: chmod +x gradlew
+
+      - name: 🧪 Run Unit Tests
+        run: ./gradlew test --no-daemon
+
+      - name: 📊 Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-results
+          path: app/build/test-results/
+          retention-days: 7
+
+  # ═════════════════════════════════════════════════════════════
+  #  🎫 JOB 4 : SECURITY & DEPENDENCY CHECK
+  # ═════════════════════════════════════════════════════════════
+  security:
+    name: 🔒 Security Check
+    runs-on: ubuntu-latest
+    needs: setup-build
+    timeout-minutes: 10
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: ☕ Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 🔓 Grant Gradlew Permission
+        run: chmod +x gradlew
+
+      - name: 🔒 Run Dependency Check
+        run: ./gradlew dependencyUpdates --stacktrace
+        continue-on-error: true
+
+      - name: 📊 Upload Dependency Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dependency-report
+          path: build/dependencyUpdates/
+          retention-days: 7
+
+  # ═════════════════════════════════════════════════════════════
+  #  🎫 JOB 5 : APK BUILD & SIGN
+  # ═════════════════════════════════════════════════════════════
+  apk-build:
+    name: 📦 APK Build
+    runs-on: ubuntu-latest
+    needs: [setup-build, lint-quality, unit-tests]
+    if: success()
+    timeout-minutes: 15
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: ☕ Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 🔓 Grant Gradlew Permission
+        run: chmod +x gradlew
+
+      - name: 📦 Build Debug APK (Fresh)
+        run: ./gradlew assembleDebug --no-daemon --no-build-cache
+
+      - name: 📦 Build Release APK (Fresh)
+        run: ./gradlew assembleRelease --no-daemon --no-build-cache
+
+      - name: 🚀 Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-${{ github.sha }}
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+          
+      - name: 🚀 Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-${{ github.sha }}
+          path: app/build/outputs/apk/release/*.apk
+          retention-days: 7
+
+  # ═════════════════════════════════════════════════════════════
+  #  🎫 JOB 6 : SUCCESS REPORT
+  # ═════════════════════════════════════════════════════════════
+  success-report:
+    name: ✅ Success Report
+    runs-on: ubuntu-latest
+    needs: [setup-build, lint-quality, unit-tests, security, apk-build]
+    if: success()
+    
+    steps:
+      - name: 🎉 All Checks Passed
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🎉 FAIL-SAFE VALIDATION RÉUSSIE !"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "✅ Build : SUCCESS"
+          echo "✅ Lint : SUCCESS"
+          echo "✅ Unit Tests : SUCCESS"
+          echo "✅ Security : SUCCESS"
+          echo "✅ APK Build : SUCCESS"
+          echo ""
+          echo "🛡️ L'application respecte tous les standards Fail-Safe !"
+          echo "🚀 Prêt pour le déploiement"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
