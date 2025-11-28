@@ -1,4 +1,4 @@
-# Workflow - Exécuter Tests d'Intégration
+# Workflow - Exécuter Tests d'Intégration 
 
 name: Android CI - Integration Tests
 on:
