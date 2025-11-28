@@ -60,10 +60,14 @@ class AuthViewModel @Inject constructor(
 
     init {
         // Initial check
+        val loggedIn = authStateManager.isLoggedIn()
+        val attempts = authStateManager.getGuestAttemptsRemaining()
+        android.util.Log.d("AuthViewModel", "Init: isLoggedIn=$loggedIn, guestAttempts=$attempts")
+        
         updateState { 
             copy(
-                isLoggedIn = authStateManager.isLoggedIn(),
-                guestAttemptsRemaining = authStateManager.getGuestAttemptsRemaining()
+                isLoggedIn = loggedIn,
+                guestAttemptsRemaining = attempts
             ) 
         }
     }

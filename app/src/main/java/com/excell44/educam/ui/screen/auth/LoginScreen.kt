@@ -36,6 +36,10 @@ fun LoginScreen(
             onLoginSuccess()
         }
     }
+    
+    LaunchedEffect(uiState.guestAttemptsRemaining) {
+        android.util.Log.d("LoginScreen", "Guest Attempts Display: ${uiState.guestAttemptsRemaining}")
+    }
 
     // Memoize callbacks to prevent recreation on recomposition
     val onLoginClick = remember(pseudo, code) {

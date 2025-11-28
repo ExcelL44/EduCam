@@ -55,6 +55,10 @@ fun appContent() {
     val startDestination = remember(uiState.isLoggedIn) {
         if (uiState.isLoggedIn) Screen.Home.route else Screen.Login.route
     }
+    
+    LaunchedEffect(startDestination) {
+        android.util.Log.d("MainActivity", "Start Destination: $startDestination (isLoggedIn=${uiState.isLoggedIn})")
+    }
 
     // Start with splash, then the splash composable will navigate to startDestination
     NavGraph(navController = navController, startDestination = com.excell44.educam.ui.navigation.Screen.Splash.route, postSplashDestination = startDestination)
