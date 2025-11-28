@@ -5,7 +5,6 @@ import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -30,10 +29,6 @@ fun LoginScreen(
     val ctx = LocalContext.current
     var pseudo by remember { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
-    // prefill pseudo if available from prefs
-    LaunchedEffect(Unit) {
-        // try to prefill from AuthStateManager via viewModel
-    }
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState.isLoggedIn) {
@@ -42,11 +37,23 @@ fun LoginScreen(
         }
     }
 
+    // Memoize callbacks to prevent recreation on recomposition
+    val onLoginClick = remember(pseudo, code) {
+        { viewModel.submitAction(AuthAction.Login("${pseudo.lowercase()}@local.excell", code)) }
+    }
+    
+    val onGuestClick = remember {
+        {
+            viewModel.submitAction(AuthAction.ClearError)
+            viewModel.submitAction(AuthAction.GuestMode)
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .screenPadding()  // Gère status bar, nav bar et clavier
+            .screenPadding()
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -104,7 +111,7 @@ fun LoginScreen(
             )
         } else {
             com.excell44.educam.ui.components.PrimaryButton(
-                onClick = { viewModel.submitAction(AuthAction.Login("${pseudo.lowercase()}@local.excell", code)) },
+                onClick = onLoginClick,
                 text = "Se connecter",
                 modifier = Modifier
                     .fillMaxWidth()
@@ -121,19 +128,13 @@ fun LoginScreen(
         }
 
         Spacer(modifier = Modifier.height(8.dp))
-        TextButton(onClick = {
-            // Enable guest mode and navigate
-            viewModel.submitAction(AuthAction.ClearError)
-            viewModel.submitAction(AuthAction.GuestMode)
-            // Navigation handled by LaunchedEffect
-        }) {
+        TextButton(onClick = onGuestClick) {
             Text("Continuer en tant qu'invité (3 essais max)")
         }
 
         Spacer(modifier = Modifier.height(8.dp))
         TextButton(onClick = {
-            // Contact support via WhatsApp
-            val phone = "+22912345678" // TODO: replace by real support number
+            val phone = "+22912345678"
             val uri = Uri.parse("https://wa.me/${phone.removePrefix("+")}?text=${Uri.encode("Bonjour, j'ai besoin d'aide pour EduCam.")}")
             val intent = Intent(Intent.ACTION_VIEW, uri)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -143,4 +144,3 @@ fun LoginScreen(
         }
     }
 }
-

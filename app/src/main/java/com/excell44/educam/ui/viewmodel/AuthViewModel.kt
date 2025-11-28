@@ -71,24 +71,39 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    private val loginMutex = kotlinx.coroutines.sync.Mutex()
+    
     private fun login(action: AuthAction.Login) {
         viewModelScope.launch {
-            saveStateForRollback()
-            updateState { copy(isLoading = true, errorMessage = null) }
+            // Prevent concurrent login attempts
+            if (!loginMutex.tryLock()) {
+                return@launch
+            }
             
-            authRepository.login(action.email, action.pass)
-                .onSuccess { user ->
-                    authStateManager.saveUserId(user.id)
-                    updateState { 
-                        copy(isLoading = false, isLoggedIn = true, errorMessage = null) 
+            try {
+                saveStateForRollback()
+                updateState { copy(isLoading = true, errorMessage = null) }
+                
+                authRepository.login(action.email, action.pass)
+                    .onSuccess { user ->
+                        authStateManager.saveUserId(user.id)
+                        updateState { 
+                            copy(isLoading = false, isLoggedIn = true, errorMessage = null) 
+                        }
                     }
-                }
-                .onFailure { exception ->
-                    // Rollback is optional here, but we usually just show error
-                    updateState { 
-                        copy(isLoading = false, errorMessage = exception.message) 
+                    .onFailure { exception ->
+                        updateState { 
+                            copy(isLoading = false, errorMessage = exception.message) 
+                        }
                     }
+            } catch (e: Exception) {
+                // Safety net: ensure state is always updated
+                updateState { 
+                    copy(isLoading = false, errorMessage = e.message ?: "Erreur inconnue") 
                 }
+            } finally {
+                loginMutex.unlock()
+            }
         }
     }
 
