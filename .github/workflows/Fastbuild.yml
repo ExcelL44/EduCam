@@ -8,7 +8,9 @@ on:
   workflow_dispatch:
 
 env:
-  GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2 -Dorg.gradle.parallel=true -Dorg.gradle.configureondemand=true -Xmx4g
+  # Removed configureondemand to avoid potential configuration issues
+  # Kept daemon=false for CI
+  GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2 -Dorg.gradle.parallel=true -Xmx4g
   JAVA_OPTS: -Xmx4g
 
 jobs:
@@ -18,7 +20,7 @@ jobs:
   critical-tests:
     name: 🧪 Critical Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     
     steps:
       - name: 📥 Checkout Code
@@ -35,6 +37,12 @@ jobs:
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
+
+      # ✅ FIX: Ensure gradlew is executable and has correct line endings
+      - name: 🔧 Fix Gradlew Permissions
+        run: |
+          chmod +x gradlew
+          sed -i 's/\r$//' gradlew
 
       - name: 🔨 Compile Debug
         run: ./gradlew assembleDebug --no-daemon --stacktrace
@@ -64,7 +72,7 @@ jobs:
     name: 📦 Build Debug APK
     runs-on: ubuntu-latest
     needs: critical-tests
-    timeout-minutes: 15
+    timeout-minutes: 30
     
     steps:
       - name: 📥 Checkout Code
@@ -80,18 +88,20 @@ jobs:
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
         
-      # 🎯 ÉTAPE CLÉ : Clean + Build avec invalidation totale
-      - name: 🧹 Clean & Build Debug APK
+      # ✅ FIX: Ensure gradlew is executable and has correct line endings
+      - name: 🔧 Fix Gradlew Permissions
         run: |
-          ./gradlew clean
-          ./gradlew assembleDebug --no-daemon --no-build-cache --rerun-tasks
-        # ✅ --rerun-tasks force la ré-exécution de TOUTES les tâches
+          chmod +x gradlew
+          sed -i 's/\r$//' gradlew
+
+      # 🎯 ÉTAPE CLÉ : Build optimisé (plus de clean/rerun-tasks agressif)
+      - name: 📦 Build Debug APK
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: 🚀 Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-${{ github.sha }}-${{ github.run_number }}
-          # ✅ AJOUT du run_number pour garantir l'unicité
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 7
 
