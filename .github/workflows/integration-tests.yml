@@ -1,4 +1,4 @@
-# Workflow - Exécuter Tests d'Intégration 
+# Workflow - Exécuter Tests d'Intégration
 
 name: Android CI - Integration Tests
 on:
@@ -55,27 +55,22 @@ jobs:
             ~/.android/adb*
           key: avd-${{ matrix.api-level }}
       
-      - name: 🧪 Run Integration Tests (50 Questions Offline)
+      - name: Run Integration Tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api-level }}
           target: google_apis
           arch: ${{ matrix.arch }}
-          ram-size: 1024M  # Simule Tecno Spark exactement
+          ram-size: 1024M
           heap-size: 256M
           disk-size: 2048M
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           disable-animations: true
           force-avd-creation: false
           script: |
-            # Simule réseau lent/instable
             adb shell svc wifi disable
             adb shell svc data disable
-            
-            # Execute tests d'intégration
-            ./gradlew connectedDebugAndroidTest \
-              -Pandroid.testInstrumentationRunnerArguments.class=com.excell44.educam.integration.QuizIntegrationTest \
-              --stacktrace
+            ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.excell44.educam.integration.QuizIntegrationTest --stacktrace
       
       - name: Upload test results
         if: always()
