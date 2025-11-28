@@ -1,0 +1,104 @@
+name: 🚀 Android Fast Build
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2 -Dorg.gradle.parallel=true -Dorg.gradle.configureondemand=true -Xmx4g
+  JAVA_OPTS: -Xmx4g
+
+jobs:
+  # ═════════════════════════════════════════════════════════════
+  #  🎫 JOB 1 : TESTS CRITIQUES (Feedback immédiat)
+  # ═════════════════════════════════════════════════════════════
+  critical-tests:
+    name: 🧪 Critical Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: ☕ Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: 🤖 Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: ⚡ Run Critical Test Suite
+        run: ./gradlew clean test lint --no-daemon --stacktrace
+        # ✅ AJOUT DE 'clean' ici aussi pour s'assurer de la fraîcheur
+
+      - name: 📊 Upload Test Reports (if failed)
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-reports-${{ github.sha }}
+          path: |
+            app/build/reports/tests/
+            app/build/reports/lint-results*.html
+          retention-days: 3
+
+  # ═════════════════════════════════════════════════════════════
+  #  🎫 JOB 2 : BUILD DEBUG APK (dépend des tests)
+  # ═════════════════════════════════════════════════════════════
+  build-debug:
+    name: 📦 Build Debug APK
+    runs-on: ubuntu-latest
+    needs: critical-tests
+    timeout-minutes: 15
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: ☕ Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: 🤖 Setup Android SDK
+        uses: android-actions/setup-android@v3
+        
+      # 🎯 ÉTAPE CLÉ : Clean + Build avec invalidation totale
+      - name: 🧹 Clean & Build Debug APK
+        run: |
+          ./gradlew clean
+          ./gradlew assembleDebug --no-daemon --no-build-cache --rerun-tasks
+        # ✅ --rerun-tasks force la ré-exécution de TOUTES les tâches
+
+      - name: 🚀 Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-${{ github.sha }}-${{ github.run_number }}
+          # ✅ AJOUT du run_number pour garantir l'unicité
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+
+  # ═════════════════════════════════════════════════════════════
+  #  🎫 JOB 3 : FINAL REPORT
+  # ═════════════════════════════════════════════════════════════
+  final-report:
+    name: ✅ Final Report
+    runs-on: ubuntu-latest
+    needs: [critical-tests, build-debug]
+    if: always()
+    
+    steps:
+      - name: 🎉 Build Status
+        run: |
+          echo "Tests: ${{ needs.critical-tests.result }}"
+          echo "Debug APK: ${{ needs.build-debug.result }}"
