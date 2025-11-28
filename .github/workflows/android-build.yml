@@ -15,15 +15,14 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # ✅ Récupère TOUS les commits pour garantir le dernier
+        fetch-depth: 0  # ✅ Récupère tout l'historiel pour garantir le dernier code
 
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '17'
-        # ❌ SUPPRIME cache: 'gradle' : il garde les APKs
-        # Utilise un cache MANUEL plus tard
+        # ❌ SUPPRIME cache: 'gradle' car il garde les anciens builds
 
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
@@ -37,39 +36,55 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
-    # ✅ Cache MAIS exclue les APKs
+    # ✅ Cache des dépendances MAIS PAS des builds
     - name: Cache Gradle dependencies
       uses: actions/cache@v4
       with:
         path: |
           ~/.gradle/caches
           ~/.gradle/wrapper
-          .gradle
         key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
         restore-keys: |
           ${{ runner.os }}-gradle-
-      # ❌ IMPORTANT : On NE cache PAS le dossier build/outputs/
 
-    # ✅ CLEAN avant tout build (SUPPRIME les anciens APKs)
+    # ✅ CLEAN avant tout build (supprime les anciens APKs)
     - name: Clean Build
       run: ./gradlew clean --no-daemon
+
+    - name: Build with Gradle
+      run: ./gradlew build --no-daemon
+
+    - name: Run tests
+      run: ./gradlew test --no-daemon
 
     # ✅ Build SANS cache pour l'APK
     - name: Build APK
       run: ./gradlew assembleDebug --no-daemon --no-build-cache
 
-    # ✅ Ajoute le SHA du commit dans le nom de l'artefact
+    - name: Build Release APK
+      run: ./gradlew assembleRelease --no-daemon --no-build-cache
+
+    # ✅ Nom versionné avec SHA pour garantir l'unicité
     - name: Upload APK artifacts
       uses: actions/upload-artifact@v4
       if: success()
       with:
-        name: app-debug-${{ github.sha }}  # ✅ UNIQUE PAR COMMIT
+        name: app-debug-${{ github.sha }}
         path: app/build/outputs/apk/debug/*.apk
         retention-days: 7
         
     - name: Upload Release APK artifacts
+      uses: actions/upload-artifact@v4
       if: success()
       with:
-        name: app-release-${{ github.sha }}  # ✅ UNIQUE PAR COMMIT
+        name: app-release-${{ github.sha }}
         path: app/build/outputs/apk/release/*.apk
+        retention-days: 7
+        
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: app/build/test-results/
         retention-days: 7
