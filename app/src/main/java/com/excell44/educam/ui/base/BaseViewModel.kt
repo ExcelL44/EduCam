@@ -43,10 +43,9 @@ abstract class BaseViewModel<S : UiState, A : UiAction>(initialState: S) : ViewM
     init {
         viewModelScope.launch {
             actionChannel.receiveAsFlow()
-                // Debounce de 300ms pour éviter le spam d'actions (double-clics, etc.)
-                // ATTENTION : Cela ajoute une latence de 300ms à toutes les actions traitées via ce canal.
-                // Pour des actions immédiates (ex: navigation retour), on pourra bypasser ce canal ou réduire le délai.
-                .debounce(300)
+                // Debounce de 150ms pour éviter le spam d'actions (double-clics, etc.)
+                // ✅ Réduit de 300ms à 150ms pour UX plus fluide
+                .debounce(150)
                 .collect { action ->
                     handleAction(action)
                 }
