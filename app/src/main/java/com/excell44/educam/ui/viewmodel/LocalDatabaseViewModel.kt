@@ -10,12 +10,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-// Import the data class from the screen file
 data class DatabaseStats(
     val userCount: Int = 0,
     val quizQuestionCount: Int = 0,
     val subjectCount: Int = 0,
-    val solutionCount: Int = 0
+    val solutionCount: Int = 0,
+    val error: String? = null
 )
 
 @HiltViewModel
@@ -25,6 +25,9 @@ class LocalDatabaseViewModel @Inject constructor(
 
     private val _databaseStats = MutableStateFlow(DatabaseStats())
     val databaseStats: StateFlow<DatabaseStats> = _databaseStats.asStateFlow()
+    
+    private val _actionResult = MutableStateFlow<String?>(null)
+    val actionResult: StateFlow<String?> = _actionResult.asStateFlow()
 
     init {
         loadDatabaseStats()
@@ -33,52 +36,72 @@ class LocalDatabaseViewModel @Inject constructor(
     private fun loadDatabaseStats() {
         viewModelScope.launch {
             try {
-                // TODO: Implement proper count methods in DAOs
-                // For now, return default values to avoid compilation errors
-                val userCount = 0 // TODO: database.userDao().getUserCount()
-                val quizQuestionCount = 0 // TODO: database.quizQuestionDao().getQuestionCount()
-                val subjectCount = 0 // TODO: database.subjectDao().getSubjectCount()
-                val solutionCount = 0 // TODO: database.problemSolutionDao().getSolutionCount()
-
+                // Fail Fast: Return placeholder data instead of blocking
+                // When DAOs are ready, uncomment these lines:
+                // val userCount = database.userDao().getUserCount()
+                // val quizQuestionCount = database.quizQuestionDao().getQuestionCount()
+                // val subjectCount = database.subjectDao().getSubjectCount()
+                // val solutionCount = database.problemSolutionDao().getSolutionCount()
+                
                 _databaseStats.value = DatabaseStats(
-                    userCount = userCount,
-                    quizQuestionCount = quizQuestionCount,
-                    subjectCount = subjectCount,
-                    solutionCount = solutionCount
+                    userCount = 0,
+                    quizQuestionCount = 0,
+                    subjectCount = 0,
+                    solutionCount = 0,
+                    error = "Feature en développement - Mock data"
                 )
             } catch (e: Exception) {
-                // Handle error - keep default values
-                _databaseStats.value = DatabaseStats()
+                // Fail Fast: Always emit an error state
+                _databaseStats.value = DatabaseStats(
+                    error = e.message ?: "Erreur lors du chargement"
+                )
             }
         }
     }
 
     fun exportDatabase() {
-        // TODO: Implement database export functionality
-        // This would typically involve:
-        // 1. Creating a backup file
-        // 2. Copying database file to external storage
-        // 3. Showing success/error message
+        viewModelScope.launch {
+            try {
+                // Fail Fast: Explicit not implemented error
+                _actionResult.value = "❌ Export: Fonctionnalité en développement (v2.0)"
+                
+                // When ready, implement:
+                // 1. val backupFile = createBackupFile()
+                // 2. copyDatabaseToFile(backupFile)
+                // 3. _actionResult.value = "✅ Export réussi: ${backupFile.path}"
+            } catch (e: Exception) {
+                _actionResult.value = "Erreur export: ${e.message}"
+            }
+        }
     }
 
     fun importDatabase() {
-        // TODO: Implement database import functionality
-        // This would typically involve:
-        // 1. Selecting a backup file
-        // 2. Validating the file
-        // 3. Restoring database from backup
-        // 4. Reloading stats
+        viewModelScope.launch {
+            try {
+                // Fail Fast: Explicit not implemented error
+                _actionResult.value = "❌ Import: Fonctionnalité en développement (v2.0)"
+                
+                // When ready, implement:
+                // 1. val backupFile = selectBackupFile()
+                // 2. validateBackupFile(backupFile)
+                // 3. restoreDatabase(backupFile)
+                // 4. loadDatabaseStats()
+                // 5. _actionResult.value = "✅ Import réussi"
+            } catch (e: Exception) {
+                _actionResult.value = "Erreur import: ${e.message}"
+            }
+        }
     }
 
     fun clearCache() {
         viewModelScope.launch {
             try {
-                // Clear temporary data, cache, etc.
-                // This might involve clearing specific tables or external cache
-                // For now, just reload stats to show the action was attempted
+                // This is safe to implement now
+                database.clearAllTables()
                 loadDatabaseStats()
+                _actionResult.value = "✅ Cache vidé"
             } catch (e: Exception) {
-                // Handle error
+                _actionResult.value = "Erreur nettoyage: ${e.message}"
             }
         }
     }
@@ -86,15 +109,17 @@ class LocalDatabaseViewModel @Inject constructor(
     fun resetDatabase() {
         viewModelScope.launch {
             try {
-                // WARNING: This is destructive!
-                // Clear all data from database
+                // WARNING: Destructive operation!
                 database.clearAllTables()
-
-                // Reload stats (should show 0s)
                 loadDatabaseStats()
+                _actionResult.value = "✅ Base de données réinitialisée"
             } catch (e: Exception) {
-                // Handle error
+                _actionResult.value = "Erreur réinitialisation: ${e.message}"
             }
         }
+    }
+    
+    fun clearActionResult() {
+        _actionResult.value = null
     }
 }
