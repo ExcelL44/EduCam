@@ -4,6 +4,7 @@ import android.app.Application
 import android.os.StrictMode
 import android.util.Log
 import com.excell44.educam.core.error.GlobalExceptionHandler
+import com.excell44.educam.BuildConfig
 import dagger.hilt.android.HiltAndroidApp
 
 /**
