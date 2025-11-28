@@ -14,7 +14,7 @@ class AuthStateManager @Inject constructor(
 
     // Basic user id storage
     fun saveUserId(userId: String) {
-        prefs.edit().putString("user_id", userId).commit()
+        prefs.edit().putString("user_id", userId).apply()
     }
 
     fun getUserId(): String? {
@@ -22,7 +22,7 @@ class AuthStateManager @Inject constructor(
     }
 
     fun clearUserId() {
-        prefs.edit().remove("user_id").commit()
+        prefs.edit().remove("user_id").apply()
     }
 
     fun isLoggedIn(): Boolean {
@@ -31,7 +31,7 @@ class AuthStateManager @Inject constructor(
 
     // Account type: ACTIVE, PASSIVE, GUEST, BETA
     fun saveAccountType(type: String) {
-        prefs.edit().putString("account_type", type).commit()
+        prefs.edit().putString("account_type", type).apply()
     }
 
     fun getAccountType(): String = prefs.getString("account_type", "GUEST") ?: "GUEST"
