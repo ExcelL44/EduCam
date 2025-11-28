@@ -9,12 +9,11 @@ import kotlinx.coroutines.sync.withLock
  * Extension pour navigation sécurisée avec synchronisation thread-safe.
  * 
  * **PROTECTION MULTI-NIVEAUX**:
- * 1. Mutex global pour synchroniser l'accès au NavController  
+ * 1. Mutex global pour synchroniser l'accès au NavController
  * 2. Debounce pour ignorer les clics rapides
  * 3. Try-catch pour éviter les crashs
  * 
- * ⚠️ IMPORTANT : Ces fonctions sont synchrones car appelées depuis des onClick
- * Le Mutex garantit la thread-safety SANS bloquer le Main Thread
+ * Empêche les crashs dus aux clics multiples rapides sur les boutons de navigation.
  */
 
 // Mutex global pour synchroniser toutes les navigations
@@ -22,15 +21,15 @@ private val navigationMutex = Mutex()
 
 // Timestamp de la dernière navigation pour debounce
 private var lastNavigationTime = 0L
-private const val NAVIGATION_DEBOUNCE_MS = 300L  // ✅ Réduit pour UX fluide
+private const val NAVIGATION_DEBOUNCE_MS = 500L
 
 /**
- * Navigate avec protection anti-spam (version synchrone).
+ * Navigate avec protection anti-spam et synchronisation thread-safe.
  * 
  * **GARANTIES**:
- * - Debounce 300ms (ignore les clics rapides)
+ * - Une seule navigation peut s'exécuter à la fois (Mutex)
+ * - Ignore les navigations rapides < 500ms (Debounce)
  * - Ne crash jamais l'app (Try-catch)
- * - Thread-safe (mais sans bloquer le Main Thread)
  * 
  * @param route La destination
  * @param builder Configuration optionnelle de navigation
@@ -47,7 +46,7 @@ fun NavController.navigateSafe(
         return
     }
     
-    // ✅ Tentative de lock NON-BLOQUANTE
+    // ✅ Tentative de lock NON-BLOQUANTE (Fix blocking UI)
     if (!navigationMutex.tryLock()) {
         println("⚠️ Navigation ignorée (lock occupé): $route")
         return
@@ -56,7 +55,6 @@ fun NavController.navigateSafe(
     try {
         lastNavigationTime = now
         println("🧭 Navigation vers: $route")
-        
         if (builder != null) {
             navigate(route, builder)
         } else {
@@ -71,10 +69,10 @@ fun NavController.navigateSafe(
 }
 
 /**
- * PopBackStack avec protection thread-safe contre les crashs (version synchrone).
+ * PopBackStack avec protection thread-safe contre les crashs.
  * 
  * **GARANTIES**:
- * - Thread-safe (tryLock non-bloquant)
+ * - Synchronisé avec Mutex (pas de race condition)
  * - Vérifie que le backstack n'est pas vide
  * - Ne crash jamais l'app
  * 
@@ -106,7 +104,7 @@ fun NavController.popBackStackSafe(): Boolean {
 }
 
 /**
- * PopBackStack vers une route spécifique avec protection thread-safe (version synchrone).
+ * PopBackStack vers une route spécifique avec protection thread-safe.
  * 
  * @param route La route de destination
  * @param inclusive Si true, la route de destination est aussi retirée du backstack

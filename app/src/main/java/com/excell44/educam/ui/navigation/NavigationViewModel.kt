@@ -38,7 +38,7 @@ class NavigationViewModel @Inject constructor() : ViewModel() {
     companion object {
         private const val TAG = "NavigationViewModel"
         private const val NAVIGATION_TIMEOUT_MS = 2000L
-        private const val NAVIGATION_DEBOUNCE_MS = 300L  // ✅ Réduit à 300ms pour UX fluide
+        private const val NAVIGATION_DEBOUNCE_MS = 700L
         private const val ERROR_RECOVERY_DELAY_MS = 1000L
     }
 

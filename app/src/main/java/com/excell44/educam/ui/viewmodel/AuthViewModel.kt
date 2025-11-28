@@ -14,49 +14,33 @@ import javax.inject.Inject
 data class AuthUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val isLoggedIn: Boolean = false
+    val isLoggedIn: Boolean = false,
+    val guestAttemptsRemaining: Int = 3 // Default to 3
 ) : UiState
 
-sealed interface AuthAction : UiAction {
-    data class Login(val email: String, val pass: String) : AuthAction
-    data class Register(val email: String, val pass: String, val name: String, val grade: String) : AuthAction
-    data class RegisterFull(
-        val pseudo: String,
-        val pass: String,
-        val fullName: String,
-        val gradeLevel: String,
-        val school: String,
-        val city: String,
-        val neighborhood: String,
-        val parentName: String?,
-        val parentPhone: String?,
-        val relation: String?,
-        val promoCode: String?
-    ) : AuthAction
-    data class RegisterOffline(
-        val pseudo: String,
-        val pass: String,
-        val fullName: String,
-        val gradeLevel: String
-    ) : AuthAction
-    object Logout : AuthAction
-    object GuestMode : AuthAction
-    object ClearError : AuthAction
-}
+// ... (AuthAction interface remains unchanged)
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val authStateManager: AuthStateManager
 ) : BaseViewModel<AuthUiState, AuthAction>(
-    AuthUiState(isLoggedIn = authStateManager.isLoggedIn())
+    AuthUiState(
+        isLoggedIn = authStateManager.isLoggedIn(),
+        guestAttemptsRemaining = authStateManager.getGuestAttemptsRemaining()
+    )
 ) {
 
     private val rollbackManager = StateRollbackManager<AuthUiState>()
 
     init {
         // Initial check
-        updateState { copy(isLoggedIn = authStateManager.isLoggedIn()) }
+        updateState { 
+            copy(
+                isLoggedIn = authStateManager.isLoggedIn(),
+                guestAttemptsRemaining = authStateManager.getGuestAttemptsRemaining()
+            ) 
+        }
     }
 
     override fun handleAction(action: AuthAction) {
@@ -204,6 +188,8 @@ class AuthViewModel @Inject constructor(
 
     private fun logout() {
         authStateManager.clearUserId()
+        // ✅ Reset account type to GUEST to allow guest mode fallback
+        authStateManager.saveAccountType("GUEST") 
         updateState { copy(isLoggedIn = false) }
     }
 

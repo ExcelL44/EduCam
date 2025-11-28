@@ -129,7 +129,7 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
         TextButton(onClick = onGuestClick) {
-            Text("Continuer en tant qu'invité (3 essais max)")
+            Text("Continuer en tant qu'invité (${uiState.guestAttemptsRemaining} essais max)")
         }
 
         Spacer(modifier = Modifier.height(8.dp))

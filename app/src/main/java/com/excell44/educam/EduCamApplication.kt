@@ -20,10 +20,6 @@ class EduCamApplication : Application() {
     
     companion object {
         private const val TAG = "EduCamApplication"
-        // ⚠️ STRICTMODE DÉSACTIVÉ TEMPORAIREMENT
-        // Cause des flashs rouges pendant navigation
-        // Réactiver après migration complète
-        private const val ENABLE_STRICT_MODE = false
     }
     
     override fun onCreate() {
@@ -32,15 +28,12 @@ class EduCamApplication : Application() {
         // ✅ Initialize global crash handler to prevent brutal app crashes
         GlobalExceptionHandler.initialize(this)
         
-        // ⚠️ Enable StrictMode in DEBUG builds only (DÉSACTIVÉ TEMPORAIREMENT)
-        if (BuildConfig.DEBUG && ENABLE_STRICT_MODE) {
+        // ✅ Enable StrictMode in DEBUG builds only
+        if (BuildConfig.DEBUG) {
             enableStrictMode()
         }
         
         Log.i(TAG, "✅ EduCam Application initialized (version: ${BuildConfig.VERSION_NAME})")
-        if (!ENABLE_STRICT_MODE) {
-            Log.w(TAG, "⚠️ StrictMode est DÉSACTIVÉ (migration en cours)")
-        }
     }
     
     /**
