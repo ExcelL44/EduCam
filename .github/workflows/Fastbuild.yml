@@ -38,46 +38,32 @@ jobs:
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      # 🔐 CRITICAL: Reconstruct google-services.json from GitHub Secret
+      - name: 🔐 Restore google-services.json
+        env:
+          GOOGLE_SERVICE_SECRETS: ${{ secrets.GOOGLE_SERVICE_SECRETS }}
+        run: |
+          if [ -z "$GOOGLE_SERVICE_SECRETS" ]; then
+            echo "❌ Secret GOOGLE_SERVICE_SECRETS missing!"
+            echo "Please add it in GitHub Repo → Settings → Secrets → Actions"
+            exit 1
+          fi
+          
+          echo "$GOOGLE_SERVICE_SECRETS" | base64 -d > app/google-services.json
+          
+          FILE_SIZE=$(wc -c < app/google-services.json)
+          if [ $FILE_SIZE -lt 100 ]; then
+            echo "❌ google-services.json invalid (size: $FILE_SIZE bytes)"
+            exit 1
+          fi
+          
+          echo "✅ google-services.json restored successfully ($FILE_SIZE bytes)"
+
       # ✅ FIX: Ensure gradlew is executable and has correct line endings
       - name: 🔧 Fix Gradlew Permissions
         run: |
           chmod +x gradlew
           sed -i 's/\r$//' gradlew
-
-      # 🔥 FIX: Create dummy google-services.json for CI builds
-      - name: 🔧 Create Dummy google-services.json
-        run: |
-          cat > app/google-services.json << 'EOF'
-          {
-            "project_info": {
-              "project_number": "123456789000",
-              "project_id": "educam-ci-dummy",
-              "storage_bucket": "educam-ci-dummy.appspot.com"
-            },
-            "client": [
-              {
-                "client_info": {
-                  "mobilesdk_app_id": "1:123456789000:android:abcdef1234567890",
-                  "android_client_info": {
-                    "package_name": "com.excell44.educam"
-                  }
-                },
-                "oauth_client": [],
-                "api_key": [
-                  {
-                    "current_key": "AIzaSyDummyKeyForCIBuildsOnly123456789"
-                  }
-                ],
-                "services": {
-                  "appinvite_service": {
-                    "other_platform_oauth_client": []
-                  }
-                }
-              }
-            ],
-            "configuration_version": "1"
-          }
-          EOF
 
       - name: 🔨 Compile Debug
         run: ./gradlew assembleDebug --no-daemon --stacktrace
@@ -122,47 +108,25 @@ jobs:
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
+
+      # 🔐 CRITICAL: Reconstruct google-services.json from GitHub Secret
+      - name: 🔐 Restore google-services.json
+        env:
+          GOOGLE_SERVICE_SECRETS: ${{ secrets.GOOGLE_SERVICE_SECRETS }}
+        run: |
+          if [ -z "$GOOGLE_SERVICE_SECRETS" ]; then
+            echo "❌ Secret GOOGLE_SERVICE_SECRETS missing!"
+            exit 1
+          fi
+          echo "$GOOGLE_SERVICE_SECRETS" | base64 -d > app/google-services.json
+          FILE_SIZE=$(wc -c < app/google-services.json)
+          echo "✅ google-services.json restored ($FILE_SIZE bytes)"
         
       # ✅ FIX: Ensure gradlew is executable and has correct line endings
       - name: 🔧 Fix Gradlew Permissions
         run: |
           chmod +x gradlew
           sed -i 's/\r$//' gradlew
-
-      # 🔥 FIX: Create dummy google-services.json for CI builds
-      - name: 🔧 Create Dummy google-services.json
-        run: |
-          cat > app/google-services.json << 'EOF'
-          {
-            "project_info": {
-              "project_number": "123456789000",
-              "project_id": "educam-ci-dummy",
-              "storage_bucket": "educam-ci-dummy.appspot.com"
-            },
-            "client": [
-              {
-                "client_info": {
-                  "mobilesdk_app_id": "1:123456789000:android:abcdef1234567890",
-                  "android_client_info": {
-                    "package_name": "com.excell44.educam"
-                  }
-                },
-                "oauth_client": [],
-                "api_key": [
-                  {
-                    "current_key": "AIzaSyDummyKeyForCIBuildsOnly123456789"
-                  }
-                ],
-                "services": {
-                  "appinvite_service": {
-                    "other_platform_oauth_client": []
-                  }
-                }
-              }
-            ],
-            "configuration_version": "1"
-          }
-          EOF
 
       # 🎯 ÉTAPE CLÉ : Build optimisé (plus de clean/rerun-tasks agressif)
       - name: 📦 Build Debug APK
