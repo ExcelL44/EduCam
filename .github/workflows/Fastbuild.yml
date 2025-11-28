@@ -44,6 +44,41 @@ jobs:
           chmod +x gradlew
           sed -i 's/\r$//' gradlew
 
+      # 🔥 FIX: Create dummy google-services.json for CI builds
+      - name: 🔧 Create Dummy google-services.json
+        run: |
+          cat > app/google-services.json << 'EOF'
+          {
+            "project_info": {
+              "project_number": "123456789000",
+              "project_id": "educam-ci-dummy",
+              "storage_bucket": "educam-ci-dummy.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:123456789000:android:abcdef1234567890",
+                  "android_client_info": {
+                    "package_name": "com.excell44.educam"
+                  }
+                },
+                "oauth_client": [],
+                "api_key": [
+                  {
+                    "current_key": "AIzaSyDummyKeyForCIBuildsOnly123456789"
+                  }
+                ],
+                "services": {
+                  "appinvite_service": {
+                    "other_platform_oauth_client": []
+                  }
+                }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          EOF
+
       - name: 🔨 Compile Debug
         run: ./gradlew assembleDebug --no-daemon --stacktrace
 
@@ -93,6 +128,41 @@ jobs:
         run: |
           chmod +x gradlew
           sed -i 's/\r$//' gradlew
+
+      # 🔥 FIX: Create dummy google-services.json for CI builds
+      - name: 🔧 Create Dummy google-services.json
+        run: |
+          cat > app/google-services.json << 'EOF'
+          {
+            "project_info": {
+              "project_number": "123456789000",
+              "project_id": "educam-ci-dummy",
+              "storage_bucket": "educam-ci-dummy.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:123456789000:android:abcdef1234567890",
+                  "android_client_info": {
+                    "package_name": "com.excell44.educam"
+                  }
+                },
+                "oauth_client": [],
+                "api_key": [
+                  {
+                    "current_key": "AIzaSyDummyKeyForCIBuildsOnly123456789"
+                  }
+                ],
+                "services": {
+                  "appinvite_service": {
+                    "other_platform_oauth_client": []
+                  }
+                }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          EOF
 
       # 🎯 ÉTAPE CLÉ : Build optimisé (plus de clean/rerun-tasks agressif)
       - name: 📦 Build Debug APK
