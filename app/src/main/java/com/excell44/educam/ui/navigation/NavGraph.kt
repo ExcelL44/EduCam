@@ -1,6 +1,10 @@
 package com.excell44.educam.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -30,8 +34,17 @@ sealed class Screen(val route: String) {
 fun NavGraph(
     navController: NavHostController,
     startDestination: String = Screen.Login.route,
-    postSplashDestination: String = startDestination
+    postSplashDestination: String = startDestination,
+    navigationViewModel: NavigationViewModel = hiltViewModel()
 ) {
+    // Attach NavController to NavigationViewModel
+    LaunchedEffect(navController) {
+        navigationViewModel.setNavController(navController)
+    }
+
+    // Observe navigation state (optional, for debugging)
+    val navState by navigationViewModel.navigationState.collectAsState()
+
     NavHost(
         navController = navController,
         startDestination = startDestination
@@ -41,75 +54,135 @@ fun NavGraph(
             com.excell44.educam.ui.screen.splash.SplashScreen(
                 postSplashDestination = postSplashDestination,
                 onNavigate = { dest ->
-                    navController.navigateSafe(dest) {
-                        popUpTo(Screen.Splash.route) { inclusive = true }
-                    }
+                    navigationViewModel.navigate(
+                        NavCommand.NavigateTo(
+                            route = dest,
+                            popUpTo = Screen.Splash.route,
+                            inclusive = true
+                        )
+                    )
                 }
             )
         }
         composable(Screen.Login.route) {
             LoginScreen(
-                onLoginSuccess = { navController.navigateSafe(Screen.Home.route) {
-                    popUpTo(Screen.Login.route) { inclusive = true }
-                } },
-                onNavigateToRegister = { navController.navigateSafe(Screen.Register.route) }
+                onLoginSuccess = {
+                    navigationViewModel.navigate(
+                        NavCommand.NavigateTo(
+                            route = Screen.Home.route,
+                            popUpTo = Screen.Login.route,
+                            inclusive = true
+                        )
+                    )
+                },
+                onNavigateToRegister = {
+                    navigationViewModel.navigate(NavCommand.NavigateTo(Screen.Register.route))
+                }
             )
         }
         composable(Screen.Register.route) {
             RegisterScreen(
-                onRegisterSuccess = { navController.navigateSafe(Screen.Home.route) {
-                    popUpTo(Screen.Register.route) { inclusive = true }
-                } },
-                onNavigateToLogin = { navController.popBackStackSafe() }
+                onRegisterSuccess = {
+                    navigationViewModel.navigate(
+                        NavCommand.NavigateTo(
+                            route = Screen.Home.route,
+                            popUpTo = Screen.Register.route,
+                            inclusive = true
+                        )
+                    )
+                },
+                onNavigateToLogin = {
+                    navigationViewModel.navigate(NavCommand.PopBack)
+                }
             )
         }
         composable(Screen.Home.route) {
             HomeScreen(
-                onNavigateToQuiz = { navController.navigateSafe(Screen.Quiz.route) },
-                onNavigateToSubjects = { navController.navigateSafe(Screen.Subjects.route) },
-                onNavigateToProblemSolver = { navController.navigateSafe(Screen.ProblemSolver.route) },
-                onNavigateToProfile = { navController.navigateSafe(Screen.Profile.route) },
-                onNavigateToAdmin = { navController.navigateSafe(Screen.AdminMenu.route) },
-                onLogout = { navController.navigateSafe(Screen.Login.route) {
-                    popUpTo(0) { inclusive = true }
-                } }
+                onNavigateToQuiz = {
+                    navigationViewModel.navigate(NavCommand.NavigateTo(Screen.Quiz.route))
+                },
+                onNavigateToSubjects = {
+                    navigationViewModel.navigate(NavCommand.NavigateTo(Screen.Subjects.route))
+                },
+                onNavigateToProblemSolver = {
+                    navigationViewModel.navigate(NavCommand.NavigateTo(Screen.ProblemSolver.route))
+                },
+                onNavigateToProfile = {
+                    navigationViewModel.navigate(NavCommand.NavigateTo(Screen.Profile.route))
+                },
+                onNavigateToAdmin = {
+                    navigationViewModel.navigate(NavCommand.NavigateTo(Screen.AdminMenu.route))
+                },
+                onLogout = {
+                    navigationViewModel.navigate(
+                        NavCommand.NavigateAndClear(Screen.Login.route)
+                    )
+                }
             )
         }
         composable(Screen.Quiz.route) {
             com.excell44.educam.ui.screen.quiz.QuizFlow(
-                onQuizComplete = { navController.popBackStackSafe() }
+                onQuizComplete = {
+                    navigationViewModel.navigate(NavCommand.PopBack)
+                }
             )
         }
         composable(Screen.Subjects.route) {
-            SubjectsScreen(onNavigateBack = { navController.popBackStackSafe() })
+            SubjectsScreen(
+                onNavigateBack = {
+                    navigationViewModel.navigate(NavCommand.PopBack)
+                }
+            )
         }
         composable(Screen.ProblemSolver.route) {
-            ProblemSolverScreen(onNavigateBack = { navController.popBackStackSafe() })
+            ProblemSolverScreen(
+                onNavigateBack = {
+                    navigationViewModel.navigate(NavCommand.PopBack)
+                }
+            )
         }
         composable(Screen.Profile.route) {
             com.excell44.educam.ui.screen.profile.ProfileScreen(
-                onNavigateToBilan = { navController.navigateSafe(Screen.Bilan.route) },
-                onNavigateBack = { navController.popBackStackSafe() }
+                onNavigateToBilan = {
+                    navigationViewModel.navigate(NavCommand.NavigateTo(Screen.Bilan.route))
+                },
+                onNavigateBack = {
+                    navigationViewModel.navigate(NavCommand.PopBack)
+                }
             )
         }
         composable(Screen.Bilan.route) {
-            com.excell44.educam.ui.screen.profile.BilanScreen(onNavigateBack = { navController.popBackStackSafe() })
+            com.excell44.educam.ui.screen.profile.BilanScreen(
+                onNavigateBack = {
+                    navigationViewModel.navigate(NavCommand.PopBack)
+                }
+            )
         }
         composable(Screen.AdminMenu.route) {
             com.excell44.educam.ui.screen.admin.AdminMenuScreen(
-                onNavigateBack = { navController.popBackStackSafe() },
-                onNavigateToRemoteDashboard = { navController.navigateSafe(Screen.RemoteDashboard.route) },
-                onNavigateToLocalDatabase = { navController.navigateSafe(Screen.LocalDatabase.route) }
+                onNavigateBack = {
+                    navigationViewModel.navigate(NavCommand.PopBack)
+                },
+                onNavigateToRemoteDashboard = {
+                    navigationViewModel.navigate(NavCommand.NavigateTo(Screen.RemoteDashboard.route))
+                },
+                onNavigateToLocalDatabase = {
+                    navigationViewModel.navigate(NavCommand.NavigateTo(Screen.LocalDatabase.route))
+                }
             )
         }
         composable(Screen.RemoteDashboard.route) {
             com.excell44.educam.ui.screen.admin.RemoteDashboardScreen(
-                onNavigateBack = { navController.popBackStackSafe() }
+                onNavigateBack = {
+                    navigationViewModel.navigate(NavCommand.PopBack)
+                }
             )
         }
         composable(Screen.LocalDatabase.route) {
             com.excell44.educam.ui.screen.admin.LocalDatabaseScreen(
-                onNavigateBack = { navController.popBackStackSafe() }
+                onNavigateBack = {
+                    navigationViewModel.navigate(NavCommand.PopBack)
+                }
             )
         }
     }

@@ -2,7 +2,9 @@ package com.excell44.educam.ui.base
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.excell44.educam.ui.navigation.NavCommand
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -11,6 +13,10 @@ import kotlinx.coroutines.launch
  * ViewModel de base pour l'architecture MVI (Model-View-Intent).
  * Gère l'état UI (StateFlow) et les actions utilisateur (Channel).
  * Intègre un mécanisme anti-spam (debounce) pour les actions.
+ *
+ * **NOUVELLES FONCTIONNALITÉS**:
+ * - Support de navigation thread-safe via NavCommand
+ * - Canal optionnel pour les commandes de navigation
  *
  * @param S Le type de l'état UI (doit implémenter UiState)
  * @param A Le type des actions UI (doit implémenter UiAction)
@@ -25,6 +31,14 @@ abstract class BaseViewModel<S : UiState, A : UiAction>(initialState: S) : ViewM
 
     // Canal pour les actions utilisateur (Intentions)
     private val actionChannel = Channel<A>(Channel.BUFFERED)
+
+    // Canal optionnel pour les commandes de navigation
+    // Les ViewModels peuvent émettre des NavCommands pour demander une navigation
+    private val _navigationCommands = Channel<NavCommand>(
+        capacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    val navigationCommands: Flow<NavCommand> = _navigationCommands.receiveAsFlow()
 
     init {
         viewModelScope.launch {
@@ -49,6 +63,18 @@ abstract class BaseViewModel<S : UiState, A : UiAction>(initialState: S) : ViewM
     }
 
     /**
+     * Émettre une commande de navigation (thread-safe).
+     * Cette commande sera consommée par le composable qui gère la navigation.
+     * 
+     * @param command La commande de navigation à exécuter
+     */
+    protected fun emitNavCommand(command: NavCommand) {
+        viewModelScope.launch {
+            _navigationCommands.trySend(command)
+        }
+    }
+
+    /**
      * Traiter l'action après le debounce.
      * À implémenter par les sous-classes.
      */
@@ -66,3 +92,4 @@ abstract class BaseViewModel<S : UiState, A : UiAction>(initialState: S) : ViewM
      */
     protected fun currentState(): S = _uiState.value
 }
+
