@@ -126,32 +126,39 @@ class NavigationViewModel @Inject constructor() : ViewModel() {
                 _navigationState.value = NavigationState.NAVIGATING
                 Log.d(TAG, "🧭 Navigation START: $command")
 
-                // ✅ NIVEAU 2 : Timeout protection
+                // ✅ NIVEAU 2 : Timeout protection (UNIQUEMENT pour l'exécution)
                 withTimeout(NAVIGATION_TIMEOUT_MS) {
                     try {
                         // ✅ NIVEAU 3 : Exécution de la commande
                         executeNavCommand(command)
-                        
+
                         Log.d(TAG, "✅ Navigation SUCCESS: $command")
-                        
+
                     } catch (e: Exception) {
                         Log.e(TAG, "❌ Navigation FAILED (inner): $command", e)
                         throw e // Remonter pour le timeout handler
                     }
                 }
 
-                // ✅ Anti-spam : bloque 700ms
-                delay(NAVIGATION_DEBOUNCE_MS)
+                // ✅ CRITIQUE : Anti-spam HORS du timeout (évite blocage infini)
+                try {
+                    delay(NAVIGATION_DEBOUNCE_MS)
+                } catch (e: CancellationException) {
+                    Log.w(TAG, "🚫 Anti-spam delay cancelled: $command")
+                    // Ne pas throw, continuer pour remettre l'état à IDLE
+                }
+
+                // ✅ Remettre l'état à IDLE (TOUJOURS exécuté)
                 _navigationState.value = NavigationState.IDLE
 
             } catch (e: TimeoutCancellationException) {
                 Log.e(TAG, "⏱️ Navigation TIMEOUT (2s): $command", e)
                 handleNavigationError(command, "Timeout")
-                
+
             } catch (e: CancellationException) {
                 Log.w(TAG, "🚫 Navigation CANCELLED: $command")
                 _navigationState.value = NavigationState.IDLE
-                
+
             } catch (e: Exception) {
                 Log.e(TAG, "💥 Navigation CRASH: $command", e)
                 handleNavigationError(command, e.message ?: "Unknown error")
