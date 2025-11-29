@@ -78,7 +78,8 @@ object Logger {
     fun e(tag: String, message: String, throwable: Throwable? = null) {
         if (Level.ERROR in enabledLevels) {
             Log.e("$TAG_PREFIX:$tag", message, throwable)
-            Firebase.crashlytics.recordException(throwable)
+            throwable?.let { Firebase.crashlytics.recordException(it) }
+                ?: Firebase.crashlytics.log("Error logged without exception: $message")
             // FirebaseCrashlytics.getInstance().recordException(throwable)
         }
     }
