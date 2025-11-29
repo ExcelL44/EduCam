@@ -285,7 +285,7 @@ fun ProfileScreen(
                 }
             }
             else -> {
-                Text(text = "Statut du compte: $accountType", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Statut du compte: ${user?.role ?: "UNKNOWN"}", style = MaterialTheme.typography.bodyMedium)
             }
         }
 
