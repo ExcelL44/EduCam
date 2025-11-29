@@ -14,7 +14,7 @@ object Logger {
         VERBOSE, DEBUG, INFO, WARNING, ERROR, CRITICAL
     }
     
-    private const val TAG_PREFIX = "EduCam"
+    private const val TAG_PREFIX = "Bac-X_237"
     
     // Enable/disable logging per level
     private val enabledLevels = mutableSetOf(

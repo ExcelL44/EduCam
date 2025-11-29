@@ -20,7 +20,7 @@ import dagger.hilt.android.HiltAndroidApp
 class EduCamApplication : Application() {
     
     companion object {
-        private const val TAG = "EduCamApplication"
+        private const val TAG = "BacXApplication"
     }
     
     override fun onCreate() {
@@ -37,7 +37,7 @@ class EduCamApplication : Application() {
             enableStrictMode()
         }
         
-        Log.i(TAG, "✅ EduCam Application initialized (version: ${BuildConfig.VERSION_NAME})")
+        Log.i(TAG, "✅ Bac-X_237 Application initialized (version: ${BuildConfig.VERSION_NAME})")
     }
 
     private fun initializeFirebaseSafe() {

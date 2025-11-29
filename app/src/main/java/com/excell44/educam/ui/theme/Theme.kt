@@ -176,7 +176,7 @@ val EduCamThemes = listOf(
 
 // Fonction principale du thème EduCam
 @Composable
-fun EduCamTheme(
+fun BacXTheme(
     themeIndex: Int = 0,
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit

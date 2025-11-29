@@ -1,4 +1,4 @@
-Unresolved reference: NavigationCommandHandlerpackage com.excell44.educam
+package com.excell44.educam
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -20,7 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.excell44.educam.ui.navigation.NavGraph
 import com.excell44.educam.ui.navigation.Screen
-import com.excell44.educam.ui.theme.EduCamTheme
+import com.excell44.educam.ui.theme.BacXTheme
 import com.excell44.educam.ui.viewmodel.AuthViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -35,7 +35,7 @@ class MainActivity : ComponentActivity() {
             val prefs = getSharedPreferences("educam_prefs", MODE_PRIVATE)
             val themeIndex = prefs.getInt("theme_index", 0)
 
-            EduCamTheme(themeIndex = themeIndex) {
+            BacXTheme(themeIndex = themeIndex) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

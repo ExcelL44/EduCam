@@ -13,7 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.excell44.educam.ui.theme.EduCamTheme
+import com.excell44.educam.ui.theme.BacXTheme
 
 /**
  * Écran affiché en cas de crash de l'application.
@@ -27,7 +27,7 @@ class CrashActivity : ComponentActivity() {
         val stackTrace = intent.getStringExtra("stack_trace") ?: ""
         
         setContent {
-            EduCamTheme {
+            BacXTheme {
                 CrashScreen(
                     errorMessage = errorMessage,
                     onRestart = { restartApp() },

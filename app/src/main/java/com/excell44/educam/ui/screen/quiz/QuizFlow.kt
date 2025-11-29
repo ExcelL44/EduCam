@@ -172,7 +172,7 @@ fun QuizResultsScreen(
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun QuizScreenPreview() {
-    com.excell44.educam.ui.theme.EduCamTheme {
+    com.excell44.educam.ui.theme.BacXTheme {
         QuizFlow()
     }
 }
