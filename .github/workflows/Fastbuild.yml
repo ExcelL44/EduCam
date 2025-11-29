@@ -8,14 +8,12 @@ on:
   workflow_dispatch:
 
 env:
-  # Removed configureondemand to avoid potential configuration issues
-  # Kept daemon=false for CI
   GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2 -Dorg.gradle.parallel=true -Xmx4g
   JAVA_OPTS: -Xmx4g
 
 jobs:
   # ═════════════════════════════════════════════════════════════
-  #  🎫 JOB 1 : TESTS CRITIQUES (Feedback immédiat)
+  #  🎫 JOB 1 : TESTS CRITIQUES
   # ═════════════════════════════════════════════════════════════
   critical-tests:
     name: 🧪 Critical Tests
@@ -38,18 +36,32 @@ jobs:
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # ✅ FIX: Ensure gradlew is executable and has correct line endings
       - name: 🔧 Fix Gradlew Permissions
         run: |
           chmod +x gradlew
           sed -i 's/\r$//' gradlew
 
-      - name: 🔨 Compile Debug
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+      # ✅ FIX 1: Clean avant compilation pour forcer rebuild
+      - name: 🧹 Clean Build
+        run: ./gradlew clean --no-daemon
 
-      - name: 🧪 Run Unit Tests
-        run: ./gradlew testDebugUnitTest --no-daemon --stacktrace
-        continue-on-error: true
+      # ✅ FIX 2: Incrémente versionCode avec le numéro de run
+      - name: 🔢 Update Version Code
+        run: |
+          # Extraire versionName actuelle
+          VERSION_NAME=$(grep "versionName" app/build.gradle.kts | awk '{print $2}' | tr -d '"')
+          # Créer un versionCode unique basé sur le timestamp + run number
+          TIMESTAMP=$(date +%s)
+          VERSION_CODE=$((GITHUB_RUN_NUMBER + TIMESTAMP))
+          
+          # Remplacer dans build.gradle.kts (ou .gradle)
+          sed -i "s/versionCode = [0-9]*/versionCode = ${VERSION_CODE}/" app/build.gradle.kts
+          sed -i "s/versionName = \"[^\"]*\"/versionName = \"${VERSION_NAME}-SNAPSHOT-${GITHUB_RUN_NUMBER}\"/" app/build.gradle.kts
+          
+          echo "✅ Version updated to: ${VERSION_NAME}-SNAPSHOT-${GITHUB_RUN_NUMBER} (code: ${VERSION_CODE})"
+
+      - name: 🔨 Compile & Test
+        run: ./gradlew assembleDebug testDebugUnitTest --no-daemon --stacktrace
 
       - name: 🔍 Run Lint
         run: ./gradlew lintDebug --no-daemon --stacktrace
@@ -66,7 +78,7 @@ jobs:
           retention-days: 3
 
   # ═════════════════════════════════════════════════════════════
-  #  🎫 JOB 2 : BUILD DEBUG APK (dépend des tests)
+  #  🎫 JOB 2 : BUILD DEBUG APK
   # ═════════════════════════════════════════════════════════════
   build-debug:
     name: 📦 Build Debug APK
@@ -87,16 +99,36 @@ jobs:
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
-        
-      # ✅ FIX: Ensure gradlew is executable and has correct line endings
+
       - name: 🔧 Fix Gradlew Permissions
         run: |
           chmod +x gradlew
           sed -i 's/\r$//' gradlew
 
-      # 🎯 ÉTAPE CLÉ : Build optimisé (plus de clean/rerun-tasks agressif)
+      # ✅ FIX 3: Clean et incrément version (re-run car checkout fresh)
+      - name: 🧹 Clean Build
+        run: ./gradlew clean --no-daemon
+
+      - name: 🔢 Update Version Code
+        run: |
+          VERSION_NAME=$(grep "versionName" app/build.gradle.kts | awk '{print $2}' | tr -d '"')
+          TIMESTAMP=$(date +%s)
+          VERSION_CODE=$((GITHUB_RUN_NUMBER + TIMESTAMP))
+          sed -i "s/versionCode = [0-9]*/versionCode = ${VERSION_CODE}/" app/build.gradle.kts
+          sed -i "s/versionName = \"[^\"]*\"/versionName = \"${VERSION_NAME}-SNAPSHOT-${GITHUB_RUN_NUMBER}\"/" app/build.gradle.kts
+          echo "✅ Version updated to: ${VERSION_NAME}-SNAPSHOT-${GITHUB_RUN_NUMBER} (code: ${VERSION_CODE})"
+
+      # 🎯 Build avec rebuild forcé
       - name: 📦 Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: ./gradlew assembleDebug --no-daemon --stacktrace --rerun-tasks
+
+      # ✅ FIX 4: Renommer l'APK avec timestamp pour garantir unicité
+      - name: 🏷️ Rename APK
+        run: |
+          cd app/build/outputs/apk/debug
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          mv app-debug.apk app-debug-${{ github.run_number }}-${TIMESTAMP}.apk
+          echo "✅ APK renamed with timestamp"
 
       - name: 🚀 Upload Debug APK
         uses: actions/upload-artifact@v4
