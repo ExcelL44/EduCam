@@ -174,7 +174,7 @@ val BacXThemes = listOf(
     )
 )
 
-// Fonction principale du thème EduCam
+// Fonction principale du thème BacX
 @Composable
 fun BacXTheme(
     themeIndex: Int = 0,
