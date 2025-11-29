@@ -1,10 +1,22 @@
 name: 🔥 Bac-X_237 Stress & Performance Tests
 
 on:
-  push:
+  # Déclenché automatiquement après un Fastbuild réussi
+  workflow_run:
+    workflows: ["🚀 Bac-X_237 Build & Test"]
+    types:
+      - completed
     branches: [ main, develop, release-security-overhaul ]
+  
+  # Déclenché sur push (uniquement main/develop)
+  push:
+    branches: [ main, develop ]
+  
+  # Tous les dimanches à 2h AM UTC
   schedule:
-    - cron: '0 2 * * 0'  # Every Sunday at 2 AM UTC
+    - cron: '0 2 * * 0'
+  
+  # Déclenchement manuel
   workflow_dispatch:
     inputs:
       user_load:
@@ -23,11 +35,16 @@ env:
 jobs:
   # ═══════════════════════════════════════════════════════════════════════
   #  PHASE 1 : BUILD RELEASE APK
+  #  Skip si déclenché par workflow_run ET que le build a échoué
   # ═══════════════════════════════════════════════════════════════════════
   build-release:
     name: 🔨 Phase 1 - Build Release APK
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Ne lance les stress tests que si Fastbuild a réussi
+    if: |
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
 
     steps:
       - name: 📥 Checkout Code
