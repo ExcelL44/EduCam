@@ -54,7 +54,7 @@ class BacXApplication : Application() {
             Log.i(TAG, "✅ Firebase Firestore Offline Persistence ENABLED")
             
             // Crashlytics is already initialized by the plugin, but we can force enable/disable
-            com.google.firebase.crashlytics.ktx.crashlytics.setCrashlyticsCollectionEnabled(!BuildConfig.DEBUG)
+            Firebase.crashlytics.setCrashlyticsCollectionEnabled(!BuildConfig.DEBUG)
             
         } catch (e: Exception) {
             Log.e(TAG, "❌ Failed to configure Firebase: ${e.message}")
