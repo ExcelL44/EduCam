@@ -131,7 +131,9 @@ fun RegisterScreen(
             Column(modifier = Modifier.fillMaxWidth().widthIn(max = 720.dp).padding(8.dp)) {
                 Text(
                     text = "Bac-X_237 - Inscription",
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontFamily = com.excell44.educam.ui.theme.BacXBrandFont
+                    ),
                     color = MaterialTheme.colorScheme.primary
                 )
                 Spacer(modifier = Modifier.height(20.dp))

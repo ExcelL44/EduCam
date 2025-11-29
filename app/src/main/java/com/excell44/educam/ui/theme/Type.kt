@@ -9,6 +9,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.excell44.educam.R
 
+// 🎨 POLICE DE BRANDING - Exo 2 (futuriste, moderne, professionnel)
+// Utilisée UNIQUEMENT pour le label "Bac-X_237" dans les écrans
+val BacXBrandFont = FontFamily(
+    Font(
+        resId = R.font.exo2_variablefont_wght,
+        weight = FontWeight.SemiBold,
+        style = FontStyle.Normal
+    )
+)
+
 // Police principale optimale pour le contenu éducatif : Inter
 // Inter est spécialement conçue pour la lisibilité sur écrans numériques
 val BacXFontFamily = FontFamily(

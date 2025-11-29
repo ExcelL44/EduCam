@@ -60,7 +60,9 @@ fun LoginScreen(
     ) {
         Text(
             text = "Bac-X_237",
-            style = MaterialTheme.typography.displayMedium,
+            style = MaterialTheme.typography.displayMedium.copy(
+                fontFamily = com.excell44.educam.ui.theme.BacXBrandFont
+            ),
             color = MaterialTheme.colorScheme.primary
         )
         Spacer(modifier = Modifier.height(8.dp))
