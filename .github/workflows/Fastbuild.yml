@@ -41,41 +41,83 @@ jobs:
           chmod +x gradlew
           sed -i 's/\r$//' gradlew
 
-      # ✅ FIX 1: Clean avant compilation pour forcer rebuild
       - name: 🧹 Clean Build
         run: ./gradlew clean --no-daemon
 
-      # ✅ FIX 2: Incrémente versionCode avec le numéro de run
       - name: 🔢 Update Version Code
         run: |
-          # Extraire versionName actuelle
           VERSION_NAME=$(grep "versionName" app/build.gradle.kts | awk '{print $2}' | tr -d '"')
-          # Créer un versionCode unique basé sur le timestamp + run number
           TIMESTAMP=$(date +%s)
           VERSION_CODE=$((GITHUB_RUN_NUMBER + TIMESTAMP))
-          
-          # Remplacer dans build.gradle.kts (ou .gradle)
           sed -i "s/versionCode = [0-9]*/versionCode = ${VERSION_CODE}/" app/build.gradle.kts
           sed -i "s/versionName = \"[^\"]*\"/versionName = \"${VERSION_NAME}-SNAPSHOT-${GITHUB_RUN_NUMBER}\"/" app/build.gradle.kts
-          
           echo "✅ Version updated to: ${VERSION_NAME}-SNAPSHOT-${GITHUB_RUN_NUMBER} (code: ${VERSION_CODE})"
 
+      # ✅ MODIFICATION 1 : Capture la sortie dans un fichier log
       - name: 🔨 Compile & Test
-        run: ./gradlew assembleDebug testDebugUnitTest --no-daemon --stacktrace
+        run: ./gradlew assembleDebug testDebugUnitTest --no-daemon --stacktrace 2>&1 | tee build-output.log
+        # continue-on-error: true  # Décommentez si vous voulez capturer même en succès
 
       - name: 🔍 Run Lint
         run: ./gradlew lintDebug --no-daemon --stacktrace
         continue-on-error: true
 
-      - name: 📊 Upload Test Reports (if failed)
+      # ✅ MODIFICATION 2 : Extrait la première erreur si les tests échouent
+      - name: 📄 Extract First Error
+        if: failure()
+        run: |
+          echo "═══════════════════════════════════════════════════════════" > first-error.txt
+          echo "❌ PREMIÈRE ERREUR DÉTECTÉE - Build #${GITHUB_RUN_NUMBER}" >> first-error.txt
+          echo "Commit: ${GITHUB_SHA}" >> first-error.txt
+          echo "Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> first-error.txt
+          echo "═══════════════════════════════════════════════════════════" >> first-error.txt
+          echo "" >> first-error.txt
+          
+          # Méthode 1 : Chercher dans les rapports de test (plus précis)
+          if [ -d "app/build/test-results/testDebugUnitTest/" ]; then
+            echo "📊 ERREUR DANS LES TESTS UNITAIRES :" >> first-error.txt
+            find app/build/test-results/testDebugUnitTest -name "*.xml" -exec grep -l "<failure\|<error" {} \; | while read file; do
+              echo "→ Fichier: $file" >> first-error.txt
+              grep -A 30 '<failure\|<error' "$file" | sed 's/<[^>]*>/ /g' >> first-error.txt 2>&1
+              break
+            done
+          fi
+          
+          # Méthode 2 : Si pas de rapport, chercher dans la sortie gradle
+          if grep -q "BUILD FAILED" first-error.txt || [ ! -s first-error.txt ]; then
+            echo "🔧 ERREUR DE COMPILATION/BUILD :" >> first-error.txt
+            grep -B 5 -A 15 "BUILD FAILED\|Execution failed\|error:\|Exception:" build-output.log | head -80 >> first-error.txt 2>&1
+          fi
+          
+          echo "" >> first-error.txt
+          echo "═══════════════════════════════════════════════════════════" >> first-error.txt
+          
+          # Affiche dans les logs GitHub pour visibilité immédiate
+          echo "❌ ERREUR CAPTURÉE :"
+          cat first-error.txt
+
+      - name: 📊 Upload Test Reports & Error
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: test-reports-${{ github.sha }}
+          name: test-reports-${{ github.sha }}-run${{ github.run_number }}
           path: |
             app/build/reports/tests/
             app/build/reports/lint-results*.html
-          retention-days: 3
+            first-error.txt
+            build-output.log
+          retention-days: 7  # Augmenté pour debug
+
+      # ✅ MODIFICATION 3 : Affiche l'erreur même en cas de succès (optionnel, pour debug)
+      - name: 📝 Display Build Summary
+        if: always()
+        run: |
+          if [ -f first-error.txt ]; then
+            echo "📄 Fichier d'erreur généré : first-error.txt"
+            wc -l first-error.txt
+          else
+            echo "✅ Aucune erreur détectée"
+          fi
 
   # ═════════════════════════════════════════════════════════════
   #  🎫 JOB 2 : BUILD DEBUG APK
@@ -85,6 +127,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: critical-tests
     timeout-minutes: 30
+    if: always()  # Build même si tests échouent (mais peut être modifié)
     
     steps:
       - name: 📥 Checkout Code
@@ -105,7 +148,6 @@ jobs:
           chmod +x gradlew
           sed -i 's/\r$//' gradlew
 
-      # ✅ FIX 3: Clean et incrément version (re-run car checkout fresh)
       - name: 🧹 Clean Build
         run: ./gradlew clean --no-daemon
 
@@ -118,11 +160,9 @@ jobs:
           sed -i "s/versionName = \"[^\"]*\"/versionName = \"${VERSION_NAME}-SNAPSHOT-${GITHUB_RUN_NUMBER}\"/" app/build.gradle.kts
           echo "✅ Version updated to: ${VERSION_NAME}-SNAPSHOT-${GITHUB_RUN_NUMBER} (code: ${VERSION_CODE})"
 
-      # 🎯 Build avec rebuild forcé
       - name: 📦 Build Debug APK
         run: ./gradlew assembleDebug --no-daemon --stacktrace --rerun-tasks
 
-      # ✅ FIX 4: Renommer l'APK avec timestamp pour garantir unicité
       - name: 🏷️ Rename APK
         run: |
           cd app/build/outputs/apk/debug
@@ -149,5 +189,29 @@ jobs:
     steps:
       - name: 🎉 Build Status
         run: |
+          echo "═══════════════════════════════════════════════════════════"
+          echo "📊 RAPPORT FINAL DU BUILD"
+          echo "═══════════════════════════════════════════════════════════"
           echo "Tests: ${{ needs.critical-tests.result }}"
           echo "Debug APK: ${{ needs.build-debug.result }}"
+          
+      # ✅ MODIFICATION 4 : Télécharge et affiche l'erreur si les tests ont échoué
+      - name: 📥 Download Error Report
+        if: needs.critical-tests.result == 'failure'
+        uses: actions/download-artifact@v4
+        with:
+          name: test-reports-${{ github.sha }}-run${{ github.run_number }}
+          
+      - name: 🚨 Display First Error Summary
+        if: needs.critical-tests.result == 'failure'
+        run: |
+          echo "═══════════════════════════════════════════════════════════"
+          echo "🚨 RÉSUMÉ DE LA PREMIÈRE ERREUR"
+          echo "═══════════════════════════════════════════════════════════"
+          if [ -f first-error.txt ]; then
+            cat first-error.txt
+          else
+            echo "❌ Erreur détectée mais fichier first-error.txt introuvable"
+            echo "Consultez les artefacts téléchargés pour les logs complets"
+          fi
+          echo "═══════════════════════════════════════════════════════════"
