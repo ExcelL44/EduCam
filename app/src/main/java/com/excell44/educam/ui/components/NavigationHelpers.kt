@@ -11,35 +11,6 @@ import com.excell44.educam.ui.base.UiState
 import com.excell44.educam.ui.navigation.NavigationViewModel
 
 /**
- * Composable helper qui connecte automatiquement les commandes de navigation
- * d'un ViewModel au NavigationViewModel.
- * 
- * **USAGE** :
- * ```kotlin
- * @Composable
- * fun MyScreen(viewModel: MyViewModel = hiltViewModel()) {
- *     NavigationCommandHandler(viewModel)
- *     
- *     // Reste du composable...
- * }
- * ```
- * 
- * @param viewModel Le ViewModel qui émet des NavCommands
- * @param navigationViewModel Le NavigationViewModel qui exécute les commandes
- */
-@Composable
-fun <S : UiState, A : UiAction> NavigationCommandHandler(
-    viewModel: BaseViewModel<S, A>,
-    navigationViewModel: NavigationViewModel = hiltViewModel()
-) {
-    LaunchedEffect(Unit) {
-        viewModel.navigationCommands.collect { command ->
-            navigationViewModel.navigate(command)
-        }
-    }
-}
-
-/**
  * Extension pour faciliter la vérification de l'état de navigation
  * 
  * **USAGE** :

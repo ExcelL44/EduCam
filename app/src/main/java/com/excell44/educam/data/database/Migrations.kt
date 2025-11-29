@@ -4,10 +4,10 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
- * Migrations pour la base de données BacX
+ * Migrations pour la base de données AppDatabase
  * 
  * Pour ajouter une nouvelle migration :
- * 1. Incrémenter la version dans BacXDatabase
+ * 1. Incrémenter la version dans AppDatabase
  * 2. Créer une nouvelle migration ici
  * 3. L'ajouter dans DatabaseModule avec .addMigrations()
  * 
