@@ -1,4 +1,4 @@
-package com.excell44.educam
+Unresolved reference: NavigationCommandHandlerpackage com.excell44.educam
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -53,13 +53,23 @@ fun appContent() {
     val uiState by authViewModel.uiState.collectAsState()
     val navController = rememberNavController()
     
-    val startDestination = remember(uiState.isLoggedIn) {
-        if (uiState.isLoggedIn) Screen.Home.route else Screen.Login.route
+    // ✅ Guard: Afficher Splash pendant chargement asynchrone
+    if (uiState.isLoading) {
+        com.excell44.educam.ui.screen.splash.SplashScreen(
+            postSplashDestination = "",
+            onNavigate = {} // No-op pendant chargement
+        )
+        return
     }
+    
+    // ✅ Reactive destination - recalculates on every isLoggedIn change
+    val startDestination = if (uiState.isLoggedIn) Screen.Home.route else Screen.Login.route
     
     LaunchedEffect(startDestination) {
         android.util.Log.d("MainActivity", "Start Destination: $startDestination (isLoggedIn=${uiState.isLoggedIn})")
     }
+
+    // ✅ SUPPRIMÉ: LaunchedEffect(uiState.isLoggedIn) - Navigation gérée par NavGraph uniquement
 
     // Start with splash, then the splash composable will navigate to startDestination
     NavGraph(navController = navController, startDestination = com.excell44.educam.ui.navigation.Screen.Splash.route, postSplashDestination = startDestination)

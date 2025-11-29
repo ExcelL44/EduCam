@@ -10,7 +10,10 @@ import javax.inject.Singleton
 class AuthStateManager @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
-    private val prefs: SharedPreferences = context.getSharedPreferences("educam_prefs", Context.MODE_PRIVATE)
+    // ✅ Lazy initialization to avoid blocking constructor
+    private val prefs: SharedPreferences by lazy { 
+        context.getSharedPreferences("educam_prefs", Context.MODE_PRIVATE)
+    }
 
     // Basic user id storage
     fun saveUserId(userId: String) {
@@ -27,6 +30,11 @@ class AuthStateManager @Inject constructor(
 
     fun isLoggedIn(): Boolean {
         return getUserId() != null
+    }
+
+    // ✅ Async variant to avoid UI thread blocking
+    suspend fun isLoggedInAsync(): Boolean = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        getUserId() != null
     }
 
     // Account type: ACTIVE, PASSIVE, GUEST, BETA

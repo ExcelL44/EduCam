@@ -35,7 +35,8 @@ fun NavGraph(
     navController: NavHostController,
     startDestination: String = Screen.Login.route,
     postSplashDestination: String = startDestination,
-    navigationViewModel: NavigationViewModel = hiltViewModel()
+    navigationViewModel: NavigationViewModel = hiltViewModel(),
+    authViewModel: com.excell44.educam.ui.viewmodel.AuthViewModel = hiltViewModel() // ✅ Injecter AuthViewModel
 ) {
     // Attach NavController to NavigationViewModel
     LaunchedEffect(navController) {
@@ -44,6 +45,31 @@ fun NavGraph(
 
     // Observe navigation state (optional, for debugging)
     val navState by navigationViewModel.navigationState.collectAsState()
+
+    // ✅ PHASE 2.3: SINGLE SOURCE OF TRUTH - Navigation Auth Centralisée
+    val authState by authViewModel.uiState.collectAsState()
+    
+    LaunchedEffect(authState.isLoggedIn) {
+        val currentRoute = navController.currentDestination?.route
+        android.util.Log.d("NavGraph", "Auth changed: isLoggedIn=${authState.isLoggedIn}, currentRoute=$currentRoute")
+        
+        // Si user se connecte depuis Login/Register → Aller à Home
+        if (authState.isLoggedIn && currentRoute in listOf(Screen.Login.route, Screen.Register.route)) {
+            navigationViewModel.navigate(
+                NavCommand.NavigateTo(
+                    route = Screen.Home.route,
+                    popUpTo = Screen.Login.route,
+                    inclusive = true
+                )
+            )
+        }
+        // Si user se déconnecte depuis n'importe quel écran → Aller à Login
+        else if (!authState.isLoggedIn && currentRoute !in listOf(Screen.Login.route, Screen.Splash.route)) {
+            navigationViewModel.navigate(
+                NavCommand.NavigateAndClear(Screen.Login.route)
+            )
+        }
+    }
 
     NavHost(
         navController = navController,
@@ -66,15 +92,7 @@ fun NavGraph(
         }
         composable(Screen.Login.route) {
             LoginScreen(
-                onLoginSuccess = {
-                    navigationViewModel.navigate(
-                        NavCommand.NavigateTo(
-                            route = Screen.Home.route,
-                            popUpTo = Screen.Login.route,
-                            inclusive = true
-                        )
-                    )
-                },
+                onLoginSuccess = {}, // ✅ No-op: Navigation gérée par LaunchedEffect ci-dessus
                 onNavigateToRegister = {
                     navigationViewModel.navigate(NavCommand.NavigateTo(Screen.Register.route))
                 }
@@ -82,43 +100,14 @@ fun NavGraph(
         }
         composable(Screen.Register.route) {
             RegisterScreen(
-                onRegisterSuccess = {
-                    navigationViewModel.navigate(
-                        NavCommand.NavigateTo(
-                            route = Screen.Home.route,
-                            popUpTo = Screen.Register.route,
-                            inclusive = true
-                        )
-                    )
-                },
+                onRegisterSuccess = {}, // ✅ No-op: Navigation gérée par LaunchedEffect ci-dessus
                 onNavigateToLogin = {
                     navigationViewModel.navigate(NavCommand.PopBack)
                 }
             )
         }
         composable(Screen.Home.route) {
-            HomeScreen(
-                onNavigateToQuiz = {
-                    navigationViewModel.navigate(NavCommand.NavigateTo(Screen.Quiz.route))
-                },
-                onNavigateToSubjects = {
-                    navigationViewModel.navigate(NavCommand.NavigateTo(Screen.Subjects.route))
-                },
-                onNavigateToProblemSolver = {
-                    navigationViewModel.navigate(NavCommand.NavigateTo(Screen.ProblemSolver.route))
-                },
-                onNavigateToProfile = {
-                    navigationViewModel.navigate(NavCommand.NavigateTo(Screen.Profile.route))
-                },
-                onNavigateToAdmin = {
-                    navigationViewModel.navigate(NavCommand.NavigateTo(Screen.AdminMenu.route))
-                },
-                onLogout = {
-                    navigationViewModel.navigate(
-                        NavCommand.NavigateAndClear(Screen.Login.route)
-                    )
-                }
-            )
+            com.excell44.educam.ui.screen.home.HomeScreen()
         }
         composable(Screen.Quiz.route) {
             com.excell44.educam.ui.screen.quiz.QuizFlow(

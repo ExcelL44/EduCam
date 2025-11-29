@@ -31,11 +31,7 @@ fun LoginScreen(
     var code by remember { mutableStateOf("") }
     val uiState by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(uiState.isLoggedIn) {
-        if (uiState.isLoggedIn) {
-            onLoginSuccess()
-        }
-    }
+    // ✅ SUPPRIMÉ: LaunchedEffect(uiState.isLoggedIn) - Navigation gérée par NavGraph uniquement
     
     LaunchedEffect(uiState.guestAttemptsRemaining) {
         android.util.Log.d("LoginScreen", "Guest Attempts Display: ${uiState.guestAttemptsRemaining}")

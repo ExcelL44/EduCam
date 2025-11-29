@@ -18,25 +18,37 @@ class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val authStateManager: AuthStateManager
 ) : BaseViewModel<AuthUiState, AuthAction>(
-    AuthUiState(
-        isLoggedIn = authStateManager.isLoggedIn(),
-        guestAttemptsRemaining = authStateManager.getGuestAttemptsRemaining()
-    )
+    AuthUiState(isLoading = true) // ✅ État initial: chargement
 ) {
 
     private val rollbackManager = StateRollbackManager<AuthUiState>()
 
     init {
-        // Initial check
-        val loggedIn = authStateManager.isLoggedIn()
-        val attempts = authStateManager.getGuestAttemptsRemaining()
-        android.util.Log.d("AuthViewModel", "Init: isLoggedIn=$loggedIn, guestAttempts=$attempts")
-        
-        updateState { 
-            copy(
-                isLoggedIn = loggedIn,
-                guestAttemptsRemaining = attempts
-            ) 
+        loadAuthState() // ✅ Chargement async pour éviter blocage UI
+    }
+
+    /**
+     * ✅ Chargement asynchrone de l'état d'authentification
+     * Évite le blocage UI de 582ms causé par SharedPreferences
+     */
+    private fun loadAuthState() {
+        viewModelScope.launch {
+            val loggedIn = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                authStateManager.isLoggedIn()
+            }
+            val attempts = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                authStateManager.getGuestAttemptsRemaining()
+            }
+            
+            android.util.Log.d("AuthViewModel", "Loaded: isLoggedIn=$loggedIn, guestAttempts=$attempts")
+            
+            updateState {
+                copy(
+                    isLoggedIn = loggedIn,
+                    guestAttemptsRemaining = attempts,
+                    isLoading = false // ✅ Chargement terminé
+                )
+            }
         }
     }
 

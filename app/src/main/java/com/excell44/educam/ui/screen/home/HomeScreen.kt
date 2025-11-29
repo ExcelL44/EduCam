@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.outlined.Quiz
 import androidx.compose.material.icons.outlined.MenuBook
 import com.excell44.educam.ui.components.FeatureCard
+import com.excell44.educam.ui.components.NavigationCommandHandler
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,16 +25,26 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.excell44.educam.ui.viewmodel.AuthViewModel
 import com.excell44.educam.ui.viewmodel.AuthAction
 
+// États et Actions pour HomeScreen
+data class HomeState(val isGuest: Boolean = false)
+sealed class HomeAction {
+    object NavigateToQuiz : HomeAction()
+    object NavigateToSubjects : HomeAction()
+    object NavigateToProblemSolver : HomeAction()
+    object NavigateToProfile : HomeAction()
+    object NavigateToAdmin : HomeAction()
+    object Logout : HomeAction()
+}
+
 @Composable
 fun HomeScreen(
-    onNavigateToQuiz: () -> Unit,
-    onNavigateToSubjects: () -> Unit,
-    onNavigateToProblemSolver: () -> Unit,
-    onNavigateToProfile: () -> Unit,
-    onNavigateToAdmin: () -> Unit,
-    onLogout: () -> Unit,
+    homeViewModel: HomeViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel()
  ) {
+    // Gestionnaire de commandes de navigation
+    NavigationCommandHandler(homeViewModel)
+
+    val homeState by homeViewModel.uiState.collectAsState()
     val isGuest = authViewModel.getAccountType() == "GUEST"
     val isAdmin = authViewModel.getAccountType() == "ADMIN"
     var showLockedDialog by remember { mutableStateOf(false) }
@@ -63,7 +74,7 @@ fun HomeScreen(
                 )
             }
             Row {
-                IconButton(onClick = onNavigateToProfile) {
+                IconButton(onClick = { homeViewModel.submitAction(HomeAction.NavigateToProfile) }) {
                     Icon(
                         imageVector = Icons.Default.AccountCircle,
                         contentDescription = "Profil",
@@ -71,15 +82,15 @@ fun HomeScreen(
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                IconButton(onClick = { 
+                IconButton(onClick = {
                     // Réinitialiser le thème au défaut
                     context.getSharedPreferences("educam_prefs", android.content.Context.MODE_PRIVATE)
                         .edit()
                         .putInt("theme_index", 0)
                         .apply()
-                    
+
                     authViewModel.submitAction(AuthAction.Logout)
-                    onLogout()
+                    homeViewModel.submitAction(HomeAction.Logout)
                 }) {
                     Icon(
                         imageVector = Icons.Default.Logout,
@@ -109,7 +120,7 @@ fun HomeScreen(
             title = "Quiz Adaptatif",
             description = "Testez vos connaissances avec des quiz personnalisés",
             icon = Icons.Outlined.Quiz,
-            onClick = onNavigateToQuiz,
+            onClick = { homeViewModel.submitAction(HomeAction.NavigateToQuiz) },
             modifier = Modifier.fillMaxWidth(),
             enabled = true
         )
@@ -121,7 +132,7 @@ fun HomeScreen(
             title = "Banque de Sujets",
             description = "Accédez à une collection de sujets corrigés",
             icon = Icons.Outlined.MenuBook,
-            onClick = onNavigateToSubjects,
+            onClick = { homeViewModel.submitAction(HomeAction.NavigateToSubjects) },
             modifier = Modifier.fillMaxWidth(),
             enabled = !isGuest,
             onLockedClick = { showLockedDialog = true }
@@ -134,7 +145,7 @@ fun HomeScreen(
             title = "Smarty IA",
             description = "Résout vos exercices avec l'IA en un clin d'œil",
             icon = Icons.Default.CameraAlt,
-            onClick = onNavigateToProblemSolver,
+            onClick = { homeViewModel.submitAction(HomeAction.NavigateToProblemSolver) },
             modifier = Modifier.fillMaxWidth(),
             enabled = !isGuest,
             onLockedClick = { showLockedDialog = true }
@@ -154,7 +165,7 @@ fun HomeScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onNavigateToAdmin() }
+                        .clickable { homeViewModel.submitAction(HomeAction.NavigateToAdmin) }
                         .padding(20.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -195,7 +206,7 @@ fun HomeScreen(
                     showLockedDialog = false
                     // navigate to register
                     // using nav from params isn't available here, so call onNavigateToProfile as a conservative path
-                    onNavigateToProfile()
+                    homeViewModel.submitAction(HomeAction.NavigateToProfile)
                 }) { Text("S'inscrire") }
             },
             dismissButton = {
