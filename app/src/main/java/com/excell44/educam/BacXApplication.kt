@@ -6,6 +6,10 @@ import android.util.Log
 import com.excell44.educam.core.error.GlobalExceptionHandler
 import com.excell44.educam.BuildConfig
 import dagger.hilt.android.HiltAndroidApp
+import com.google.firebase.ktx.Firebase
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.firestore.ktx.firestoreSettings
+import com.google.firebase.crashlytics.ktx.crashlytics
 
 /**
  * ✅ APPLICATION AVEC MONITORING FAIL-SAFE

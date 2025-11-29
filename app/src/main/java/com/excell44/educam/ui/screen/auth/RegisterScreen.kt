@@ -85,7 +85,9 @@ fun RegisterScreen(
     var agreedMajor by remember { mutableStateOf(false) }
     var agreedTerms by remember { mutableStateOf(false) }
     var paymentAttempts by remember { mutableStateOf(0) }
-    val uiState by viewModel.uiState.collectAsState()
+    val authState by viewModel.authState.collectAsState()
+    val isLoading = authState is com.excell44.educam.domain.model.AuthState.Loading
+    val errorMessage = (authState as? com.excell44.educam.domain.model.AuthState.Error)?.message
 
     // Validation logic
     val isPseudoValid = pseudo.isNotBlank() && pseudo.length <= 15
@@ -111,8 +113,8 @@ fun RegisterScreen(
         }
     }
 
-    LaunchedEffect(uiState.isLoggedIn) {
-        if (uiState.isLoggedIn) {
+    LaunchedEffect(authState) {
+        if (authState is com.excell44.educam.domain.model.AuthState.Authenticated) {
             onRegisterSuccess()
         }
     }
@@ -617,10 +619,10 @@ fun RegisterScreen(
                     Text("Établissement: $school")
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    if (uiState.errorMessage != null) {
+                    if (errorMessage != null) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = uiState.errorMessage!!,
+                            text = errorMessage,
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.fillMaxWidth(),
@@ -637,7 +639,7 @@ fun RegisterScreen(
                             Text("Retour")
                         }
 
-                        if (uiState.isLoading) {
+                        if (isLoading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(36.dp),
                                 color = MaterialTheme.colorScheme.primary
@@ -661,19 +663,12 @@ fun RegisterScreen(
                                                 success = true
                                                 // create account locally
                                                 // create account locally
-                                                viewModel.submitAction(AuthAction.RegisterFull(
-                                                    pseudo = pseudo,
-                                                    pass = password,
-                                                    fullName = fullName,
-                                                    gradeLevel = selectedClass,
-                                                    school = school,
-                                                    city = city,
-                                                    neighborhood = neighborhood,
-                                                    parentName = parentName.ifBlank { null },
-                                                    parentPhone = parentPhone.ifBlank { null },
-                                                    relation = selectedRelation.ifBlank { null },
-                                                    promoCode = promoCode.ifBlank { null }
-                                                ))
+                                                viewModel.register(
+                                                    email = "${pseudo.lowercase()}@local.excell",
+                                                    code = password,
+                                                    name = fullName,
+                                                    gradeLevel = selectedClass
+                                                )
                                             }
                                         }
 

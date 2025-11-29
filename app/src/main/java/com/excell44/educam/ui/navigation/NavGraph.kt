@@ -47,14 +47,17 @@ fun NavGraph(
     val navState by navigationViewModel.navigationState.collectAsState()
 
     // ✅ PHASE 2.3: SINGLE SOURCE OF TRUTH - Navigation Auth Centralisée
-    val authState by authViewModel.uiState.collectAsState()
+    // ✅ PHASE 2.3: SINGLE SOURCE OF TRUTH - Navigation Auth Centralisée
+    val authState by authViewModel.authState.collectAsState()
     
-    LaunchedEffect(authState.isLoggedIn) {
+    val isLoggedIn = authState is com.excell44.educam.domain.model.AuthState.Authenticated
+    
+    LaunchedEffect(isLoggedIn) {
         val currentRoute = navController.currentDestination?.route
-        android.util.Log.d("NavGraph", "Auth changed: isLoggedIn=${authState.isLoggedIn}, currentRoute=$currentRoute")
+        android.util.Log.d("NavGraph", "Auth changed: isLoggedIn=$isLoggedIn, currentRoute=$currentRoute")
         
         // Si user se connecte depuis Login/Register → Aller à Home
-        if (authState.isLoggedIn && currentRoute in listOf(Screen.Login.route, Screen.Register.route)) {
+        if (isLoggedIn && currentRoute in listOf(Screen.Login.route, Screen.Register.route)) {
             navigationViewModel.navigate(
                 NavCommand.NavigateTo(
                     route = Screen.Home.route,
@@ -64,7 +67,7 @@ fun NavGraph(
             )
         }
         // Si user se déconnecte depuis n'importe quel écran → Aller à Login
-        else if (!authState.isLoggedIn && currentRoute !in listOf(Screen.Login.route, Screen.Splash.route)) {
+        else if (!isLoggedIn && currentRoute !in listOf(Screen.Login.route, Screen.Splash.route)) {
             navigationViewModel.navigate(
                 NavCommand.NavigateAndClear(Screen.Login.route)
             )
