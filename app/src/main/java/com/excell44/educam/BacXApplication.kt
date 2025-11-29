@@ -42,20 +42,18 @@ class BacXApplication : Application() {
 
     private fun initializeFirebaseSafe() {
         try {
-            if (isNetworkAvailable()) {
-                // Normal init
-                // FirebaseApp.initializeApp(this) // Usually auto-init, but good to check
-                Log.i(TAG, "✅ Firebase initialized (Online)")
-            } else {
-                Log.w(TAG, "⚠️ Offline mode detected: Firebase might be limited")
-                // In a real scenario, we might want to disable some Firebase features here
-                // or just let the SDK handle it (it buffers events).
-                // But to prevent the specific crash mentioned:
-                // "Unable to resolve host" -> This is usually handled by SDK, but if it crashes,
-                // it might be due to a specific aggressive call on startup.
+            // ✅ Enable Firestore Offline Persistence
+            // This allows the app to work offline and sync when online
+            com.google.firebase.ktx.Firebase.firestore.firestoreSettings = com.google.firebase.firestore.ktx.firestoreSettings {
+                isPersistenceEnabled = true
             }
+            Log.i(TAG, "✅ Firebase Firestore Offline Persistence ENABLED")
+            
+            // Crashlytics is already initialized by the plugin, but we can force enable/disable
+            com.google.firebase.crashlytics.ktx.crashlytics.setCrashlyticsCollectionEnabled(!BuildConfig.DEBUG)
+            
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Failed to initialize Firebase: ${e.message}")
+            Log.e(TAG, "❌ Failed to configure Firebase: ${e.message}")
         }
     }
 

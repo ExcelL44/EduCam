@@ -1,0 +1,43 @@
+package com.excell44.educam.ui.viewmodel
+
+import android.content.Context
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.excell44.educam.util.Logger
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+import com.excell44.educam.core.network.NetworkObserver
+
+@HiltViewModel
+class MainViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
+    val networkObserver: NetworkObserver
+) : ViewModel() {
+
+    private val _themeIndex = MutableStateFlow(0)
+    val themeIndex: StateFlow<Int> = _themeIndex.asStateFlow()
+
+    init {
+        loadTheme()
+    }
+
+    private fun loadTheme() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val prefs = context.getSharedPreferences("bacx_prefs", Context.MODE_PRIVATE)
+                val savedTheme = prefs.getInt("theme_index", 0)
+                _themeIndex.value = savedTheme
+                Logger.d("MainViewModel", "Theme loaded: $savedTheme")
+            } catch (e: Exception) {
+                Logger.e("MainViewModel", "Error loading theme", e)
+            }
+        }
+    }
+}

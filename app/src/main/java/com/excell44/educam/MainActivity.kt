@@ -22,18 +22,18 @@ import com.excell44.educam.ui.navigation.NavGraph
 import com.excell44.educam.ui.navigation.Screen
 import com.excell44.educam.ui.theme.BacXTheme
 import com.excell44.educam.ui.viewmodel.AuthViewModel
+import com.excell44.educam.domain.model.AuthState
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // No longer need manual DB initialization - questions are generated on-demand
         enableEdgeToEdge()
+        
         setContent {
-            // Charger le thème sauvegardé (défaut = 0: Focus Clair)
-            val prefs = getSharedPreferences("bacx_prefs", MODE_PRIVATE)
-            val themeIndex = prefs.getInt("theme_index", 0)
+            val mainViewModel: com.excell44.educam.ui.viewmodel.MainViewModel = hiltViewModel()
+            val themeIndex by mainViewModel.themeIndex.collectAsState()
 
             BacXTheme(themeIndex = themeIndex) {
                 Surface(
@@ -50,27 +50,41 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun appContent() {
     val authViewModel: AuthViewModel = hiltViewModel()
-    val uiState by authViewModel.uiState.collectAsState()
+    val authState by authViewModel.authState.collectAsState()
     val navController = rememberNavController()
     
-    // ✅ Guard: Afficher Splash pendant chargement asynchrone
-    if (uiState.isLoading) {
+    // Inject NetworkObserver (normally would be provided by Hilt to a ViewModel, but here we need it for UI)
+    // For simplicity in this refactor, we can get it from EntryPoint or pass it down.
+    // Ideally, MainViewModel should expose isOnline state.
+    // Let's use a quick Hilt EntryPoint workaround or better: inject into MainViewModel.
+    
+    val mainViewModel: com.excell44.educam.ui.viewmodel.MainViewModel = hiltViewModel()
+    // We need to update MainViewModel to expose NetworkObserver or isOnline
+    
+    // Determine start destination based on AuthState
+    val startDestination = when (val state = authState) {
+        is com.excell44.educam.domain.model.AuthState.Authenticated -> Screen.Home.route
+        else -> Screen.Login.route
+    }
+    
+    // Show Splash while loading
+    if (authState is com.excell44.educam.domain.model.AuthState.Loading) {
         com.excell44.educam.ui.screen.splash.SplashScreen(
             postSplashDestination = "",
-            onNavigate = {} // No-op pendant chargement
+            onNavigate = {} 
         )
         return
     }
     
-    // ✅ Reactive destination - recalculates on every isLoggedIn change
-    val startDestination = if (uiState.isLoggedIn) Screen.Home.route else Screen.Login.route
-    
     LaunchedEffect(startDestination) {
-        android.util.Log.d("MainActivity", "Start Destination: $startDestination (isLoggedIn=${uiState.isLoggedIn})")
+        android.util.Log.d("MainActivity", "Start Destination: $startDestination (State: $authState)")
     }
 
-    // ✅ SUPPRIMÉ: LaunchedEffect(uiState.isLoggedIn) - Navigation gérée par NavGraph uniquement
-
-    // Start with splash, then the splash composable will navigate to startDestination
-    NavGraph(navController = navController, startDestination = com.excell44.educam.ui.navigation.Screen.Splash.route, postSplashDestination = startDestination)
+    androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize()) {
+        // Offline Indicator at the top
+        com.excell44.educam.ui.components.OfflineIndicator(networkObserver = mainViewModel.networkObserver)
+        
+        // Start with splash, then the splash composable will navigate to startDestination
+        NavGraph(navController = navController, startDestination = com.excell44.educam.ui.navigation.Screen.Splash.route, postSplashDestination = startDestination)
+    }
 }

@@ -1,232 +1,143 @@
 package com.excell44.educam.ui.viewmodel
 
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.excell44.educam.core.network.NetworkObserver
 import com.excell44.educam.data.repository.AuthRepository
-import com.excell44.educam.ui.base.BaseViewModel
-import com.excell44.educam.ui.base.UiAction
-import com.excell44.educam.ui.base.UiState
-import com.excell44.educam.util.AuthStateManager
-import com.excell44.educam.util.StateRollbackManager
+import com.excell44.educam.domain.model.AuthState
+import com.excell44.educam.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-// AuthUiState and AuthAction are now in separate files
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val authStateManager: AuthStateManager
-) : BaseViewModel<AuthUiState, AuthAction>(
-    AuthUiState(isLoading = true) // ✅ État initial: chargement
-) {
-
-    private val rollbackManager = StateRollbackManager<AuthUiState>()
-
+    private val networkObserver: NetworkObserver
+) : ViewModel() {
+    
+    private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
+    val authState: StateFlow<AuthState> = _authState.asStateFlow()
+    
     init {
-        loadAuthState() // ✅ Chargement async pour éviter blocage UI
-    }
-
-    /**
-     * ✅ Chargement asynchrone de l'état d'authentification
-     * Évite le blocage UI de 582ms causé par SharedPreferences
-     */
-    private fun loadAuthState() {
+        // Observe network changes to trigger sync or update state
         viewModelScope.launch {
-            val loggedIn = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                authStateManager.isLoggedIn()
+            networkObserver.networkStatus.collect { isOnline ->
+                Logger.d("AuthViewModel", "Network status changed: Online=$isOnline")
+                // If we are authenticated, we might want to update the offline flag
+                val currentState = _authState.value
+                if (currentState is AuthState.Authenticated) {
+                    _authState.value = currentState.copy(isOffline = !isOnline)
+                }
+                // Potentially trigger sync if coming online
+                if (isOnline) {
+                    // TODO: Trigger sync if needed
+                }
             }
-            val attempts = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                authStateManager.getGuestAttemptsRemaining()
-            }
-            
-            android.util.Log.d("AuthViewModel", "Loaded: isLoggedIn=$loggedIn, guestAttempts=$attempts")
-            
-            updateState {
-                copy(
-                    isLoggedIn = loggedIn,
-                    guestAttemptsRemaining = attempts,
-                    isLoading = false // ✅ Chargement terminé
+        }
+        initialize()
+    }
+    
+    private fun initialize() {
+        viewModelScope.launch(Dispatchers.IO) {
+            Logger.d("AuthViewModel", "Initializing auth state...")
+            try {
+                val result = authRepository.getUser()
+                result.onSuccess { user ->
+                    val isOffline = !networkObserver.isOnline()
+                    Logger.i("AuthViewModel", "User found: ${user.id} (Offline: $isOffline)")
+                    _authState.value = AuthState.Authenticated(
+                        user = user,
+                        isOffline = isOffline
+                    )
+                }.onFailure { e ->
+                    Logger.w("AuthViewModel", "No user found or error: ${e.message}")
+                    _authState.value = AuthState.Unauthenticated(
+                        reason = e.message
+                    )
+                }
+            } catch (e: Exception) {
+                Logger.e("AuthViewModel", "Critical error during init", e)
+                _authState.value = AuthState.Error(
+                    message = e.message ?: "Erreur inconnue",
+                    canRetry = true
                 )
             }
         }
     }
-
-    override fun handleAction(action: AuthAction) {
-        when (action) {
-            is AuthAction.Login -> login(action)
-            is AuthAction.Register -> register(action)
-            is AuthAction.RegisterFull -> registerFull(action)
-            is AuthAction.RegisterOffline -> registerOffline(action)
-            is AuthAction.Logout -> logout()
-            is AuthAction.GuestMode -> setGuestMode()
-            is AuthAction.ClearError -> clearError()
-        }
-    }
-
-    private val loginMutex = kotlinx.coroutines.sync.Mutex()
     
-    private fun login(action: AuthAction.Login) {
-        viewModelScope.launch {
-            // Prevent concurrent login attempts
-            if (!loginMutex.tryLock()) {
-                return@launch
-            }
+    fun login(email: String, code: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _authState.value = AuthState.Loading
+            Logger.d("AuthViewModel", "Attempting login for $email")
             
-            try {
-                saveStateForRollback()
-                updateState { copy(isLoading = true, errorMessage = null) }
-                
-                authRepository.login(action.email, action.pass)
-                    .onSuccess { user ->
-                        authStateManager.saveUserId(user.id)
-                        updateState { 
-                            copy(isLoading = false, isLoggedIn = true, errorMessage = null) 
-                        }
-                    }
-                    .onFailure { exception ->
-                        updateState { 
-                            copy(isLoading = false, errorMessage = exception.message) 
-                        }
-                    }
-            } catch (e: Exception) {
-                // Safety net: ensure state is always updated
-                updateState { 
-                    copy(isLoading = false, errorMessage = e.message ?: "Erreur inconnue") 
-                }
-            } finally {
-                loginMutex.unlock()
-            }
-        }
-    }
-
-    private fun register(action: AuthAction.Register) {
-        viewModelScope.launch {
-            saveStateForRollback()
-            updateState { copy(isLoading = true, errorMessage = null) }
-            
-            authRepository.register(action.email, action.pass, action.name, action.grade)
+            authRepository.login(email, code)
                 .onSuccess { user ->
-                    authStateManager.saveUserId(user.id)
-                    updateState { 
-                        copy(isLoading = false, isLoggedIn = true, errorMessage = null) 
-                    }
+                    Logger.i("AuthViewModel", "Login success: ${user.id}")
+                    _authState.value = AuthState.Authenticated(user, !networkObserver.isOnline())
                 }
-                .onFailure { exception ->
-                    updateState { 
-                        copy(isLoading = false, errorMessage = exception.message) 
-                    }
+                .onFailure { e ->
+                    Logger.w("AuthViewModel", "Login failed: ${e.message}")
+                    _authState.value = AuthState.Error(
+                        message = e.message ?: "Échec de connexion",
+                        canRetry = true
+                    )
                 }
         }
     }
 
-    private fun registerFull(action: AuthAction.RegisterFull) {
-        viewModelScope.launch {
-            saveStateForRollback()
-            updateState { copy(isLoading = true, errorMessage = null) }
+    fun register(email: String, code: String, name: String, gradeLevel: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _authState.value = AuthState.Loading
+            Logger.d("AuthViewModel", "Attempting registration for $email")
             
-            // Check phone account limit
-            if (!action.parentPhone.isNullOrBlank()) {
-                val count = authStateManager.getAccountsForPhone(action.parentPhone)
-                if (count >= 3) {
-                    updateState { 
-                        copy(isLoading = false, errorMessage = "Ce numéro de téléphone a déjà 3 comptes. Contactez le support pour autorisation.") 
-                    }
-                    return@launch
-                }
-            }
-
-            authRepository.registerFull(
-                pseudo = action.pseudo,
-                password = action.pass,
-                fullName = action.fullName,
-                gradeLevel = action.gradeLevel,
-                school = action.school,
-                city = action.city,
-                neighborhood = action.neighborhood,
-                parentName = action.parentName,
-                parentPhone = action.parentPhone,
-                relation = action.relation,
-                promoCode = action.promoCode
-            ).onSuccess { user ->
-                // save account mapping for phone
-                action.parentPhone?.let { authStateManager.incAccountsForPhone(it) }
-                // Save user id and mark account active
-                authStateManager.saveUserId(user.id)
-                authStateManager.saveAccountType("ACTIVE")
-                // minimal profile storage
-                val profileJson = "{\"pseudo\":\"${action.pseudo}\",\"school\":\"${action.school}\",\"city\":\"${action.city}\"}"
-                authStateManager.saveProfileJson(user.id, profileJson)
-
-                updateState { 
-                    copy(isLoading = false, isLoggedIn = true, errorMessage = null) 
-                }
-            }.onFailure { exception ->
-                updateState { 
-                    copy(isLoading = false, errorMessage = exception.message) 
-                }
-            }
-        }
-    }
-
-    private fun registerOffline(action: AuthAction.RegisterOffline) {
-        viewModelScope.launch {
-            saveStateForRollback()
-            updateState { copy(isLoading = true, errorMessage = null) }
-            
-            authRepository.registerOffline(action.pseudo, action.pass, action.fullName, action.gradeLevel)
+            authRepository.register(email, code, name, gradeLevel)
                 .onSuccess { user ->
-                    authStateManager.saveUserId(user.id)
-                    authStateManager.saveAccountType("TRIAL") // 7-day trial
-                    
-                    // minimal profile storage
-                    val profileJson = "{\"pseudo\":\"${action.pseudo}\",\"isOffline\":true}"
-                    authStateManager.saveProfileJson(user.id, profileJson)
-
-                    updateState { 
-                        copy(isLoading = false, isLoggedIn = true, errorMessage = null) 
-                    }
+                    Logger.i("AuthViewModel", "Registration success: ${user.id}")
+                    _authState.value = AuthState.Authenticated(user, !networkObserver.isOnline())
                 }
-                .onFailure { exception ->
-                    updateState { 
-                        copy(isLoading = false, errorMessage = exception.message) 
-                    }
+                .onFailure { e ->
+                    Logger.w("AuthViewModel", "Registration failed: ${e.message}")
+                    _authState.value = AuthState.Error(
+                        message = e.message ?: "Échec d'inscription",
+                        canRetry = true
+                    )
                 }
         }
     }
 
-    private fun logout() {
-        authStateManager.clearUserId()
-        // ✅ Reset account type to GUEST to allow guest mode fallback
-        authStateManager.saveAccountType("GUEST") 
-        updateState { copy(isLoggedIn = false) }
-    }
-
-    private fun setGuestMode() {
-        authStateManager.setGuestMode()
-        updateState { copy(isLoggedIn = true) }
-    }
-    
-    private fun clearError() {
-        updateState { copy(errorMessage = null) }
-    }
-
-    private fun saveStateForRollback() {
-        rollbackManager.saveState(uiState.value)
-    }
-    
-    fun restorePreviousState() {
-        rollbackManager.rollback()?.let { oldState ->
-            updateState { oldState }
+    fun loginAsGuest() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _authState.value = AuthState.Loading
+            Logger.d("AuthViewModel", "Attempting guest login...")
+            
+            authRepository.loginAnonymous()
+                .onSuccess { user ->
+                    Logger.i("AuthViewModel", "Guest login success: ${user.id}")
+                    _authState.value = AuthState.Authenticated(user)
+                }
+                .onFailure { e ->
+                    Logger.e("AuthViewModel", "Guest login failed", e)
+                    _authState.value = AuthState.Error(
+                        message = e.message ?: "Erreur de connexion invité",
+                        canRetry = true
+                    )
+                }
         }
     }
-
-    // Expose small helpers for UI
-    fun getAccountType(): String = authStateManager.getAccountType()
-
-    fun getProfileJsonForCurrentUser(): String? {
-        val id = authStateManager.getUserId() ?: return null
-        return authStateManager.getProfileJson(id)
+    
+    fun retry() {
+        initialize()
+    }
+    
+    fun logout() {
+        viewModelScope.launch(Dispatchers.IO) {
+            // TODO: Implement proper logout in Repository (clear prefs, firebase signOut)
+            _authState.value = AuthState.Unauthenticated()
+        }
     }
 }
-

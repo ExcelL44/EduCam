@@ -27,26 +27,28 @@ fun LoginScreen(
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val ctx = LocalContext.current
+    val authState by viewModel.authState.collectAsState()
+    
     var pseudo by remember { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
-    val uiState by viewModel.uiState.collectAsState()
 
-    // ✅ SUPPRIMÉ: LaunchedEffect(uiState.isLoggedIn) - Navigation gérée par NavGraph uniquement
-    
-    LaunchedEffect(uiState.guestAttemptsRemaining) {
-        android.util.Log.d("LoginScreen", "Guest Attempts Display: ${uiState.guestAttemptsRemaining}")
+    // Handle state changes
+    LaunchedEffect(authState) {
+        if (authState is com.excell44.educam.domain.model.AuthState.Authenticated) {
+            onLoginSuccess()
+        }
     }
 
-    // Memoize callbacks to prevent recreation on recomposition
+    // Memoize callbacks
     val onLoginClick = remember(pseudo, code) {
-        { viewModel.submitAction(AuthAction.Login("${pseudo.lowercase()}@local.excell", code)) }
+        { 
+            // TODO: Implement login in ViewModel (currently only guest login is fully refactored)
+            // viewModel.login(pseudo, code) 
+        }
     }
     
     val onGuestClick = remember {
-        {
-            viewModel.submitAction(AuthAction.ClearError)
-            viewModel.submitAction(AuthAction.GuestMode)
-        }
+        { viewModel.loginAsGuest() }
     }
 
     Column(
@@ -73,76 +75,81 @@ fun LoginScreen(
         )
         Spacer(modifier = Modifier.height(48.dp))
 
-        OutlinedTextField(
-            value = pseudo,
-            onValueChange = { if (it.length <= 15) pseudo = it },
-            label = { Text("Pseudo") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
+        when (val state = authState) {
+            is com.excell44.educam.domain.model.AuthState.Loading -> {
+                CircularProgressIndicator()
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Chargement...", style = MaterialTheme.typography.bodySmall)
+            }
+            
+            is com.excell44.educam.domain.model.AuthState.Error -> {
+                Text(
+                    text = state.message,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = { viewModel.retry() }) {
+                    Text("Réessayer")
+                }
+            }
+            
+            else -> {
+                // Unauthenticated or default view
+                OutlinedTextField(
+                    value = pseudo,
+                    onValueChange = { if (it.length <= 15) pseudo = it },
+                    label = { Text("Pseudo") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
 
-        Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-        OutlinedTextField(
-            value = code,
-            onValueChange = { if (it.length <= 4 && it.all { ch -> ch.isDigit() }) code = it },
-            label = { Text("Code (4 chiffres)") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-        )
+                OutlinedTextField(
+                    value = code,
+                    onValueChange = { if (it.length <= 4 && it.all { ch -> ch.isDigit() }) code = it },
+                    label = { Text("Code (4 chiffres)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
 
-        if (uiState.errorMessage != null) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = uiState.errorMessage!!,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-        }
+                Spacer(modifier = Modifier.height(32.dp))
 
-        Spacer(modifier = Modifier.height(32.dp))
+                com.excell44.educam.ui.components.PrimaryButton(
+                    onClick = onLoginClick,
+                    text = "Se connecter",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    enabled = pseudo.isNotBlank() && code.length == 4
+                )
 
-        if (uiState.isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(36.dp),
-                color = MaterialTheme.colorScheme.primary
-            )
-        } else {
-            com.excell44.educam.ui.components.PrimaryButton(
-                onClick = onLoginClick,
-                text = "Se connecter",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                enabled = pseudo.isNotBlank() && code.length == 4
-            )
-        }
+                Spacer(modifier = Modifier.height(16.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
+                TextButton(onClick = onNavigateToRegister) {
+                    Text("Pas encore de compte ? S'inscrire")
+                }
 
-        Spacer(modifier = Modifier.height(8.dp))
-        TextButton(onClick = onNavigateToRegister) {
-            Text("Pas encore de compte ? S'inscrire")
-        }
+                Spacer(modifier = Modifier.height(8.dp))
+                TextButton(onClick = onGuestClick) {
+                    Text("Continuer en tant qu'invité")
+                }
 
-        Spacer(modifier = Modifier.height(8.dp))
-        TextButton(onClick = onGuestClick) {
-            Text("Continuer en tant qu'invité (${uiState.guestAttemptsRemaining} essais max)")
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-        TextButton(onClick = {
-            val phone = "+22912345678"
-            val uri = Uri.parse("https://wa.me/${phone.removePrefix("+")}?text=${Uri.encode("Bonjour, j'ai besoin d'aide pour Bac-X_237.")}")
-            val intent = Intent(Intent.ACTION_VIEW, uri)
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            ctx.startActivity(intent)
-        }) {
-            Text("Mot de passe oublié ? Contacter le support")
+                Spacer(modifier = Modifier.height(8.dp))
+                TextButton(onClick = {
+                    val phone = "+22912345678"
+                    val uri = Uri.parse("https://wa.me/${phone.removePrefix("+")}?text=${Uri.encode("Bonjour, j'ai besoin d'aide pour Bac-X_237.")}")
+                    val intent = Intent(Intent.ACTION_VIEW, uri)
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    ctx.startActivity(intent)
+                }) {
+                    Text("Mot de passe oublié ? Contacter le support")
+                }
+            }
         }
     }
 }
