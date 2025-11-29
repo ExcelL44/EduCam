@@ -139,8 +139,20 @@ jobs:
           echo "errors=${ERROR_COUNT}" >> $GITHUB_OUTPUT
           echo "warnings=${WARNING_COUNT}" >> $GITHUB_OUTPUT
           
+          # Extract FIRST error for priority display
+          FIRST_ERROR=""
+          if [ "$ERROR_COUNT" -gt 0 ]; then
+            FIRST_ERROR=$(grep -m 1 -A 2 "e: file:///" compile-output.log | sed 's/e: file:.*\/app\/src\/main\/java\///')
+            echo "first_error<<EOF" >> $GITHUB_OUTPUT
+            echo "$FIRST_ERROR" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+          
           echo "Errors: ${ERROR_COUNT}"
           echo "Warnings: ${WARNING_COUNT}"
+          if [ -n "$FIRST_ERROR" ]; then
+            echo "🔴 First Error: $FIRST_ERROR"
+          fi
           echo "════════════════════════════════════════════════════════════"
           
           exit ${EXIT_CODE}
@@ -156,6 +168,7 @@ jobs:
             "duration_sec": "${{ steps.compile.outputs.duration_sec }}",
             "exit_code": "${{ steps.compile.outputs.exit_code }}",
             "errors": "${{ steps.compile.outputs.errors }}",
+            "first_error": "${{ steps.compile.outputs.first_error }}",
             "warnings": "${{ steps.compile.outputs.warnings }}",
             "timestamp": "$(date -u +"%Y-%m-%d %H:%M:%S UTC")"
           }
@@ -211,6 +224,9 @@ jobs:
         run: |
           echo "❌ Phase 1 FAILED: Compilation errors detected"
           echo "📊 Metrics: ${{ steps.compile.outputs.duration_sec }}s, ${{ steps.compile.outputs.errors }} errors"
+          echo ""
+          echo "🔴 PRIORITY ERROR:"
+          echo "${{ steps.compile.outputs.first_error }}"
           exit 1
 
     outputs:
@@ -218,6 +234,7 @@ jobs:
       version_code: ${{ steps.version.outputs.version_code }}
       compile_status: ${{ steps.compile.outputs.exit_code == '0' && 'success' || 'failure' }}
       compile_duration: ${{ steps.compile.outputs.duration_sec }}
+      first_error: ${{ steps.compile.outputs.first_error }}
 
   # ═══════════════════════════════════════════════════════════════════════
   #  PHASE 2 : BUILDING APK & RUNTIME SMOKE TEST
@@ -493,6 +510,12 @@ jobs:
             if ('${{ needs.compile-and-test.result }}' === 'failure') {
               failedPhase = 'Phase 1 (Compiling & Unit Tests)';
               artifact = 'compilation-errors.md';
+              
+              // Add first error to comment
+              const firstError = `${{ needs.compile-and-test.outputs.first_error }}`.replace(/\n/g, '<br>');
+              if (firstError) {
+                extraInfo = `\n\n### 🔴 Priority Error\n<pre>${firstError}</pre>`;
+              }
             } else {
               failedPhase = 'Phase 2 (Building APK & Smoke Test)';
               artifact = 'build-apk.log or runtime-errors.txt';
@@ -507,7 +530,7 @@ jobs:
               **Failed at:** ${failedPhase}
               
               **Phase 1:** Compiling & Unit Tests - ${{ needs.compile-and-test.result }}
-              **Phase 2:** Building APK & Smoke Test - ${{ needs.build-and-smoke-test.result }}
+              **Phase 2:** Building APK & Smoke Test - ${{ needs.build-and-smoke-test.result }}${extraInfo}
               
               📁 **Error Report:** Check \`${artifact}\` in artifacts
               

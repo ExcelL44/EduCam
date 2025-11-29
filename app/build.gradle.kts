@@ -116,7 +116,7 @@ dependencies {
     ksp("androidx.hilt:hilt-compiler:1.2.0")
 
     // Security
-    implementation("androidx.security:security-crypto:1.0.0")
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     // Accompanist
     implementation("com.google.accompanist:accompanist-permissions:0.34.0")
