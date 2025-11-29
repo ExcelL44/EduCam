@@ -59,7 +59,7 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "EduCam",
+            text = "Bac-X_237",
             style = MaterialTheme.typography.displayMedium,
             color = MaterialTheme.colorScheme.primary
         )
@@ -135,7 +135,7 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(8.dp))
         TextButton(onClick = {
             val phone = "+22912345678"
-            val uri = Uri.parse("https://wa.me/${phone.removePrefix("+")}?text=${Uri.encode("Bonjour, j'ai besoin d'aide pour EduCam.")}")
+            val uri = Uri.parse("https://wa.me/${phone.removePrefix("+")}?text=${Uri.encode("Bonjour, j'ai besoin d'aide pour Bac-X_237.")}")
             val intent = Intent(Intent.ACTION_VIEW, uri)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             ctx.startActivity(intent)

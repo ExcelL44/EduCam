@@ -130,7 +130,7 @@ fun RegisterScreen(
             val isLargeScreen = maxWidth > 720.dp
             Column(modifier = Modifier.fillMaxWidth().widthIn(max = 720.dp).padding(8.dp)) {
                 Text(
-                    text = "EduCam - Inscription",
+                    text = "Bac-X_237 - Inscription",
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
