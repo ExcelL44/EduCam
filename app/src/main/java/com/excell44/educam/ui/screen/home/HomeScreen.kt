@@ -25,9 +25,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.excell44.educam.ui.viewmodel.AuthViewModel
 import com.excell44.educam.ui.viewmodel.AuthAction
 
+import com.excell44.educam.ui.base.UiAction
+import com.excell44.educam.ui.base.UiState
+
 // États et Actions pour HomeScreen
-data class HomeState(val isGuest: Boolean = false)
-sealed class HomeAction {
+data class HomeState(val isGuest: Boolean = false) : UiState
+sealed class HomeAction : UiAction {
     object NavigateToQuiz : HomeAction()
     object NavigateToSubjects : HomeAction()
     object NavigateToProblemSolver : HomeAction()
@@ -84,7 +87,7 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 IconButton(onClick = {
                     // Réinitialiser le thème au défaut
-                    context.getSharedPreferences("educam_prefs", android.content.Context.MODE_PRIVATE)
+                    context.getSharedPreferences("bacx_prefs", android.content.Context.MODE_PRIVATE)
                         .edit()
                         .putInt("theme_index", 0)
                         .apply()

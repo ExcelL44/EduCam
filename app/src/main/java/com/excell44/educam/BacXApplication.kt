@@ -17,7 +17,7 @@ import dagger.hilt.android.HiltAndroidApp
  * - Network sur Main Thread
  */
 @HiltAndroidApp
-class EduCamApplication : Application() {
+class BacXApplication : Application() {
     
     companion object {
         private const val TAG = "BacXApplication"

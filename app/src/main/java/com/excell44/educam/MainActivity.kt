@@ -32,7 +32,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             // Charger le thème sauvegardé (défaut = 0: Focus Clair)
-            val prefs = getSharedPreferences("educam_prefs", MODE_PRIVATE)
+            val prefs = getSharedPreferences("bacx_prefs", MODE_PRIVATE)
             val themeIndex = prefs.getInt("theme_index", 0)
 
             BacXTheme(themeIndex = themeIndex) {

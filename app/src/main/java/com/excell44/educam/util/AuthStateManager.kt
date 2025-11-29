@@ -12,7 +12,7 @@ class AuthStateManager @Inject constructor(
 ) {
     // ✅ Lazy initialization to avoid blocking constructor
     private val prefs: SharedPreferences by lazy { 
-        context.getSharedPreferences("educam_prefs", Context.MODE_PRIVATE)
+        context.getSharedPreferences("bacx_prefs", Context.MODE_PRIVATE)
     }
 
     // Basic user id storage

@@ -99,7 +99,7 @@ fun ProfileScreen(
 
         // Enhanced theme Material3 choices
         val availableThemes = com.excell44.educam.ui.theme.EduCamThemes
-        val prefs = remember { context.getSharedPreferences("educam_prefs", android.content.Context.MODE_PRIVATE) }
+        val prefs = remember { context.getSharedPreferences("bacx_prefs", android.content.Context.MODE_PRIVATE) }
         var selectedThemeIndex by remember {
             mutableStateOf(prefs.getInt("theme_index", 0))
         }

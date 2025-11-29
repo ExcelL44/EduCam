@@ -14,7 +14,7 @@ import javax.inject.Singleton
 class ThemeManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    private val prefs: SharedPreferences = context.getSharedPreferences("educam_prefs", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = context.getSharedPreferences("bacx_prefs", Context.MODE_PRIVATE)
 
     // 7 gradient-only themes inspired by modern education platforms
     enum class ThemeColor(

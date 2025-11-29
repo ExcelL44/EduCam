@@ -26,7 +26,7 @@ import com.excell44.educam.data.model.User
     exportSchema = false
 )
 @TypeConverters(Converters::class)
-abstract class EduCamDatabase : RoomDatabase() {
+abstract class BacXDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun quizQuestionDao(): QuizQuestionDao
     abstract fun quizSessionDao(): QuizSessionDao
@@ -34,7 +34,7 @@ abstract class EduCamDatabase : RoomDatabase() {
     abstract fun problemSolutionDao(): ProblemSolutionDao
 
     companion object {
-        const val DATABASE_NAME = "educam_database"
+        const val DATABASE_NAME = "bacx_database"
     }
 }
 

@@ -14,7 +14,7 @@ data class ThemeData(
 )
 
 // Collection des 7 thèmes pédagogiques optimisés
-val EduCamThemes = listOf(
+val BacXThemes = listOf(
     // Theme 0: Focus Clair (THÈME DÉFAUT - Blanc épuré)
     ThemeData(
         name = "Focus Clair",
@@ -181,12 +181,12 @@ fun BacXTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    val theme = EduCamThemes.getOrElse(themeIndex) { EduCamThemes[0] }
+    val theme = BacXThemes.getOrElse(themeIndex) { BacXThemes[0] }
     val colorScheme = if (darkTheme) theme.darkColors else theme.colors
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = EduCamTypography,
+        typography = BacXTypography,
         content = content
     )
 }

@@ -11,7 +11,7 @@ import com.excell44.educam.R
 
 // Police principale optimale pour le contenu éducatif : Inter
 // Inter est spécialement conçue pour la lisibilité sur écrans numériques
-val EduCamFontFamily = FontFamily(
+val BacXFontFamily = FontFamily(
     // Police variable Inter - Normal
     Font(
         resId = R.font.inter_variablefont_opsz_wght,
@@ -47,25 +47,25 @@ val EduCamFontFamily = FontFamily(
 )
 
 // Configuration typographique optimisée pour l'éducation
-val EduCamTypography = Typography(
+val BacXTypography = Typography(
 
     // Titres principaux - Lisibilité maximale
     displayLarge = TextStyle(
-        fontFamily = EduCamFontFamily,
+        fontFamily = BacXFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 57.sp,
         lineHeight = 64.sp,
         letterSpacing = 0.sp
     ),
     displayMedium = TextStyle(
-        fontFamily = EduCamFontFamily,
+        fontFamily = BacXFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 45.sp,
         lineHeight = 52.sp,
         letterSpacing = 0.sp
     ),
     displaySmall = TextStyle(
-        fontFamily = EduCamFontFamily,
+        fontFamily = BacXFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 36.sp,
         lineHeight = 44.sp,
@@ -74,21 +74,21 @@ val EduCamTypography = Typography(
 
     // Titres de section
     headlineLarge = TextStyle(
-        fontFamily = EduCamFontFamily,
+        fontFamily = BacXFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 32.sp,
         lineHeight = 40.sp,
         letterSpacing = 0.sp
     ),
     headlineMedium = TextStyle(
-        fontFamily = EduCamFontFamily,
+        fontFamily = BacXFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 28.sp,
         lineHeight = 36.sp,
         letterSpacing = 0.sp
     ),
     headlineSmall = TextStyle(
-        fontFamily = EduCamFontFamily,
+        fontFamily = BacXFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 24.sp,
         lineHeight = 32.sp,
@@ -97,21 +97,21 @@ val EduCamTypography = Typography(
 
     // Titres dans les composants
     titleLarge = TextStyle(
-        fontFamily = EduCamFontFamily,
+        fontFamily = BacXFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 22.sp,
         lineHeight = 28.sp,
         letterSpacing = 0.sp
     ),
     titleMedium = TextStyle(
-        fontFamily = EduCamFontFamily,
+        fontFamily = BacXFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 16.sp,
         lineHeight = 24.sp,
         letterSpacing = 0.15.sp
     ),
     titleSmall = TextStyle(
-        fontFamily = EduCamFontFamily,
+        fontFamily = BacXFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 14.sp,
         lineHeight = 20.sp,
@@ -120,21 +120,21 @@ val EduCamTypography = Typography(
 
     // Corps de texte - optimisé pour lecture
     bodyLarge = TextStyle(
-        fontFamily = EduCamFontFamily,
+        fontFamily = BacXFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 24.sp,
         letterSpacing = 0.15.sp
     ),
     bodyMedium = TextStyle(
-        fontFamily = EduCamFontFamily,
+        fontFamily = BacXFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
         lineHeight = 20.sp,
         letterSpacing = 0.25.sp
     ),
     bodySmall = TextStyle(
-        fontFamily = EduCamFontFamily,
+        fontFamily = BacXFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp,
         lineHeight = 16.sp,
@@ -143,21 +143,21 @@ val EduCamTypography = Typography(
 
     // Étiquettes et boutons
     labelLarge = TextStyle(
-        fontFamily = EduCamFontFamily,
+        fontFamily = BacXFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 14.sp,
         lineHeight = 20.sp,
         letterSpacing = 0.1.sp
     ),
     labelMedium = TextStyle(
-        fontFamily = EduCamFontFamily,
+        fontFamily = BacXFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 12.sp,
         lineHeight = 16.sp,
         letterSpacing = 0.5.sp
     ),
     labelSmall = TextStyle(
-        fontFamily = EduCamFontFamily,
+        fontFamily = BacXFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 11.sp,
         lineHeight = 16.sp,
