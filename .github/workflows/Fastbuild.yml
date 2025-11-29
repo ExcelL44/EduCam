@@ -99,21 +99,78 @@ jobs:
           sed -i "s/versionCode = [0-9]*/versionCode = ${{ steps.version.outputs.version_code }}/" app/build.gradle.kts
           sed -i "s/versionName = \"[^\"]*\"/versionName = \"${{ steps.version.outputs.full_version }}\"/" app/build.gradle.kts
 
-      - name: 🔨 Build Debug APK
+      - name: 🔨 Compile & Test (Unified)
         id: build
         run: |
           set -o pipefail
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log
+          
+          echo "════════════════════════════════════════════════════════════"
+          echo "🔨 Starting Compilation & Testing"
+          echo "════════════════════════════════════════════════════════════"
+          
+          # Timestamp début
+          START_TIME=$(date +%s)
+          
+          # Compile + Test en une seule commande (plus rapide)
+          ./gradlew assembleDebug testDebugUnitTest \
+            --no-daemon \
+            --stacktrace \
+            --warning-mode all \
+            2>&1 | tee build-output.log
+          
+          BUILD_EXIT_CODE=${PIPESTATUS[0]}
+          
+          # Timestamp fin
+          END_TIME=$(date +%s)
+          DURATION=$((END_TIME - START_TIME))
+          
+          echo ""
+          echo "════════════════════════════════════════════════════════════"
+          echo "📊 Build Metrics"
+          echo "════════════════════════════════════════════════════════════"
+          echo "Duration: ${DURATION}s"
+          echo "Exit Code: ${BUILD_EXIT_CODE}"
+          echo "Log Size: $(wc -l < build-output.log) lines"
+          
+          # Extraire métriques
+          echo "duration_sec=${DURATION}" >> $GITHUB_OUTPUT
+          echo "exit_code=${BUILD_EXIT_CODE}" >> $GITHUB_OUTPUT
+          
+          # Compter les warnings/erreurs
+          ERROR_COUNT=$(grep -c "error:" build-output.log || echo "0")
+          WARNING_COUNT=$(grep -c "warning:" build-output.log || echo "0")
+          
+          echo "errors=${ERROR_COUNT}" >> $GITHUB_OUTPUT
+          echo "warnings=${WARNING_COUNT}" >> $GITHUB_OUTPUT
+          
+          echo "Errors: ${ERROR_COUNT}"
+          echo "Warnings: ${WARNING_COUNT}"
+          echo "════════════════════════════════════════════════════════════"
+          
+          # Exit avec le code original
+          exit ${BUILD_EXIT_CODE}
         continue-on-error: true
 
-      - name: 🧪 Run Unit Tests
-        if: steps.build.outcome == 'success'
+      - name: 📊 Extract Build Metrics
+        if: always()
         run: |
-          ./gradlew testDebugUnitTest --no-daemon --stacktrace 2>&1 | tee test.log
-        continue-on-error: true
+          cat > build-metrics.json << EOF
+          {
+            "build_number": "${{ github.run_number }}",
+            "duration_sec": "${{ steps.build.outputs.duration_sec }}",
+            "exit_code": "${{ steps.build.outputs.exit_code }}",
+            "errors": "${{ steps.build.outputs.errors }}",
+            "warnings": "${{ steps.build.outputs.warnings }}",
+            "timestamp": "$(date -u +"%Y-%m-%d %H:%M:%S UTC")",
+            "commit": "${{ github.sha }}",
+            "branch": "${{ github.ref_name }}"
+          }
+          EOF
+          
+          cat build-metrics.json
 
       - name: 🔍 Run Lint Analysis
-        if: steps.build.outcome == 'success'
+        if: steps.build.outputs.exit_code == '0'
         run: |
           ./gradlew lintDebug --no-daemon 2>&1 | tee lint.log
         continue-on-error: true
@@ -122,7 +179,7 @@ jobs:
       #  ERROR TRACKING & EXTRACTION
       # ═══════════════════════════════════════════════════════════════════
       - name: 📊 Extract Build Errors
-        if: steps.build.outcome == 'failure'
+        if: steps.build.outputs.exit_code != '0'
         run: |
           cat > build-errors.md << 'EOF'
           # 🚨 Bac-X_237 Build Error Report
@@ -131,52 +188,55 @@ jobs:
           **Commit:** `${{ github.sha }}`
           **Branch:** `${{ github.ref_name }}`
           **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Duration:** ${{ steps.build.outputs.duration_sec }}s
+          **Errors:** ${{ steps.build.outputs.errors }}
+          **Warnings:** ${{ steps.build.outputs.warnings }}
           
           ---
           
           EOF
           
           # Extract compilation errors
-          if grep -q "error:" build.log; then
+          if grep -q "error:" build-output.log; then
             echo "## ❌ Compilation Errors" >> build-errors.md
             echo '```kotlin' >> build-errors.md
-            grep -B 2 -A 5 "error:" build.log | head -100 >> build-errors.md
+            grep -B 2 -A 5 "error:" build-output.log | head -100 >> build-errors.md
             echo '```' >> build-errors.md
             echo "" >> build-errors.md
           fi
           
           # Extract Gradle failures
-          if grep -q "FAILURE: Build failed" build.log; then
+          if grep -q "FAILURE: Build failed" build-output.log; then
             echo "## 🔥 Gradle Task Failures" >> build-errors.md
             echo '```' >> build-errors.md
-            grep -A 20 "FAILURE: Build failed" build.log | head -50 >> build-errors.md
+            grep -A 20 "FAILURE: Build failed" build-output.log | head -50 >> build-errors.md
             echo '```' >> build-errors.md
             echo "" >> build-errors.md
           fi
           
           # Extract unresolved references
-          if grep -q "Unresolved reference" build.log; then
+          if grep -q "Unresolved reference" build-output.log; then
             echo "## 🔗 Unresolved References" >> build-errors.md
             echo '```' >> build-errors.md
-            grep "Unresolved reference" build.log | sort -u | head -30 >> build-errors.md
+            grep "Unresolved reference" build-output.log | sort -u | head -30 >> build-errors.md
             echo '```' >> build-errors.md
             echo "" >> build-errors.md
           fi
           
           # Extract missing imports
-          if grep -q "Unresolved import" build.log; then
+          if grep -q "Unresolved import" build-output.log; then
             echo "## 📦 Missing Imports" >> build-errors.md
             echo '```' >> build-errors.md
-            grep "Unresolved import" build.log | sort -u | head -20 >> build-errors.md
+            grep "Unresolved import" build-output.log | sort -u | head -20 >> build-errors.md
             echo '```' >> build-errors.md
             echo "" >> build-errors.md
           fi
           
           # Extract KSP errors
-          if grep -q "error:ksp" build.log; then
+          if grep -q "error:ksp" build-output.log; then
             echo "## ⚙️ KSP Errors" >> build-errors.md
             echo '```' >> build-errors.md
-            grep "error:ksp" build.log | head -30 >> build-errors.md
+            grep "error:ksp" build-output.log | head -30 >> build-errors.md
             echo '```' >> build-errors.md
             echo "" >> build-errors.md
           fi
@@ -274,7 +334,7 @@ jobs:
           fi
 
       - name: 📤 Upload APK for Next Phase
-        if: steps.build.outcome == 'success'
+        if: steps.build.outputs.exit_code == '0'
         uses: actions/upload-artifact@v4
         with:
           name: debug-apk-${{ github.run_number }}
@@ -287,8 +347,8 @@ jobs:
         with:
           name: phase1-logs-${{ github.run_number }}
           path: |
-            build.log
-            test.log
+            build-output.log
+            build-metrics.json
             lint.log
             build-errors.md
             test-failures.md
@@ -298,15 +358,19 @@ jobs:
           retention-days: 30
 
       - name: ❌ Fail if Build Failed
-        if: steps.build.outcome == 'failure'
+        if: steps.build.outputs.exit_code != '0'
         run: |
           echo "❌ Build failed! Check build-errors.md in artifacts."
+          echo "📊 Metrics: ${{ steps.build.outputs.duration_sec }}s, ${{ steps.build.outputs.errors }} errors, ${{ steps.build.outputs.warnings }} warnings"
           exit 1
 
     outputs:
       version: ${{ steps.version.outputs.full_version }}
       version_code: ${{ steps.version.outputs.version_code }}
-      build_status: ${{ steps.build.outcome }}
+      build_status: ${{ steps.build.outputs.exit_code == '0' && 'success' || 'failure' }}
+      build_duration: ${{ steps.build.outputs.duration_sec }}
+      build_errors: ${{ steps.build.outputs.errors }}
+      build_warnings: ${{ steps.build.outputs.warnings }}
 
   # ═══════════════════════════════════════════════════════════════════════
   #  PHASE 2 : SMOKE TEST (RUNTIME)
