@@ -13,10 +13,10 @@ env:
 
 jobs:
   # ═══════════════════════════════════════════════════════════════════════
-  #  PHASE 1 : BUILD & TEST
+  #  PHASE 1 : COMPILING & UNIT TESTS
   # ═══════════════════════════════════════════════════════════════════════
-  build-and-test:
-    name: 🔨 Phase 1 - Build & Unit Tests
+  compile-and-test:
+    name: ⚙️ Phase 1 - Compiling & Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -99,47 +99,43 @@ jobs:
           sed -i "s/versionCode = [0-9]*/versionCode = ${{ steps.version.outputs.version_code }}/" app/build.gradle.kts
           sed -i "s/versionName = \"[^\"]*\"/versionName = \"${{ steps.version.outputs.full_version }}\"/" app/build.gradle.kts
 
-      - name: 🔨 Compile & Test (Unified)
-        id: build
+      # ═══════════════════════════════════════════════════════════════════
+      #  COMPILATION & TESTS UNITAIRES
+      # ═══════════════════════════════════════════════════════════════════
+      - name: ⚙️ Compile & Run Unit Tests
+        id: compile
         run: |
           set -o pipefail
           
           echo "════════════════════════════════════════════════════════════"
-          echo "🔨 Starting Compilation & Testing"
+          echo "⚙️ Phase 1: Compiling & Unit Testing"
           echo "════════════════════════════════════════════════════════════"
           
-          # Timestamp début
           START_TIME=$(date +%s)
           
-          # Compile + Test en une seule commande (plus rapide)
-          ./gradlew assembleDebug testDebugUnitTest \
+          # Compilation + Tests unitaires (pas de build APK encore)
+          ./gradlew compileDebugKotlin compileDebugJavaWithJavac testDebugUnitTest \
             --no-daemon \
             --stacktrace \
             --warning-mode all \
-            2>&1 | tee build-output.log
+            2>&1 | tee compile-output.log
           
-          BUILD_EXIT_CODE=${PIPESTATUS[0]}
-          
-          # Timestamp fin
+          EXIT_CODE=${PIPESTATUS[0]}
           END_TIME=$(date +%s)
           DURATION=$((END_TIME - START_TIME))
           
           echo ""
           echo "════════════════════════════════════════════════════════════"
-          echo "📊 Build Metrics"
+          echo "📊 Compilation Metrics"
           echo "════════════════════════════════════════════════════════════"
           echo "Duration: ${DURATION}s"
-          echo "Exit Code: ${BUILD_EXIT_CODE}"
-          echo "Log Size: $(wc -l < build-output.log) lines"
+          echo "Exit Code: ${EXIT_CODE}"
           
-          # Extraire métriques
+          ERROR_COUNT=$(grep -c "error:" compile-output.log || echo "0")
+          WARNING_COUNT=$(grep -c "warning:" compile-output.log || echo "0")
+          
           echo "duration_sec=${DURATION}" >> $GITHUB_OUTPUT
-          echo "exit_code=${BUILD_EXIT_CODE}" >> $GITHUB_OUTPUT
-          
-          # Compter les warnings/erreurs
-          ERROR_COUNT=$(grep -c "error:" build-output.log || echo "0")
-          WARNING_COUNT=$(grep -c "warning:" build-output.log || echo "0")
-          
+          echo "exit_code=${EXIT_CODE}" >> $GITHUB_OUTPUT
           echo "errors=${ERROR_COUNT}" >> $GITHUB_OUTPUT
           echo "warnings=${WARNING_COUNT}" >> $GITHUB_OUTPUT
           
@@ -147,405 +143,359 @@ jobs:
           echo "Warnings: ${WARNING_COUNT}"
           echo "════════════════════════════════════════════════════════════"
           
-          # Exit avec le code original
-          exit ${BUILD_EXIT_CODE}
+          exit ${EXIT_CODE}
         continue-on-error: true
 
-      - name: 📊 Extract Build Metrics
+      - name: 📊 Phase 1 Metrics
         if: always()
         run: |
-          cat > build-metrics.json << EOF
+          cat > phase1-metrics.json << EOF
           {
+            "phase": "1-compile-test",
             "build_number": "${{ github.run_number }}",
-            "duration_sec": "${{ steps.build.outputs.duration_sec }}",
-            "exit_code": "${{ steps.build.outputs.exit_code }}",
-            "errors": "${{ steps.build.outputs.errors }}",
-            "warnings": "${{ steps.build.outputs.warnings }}",
-            "timestamp": "$(date -u +"%Y-%m-%d %H:%M:%S UTC")",
-            "commit": "${{ github.sha }}",
-            "branch": "${{ github.ref_name }}"
+            "duration_sec": "${{ steps.compile.outputs.duration_sec }}",
+            "exit_code": "${{ steps.compile.outputs.exit_code }}",
+            "errors": "${{ steps.compile.outputs.errors }}",
+            "warnings": "${{ steps.compile.outputs.warnings }}",
+            "timestamp": "$(date -u +"%Y-%m-%d %H:%M:%S UTC")"
           }
           EOF
-          
-          cat build-metrics.json
+          cat phase1-metrics.json
 
       - name: 🔍 Run Lint Analysis
-        if: steps.build.outputs.exit_code == '0'
+        if: steps.compile.outputs.exit_code == '0'
         run: |
           ./gradlew lintDebug --no-daemon 2>&1 | tee lint.log
         continue-on-error: true
 
-      # ═══════════════════════════════════════════════════════════════════
-      #  ERROR TRACKING & EXTRACTION
-      # ═══════════════════════════════════════════════════════════════════
-      - name: 📊 Extract Build Errors
-        if: steps.build.outputs.exit_code != '0'
+      - name: 📊 Extract Compilation Errors
+        if: steps.compile.outputs.exit_code != '0'
         run: |
-          cat > build-errors.md << 'EOF'
-          # 🚨 Bac-X_237 Build Error Report
+          cat > compilation-errors.md << 'EOF'
+          # 🚨 Phase 1: Compilation Error Report
           
           **Build:** #${{ github.run_number }}
-          **Commit:** `${{ github.sha }}`
-          **Branch:** `${{ github.ref_name }}`
-          **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          **Duration:** ${{ steps.build.outputs.duration_sec }}s
-          **Errors:** ${{ steps.build.outputs.errors }}
-          **Warnings:** ${{ steps.build.outputs.warnings }}
+          **Phase:** Compiling & Unit Tests
+          **Duration:** ${{ steps.compile.outputs.duration_sec }}s
+          **Errors:** ${{ steps.compile.outputs.errors }}
+          **Warnings:** ${{ steps.compile.outputs.warnings }}
           
           ---
           
           EOF
           
-          # Extract compilation errors
-          if grep -q "error:" build-output.log; then
-            echo "## ❌ Compilation Errors" >> build-errors.md
-            echo '```kotlin' >> build-errors.md
-            grep -B 2 -A 5 "error:" build-output.log | head -100 >> build-errors.md
-            echo '```' >> build-errors.md
-            echo "" >> build-errors.md
+          if grep -q "error:" compile-output.log; then
+            echo "## ❌ Compilation Errors" >> compilation-errors.md
+            echo '```kotlin' >> compilation-errors.md
+            grep -B 2 -A 5 "error:" compile-output.log | head -100 >> compilation-errors.md
+            echo '```' >> compilation-errors.md
           fi
           
-          # Extract Gradle failures
-          if grep -q "FAILURE: Build failed" build-output.log; then
-            echo "## 🔥 Gradle Task Failures" >> build-errors.md
-            echo '```' >> build-errors.md
-            grep -A 20 "FAILURE: Build failed" build-output.log | head -50 >> build-errors.md
-            echo '```' >> build-errors.md
-            echo "" >> build-errors.md
-          fi
-          
-          # Extract unresolved references
-          if grep -q "Unresolved reference" build-output.log; then
-            echo "## 🔗 Unresolved References" >> build-errors.md
-            echo '```' >> build-errors.md
-            grep "Unresolved reference" build-output.log | sort -u | head -30 >> build-errors.md
-            echo '```' >> build-errors.md
-            echo "" >> build-errors.md
-          fi
-          
-          # Extract missing imports
-          if grep -q "Unresolved import" build-output.log; then
-            echo "## 📦 Missing Imports" >> build-errors.md
-            echo '```' >> build-errors.md
-            grep "Unresolved import" build-output.log | sort -u | head -20 >> build-errors.md
-            echo '```' >> build-errors.md
-            echo "" >> build-errors.md
-          fi
-          
-          # Extract KSP errors
-          if grep -q "error:ksp" build-output.log; then
-            echo "## ⚙️ KSP Errors" >> build-errors.md
-            echo '```' >> build-errors.md
-            grep "error:ksp" build-output.log | head -30 >> build-errors.md
-            echo '```' >> build-errors.md
-            echo "" >> build-errors.md
-          fi
-          
-          # Quick fixes section
-          cat >> build-errors.md << 'EOF'
-          ---
-          
-          ## 🔧 Quick Fixes
-          
-          1. **Unresolved References:**
-             - Check for missing imports
-             - Verify Hilt/Dagger dependencies are in sync
-             - Run `./gradlew clean build`
-          
-          2. **KSP Errors:**
-             - Check Room/Hilt annotations
-             - Verify kapt/ksp configuration
-             - Update KSP version if needed
-          
-          3. **Gradle Failures:**
-             - Check `build.gradle.kts` syntax
-             - Verify dependency versions
-             - Check for duplicate dependencies
-          
-          ## 📁 Full Logs
-          
-          Download complete logs from the Artifacts section.
-          EOF
-          
-          cat build-errors.md
+          cat compilation-errors.md
 
-      - name: 📊 Extract Test Failures
-        if: always()
-        run: |
-          if [ -d "app/build/test-results/testDebugUnitTest/" ]; then
-            cat > test-failures.md << 'EOF'
-          # 🧪 Bac-X_237 Test Failure Report
-          
-          **Build:** #${{ github.run_number }}
-          **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          
-          ## Failed Tests
-          
-          EOF
-            
-            FAILED_COUNT=0
-            find app/build/test-results/testDebugUnitTest -name "*.xml" -exec grep -l "<failure\|<error" {} \; | while read file; do
-              TEST_NAME=$(basename "$file" .xml)
-              echo "### ❌ $TEST_NAME" >> test-failures.md
-              echo '```' >> test-failures.md
-              grep -A 10 '<failure\|<error' "$file" | sed 's/<[^>]*>//g' | head -30 >> test-failures.md
-              echo '```' >> test-failures.md
-              echo "" >> test-failures.md
-              FAILED_COUNT=$((FAILED_COUNT + 1))
-            done
-            
-            if [ -f test-failures.md ]; then
-              echo "" >> test-failures.md
-              echo "---" >> test-failures.md
-              echo "**Total Failed Tests:** ${FAILED_COUNT}" >> test-failures.md
-              cat test-failures.md
-            fi
-          fi
-
-      - name: 📊 Extract Lint Issues
-        if: always()
-        run: |
-          if [ -f "app/build/reports/lint-results-debug.xml" ]; then
-            cat > lint-summary.md << 'EOF'
-          # 🔍 Bac-X_237 Lint Summary
-          
-          **Build:** #${{ github.run_number }}
-          
-          EOF
-            
-            # Count issues by severity
-            ERRORS=$(grep -c 'severity="Error"' app/build/reports/lint-results-debug.xml || echo "0")
-            WARNINGS=$(grep -c 'severity="Warning"' app/build/reports/lint-results-debug.xml || echo "0")
-            INFO=$(grep -c 'severity="Information"' app/build/reports/lint-results-debug.xml || echo "0")
-            
-            cat >> lint-summary.md << EOF
-          ## Issue Summary
-          
-          | Severity | Count |
-          |----------|-------|
-          | 🔴 Errors | ${ERRORS} |
-          | ⚠️ Warnings | ${WARNINGS} |
-          | ℹ️ Info | ${INFO} |
-          
-          View full HTML report in artifacts.
-          EOF
-            
-            cat lint-summary.md
-          fi
-
-      - name: 📤 Upload APK for Next Phase
-        if: steps.build.outputs.exit_code == '0'
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-apk-${{ github.run_number }}
-          path: app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 1
-
-      - name: 📤 Upload Build Logs & Reports
+      - name: 📤 Upload Phase 1 Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: phase1-logs-${{ github.run_number }}
+          name: phase1-compilation-${{ github.run_number }}
           path: |
-            build-output.log
-            build-metrics.json
+            compile-output.log
+            phase1-metrics.json
+            compilation-errors.md
             lint.log
-            build-errors.md
-            test-failures.md
-            lint-summary.md
-            app/build/reports/
-            app/build/test-results/
+            app/build/reports/tests/
           retention-days: 30
 
-      - name: ❌ Fail if Build Failed
-        if: steps.build.outputs.exit_code != '0'
+      - name: ❌ Fail if Compilation Failed
+        if: steps.compile.outputs.exit_code != '0'
         run: |
-          echo "❌ Build failed! Check build-errors.md in artifacts."
-          echo "📊 Metrics: ${{ steps.build.outputs.duration_sec }}s, ${{ steps.build.outputs.errors }} errors, ${{ steps.build.outputs.warnings }} warnings"
+          echo "❌ Phase 1 FAILED: Compilation errors detected"
+          echo "📊 Metrics: ${{ steps.compile.outputs.duration_sec }}s, ${{ steps.compile.outputs.errors }} errors"
           exit 1
 
     outputs:
       version: ${{ steps.version.outputs.full_version }}
       version_code: ${{ steps.version.outputs.version_code }}
-      build_status: ${{ steps.build.outputs.exit_code == '0' && 'success' || 'failure' }}
-      build_duration: ${{ steps.build.outputs.duration_sec }}
-      build_errors: ${{ steps.build.outputs.errors }}
-      build_warnings: ${{ steps.build.outputs.warnings }}
+      compile_status: ${{ steps.compile.outputs.exit_code == '0' && 'success' || 'failure' }}
+      compile_duration: ${{ steps.compile.outputs.duration_sec }}
 
   # ═══════════════════════════════════════════════════════════════════════
-  #  PHASE 2 : SMOKE TEST (RUNTIME)
+  #  PHASE 2 : BUILDING APK & RUNTIME SMOKE TEST
   # ═══════════════════════════════════════════════════════════════════════
-  smoke-test:
-    name: 🔥 Phase 2 - Runtime Smoke Test
+  build-and-smoke-test:
+    name: 🔨 Phase 2 - Building APK & Runtime Smoke Test
     runs-on: ubuntu-latest
-    needs: build-and-test
-    timeout-minutes: 15
+    needs: compile-and-test
+    timeout-minutes: 20
 
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
 
-      - name: 📦 Download APK
-        uses: actions/download-artifact@v4
+      - name: ☕ Setup JDK 17
+        uses: actions/setup-java@v4
         with:
-          name: debug-apk-${{ github.run_number }}
-          path: .
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
 
-      - name: 🔥 Launch Emulator & Test
+      - name: 🤖 Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 🔐 Restore google-services.json (Base64)
+        env:
+          GOOGLE_SERVICE_SECRETS: ${{ secrets.GOOGLE_SERVICE_SECRETS }}
+        run: |
+          if [ -z "$GOOGLE_SERVICE_SECRETS" ]; then
+            echo "⚠️ Using dummy google-services.json"
+            cat > app/google-services.json << 'EOF'
+          {
+            "project_info": {"project_number": "123456789", "project_id": "dummy-project-id", "storage_bucket": "dummy-project.appspot.com"},
+            "client": [{"client_info": {"mobilesdk_app_id": "1:123456789:android:dummy", "android_client_info": {"package_name": "com.excell44.educam"}}, "oauth_client": [], "api_key": [{"current_key": "AIzaDummyKeyForTestingOnly"}], "services": {"appinvite_service": {"other_platform_oauth_client": []}}}],
+            "configuration_version": "1"
+          }
+          EOF
+          else
+            echo "$GOOGLE_SERVICE_SECRETS" | base64 -d > app/google-services.json
+          fi
+
+      - name: 🔧 Prepare Gradle
+        run: |
+          chmod +x gradlew
+          sed -i 's/\r$//' gradlew
+
+      - name: 📝 Restore Version
+        run: |
+          sed -i "s/versionCode = [0-9]*/versionCode = ${{ needs.compile-and-test.outputs.version_code }}/" app/build.gradle.kts
+          sed -i "s/versionName = \"[^\"]*\"/versionName = \"${{ needs.compile-and-test.outputs.version }}\"/" app/build.gradle.kts
+
+      # ═══════════════════════════════════════════════════════════════════
+      #  BUILD APK
+      # ═══════════════════════════════════════════════════════════════════
+      - name: 🔨 Build Debug APK
+        id: build_apk
+        run: |
+          echo "════════════════════════════════════════════════════════════"
+          echo "🔨 Phase 2: Building APK"
+          echo "════════════════════════════════════════════════════════════"
+          
+          START_TIME=$(date +%s)
+          
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee build-apk.log
+          
+          EXIT_CODE=${PIPESTATUS[0]}
+          END_TIME=$(date +%s)
+          DURATION=$((END_TIME - START_TIME))
+          
+          echo "build_duration=${DURATION}" >> $GITHUB_OUTPUT
+          echo "build_exit_code=${EXIT_CODE}" >> $GITHUB_OUTPUT
+          
+          if [ -f "app/build/outputs/apk/debug/app-debug.apk" ]; then
+            APK_SIZE=$(du -h app/build/outputs/apk/debug/app-debug.apk | cut -f1)
+            echo "apk_size=${APK_SIZE}" >> $GITHUB_OUTPUT
+            echo "✅ APK built successfully (${APK_SIZE})"
+          else
+            echo "❌ APK build failed"
+            exit 1
+          fi
+
+      # ═══════════════════════════════════════════════════════════════════
+      #  RUNTIME SMOKE TEST
+      # ═══════════════════════════════════════════════════════════════════
+      - name: 🔥 Runtime Smoke Test (Emulator API 24)
+        if: steps.build_apk.outputs.build_exit_code == '0'
         uses: reactivecircus/android-emulator-runner@v2
-        timeout-minutes: 10
+        timeout-minutes: 12
         with:
           api-level: 24
           target: google_apis
           arch: x86_64
           profile: pixel_5
           script: |
-            echo "📱 Installing APK..."
-            adb install -r app-debug.apk
+            echo "🔥 Starting Runtime Smoke Test..."
             
-            echo "🚀 Launching app..."
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            echo "✅ APK installed"
+            
             adb shell am start -W com.excell44.educam.debug/com.excell44.educam.MainActivity
+            echo "✅ App launched"
             
-            echo "⏳ Waiting 10s for Firebase init..."
             sleep 10
             
-            echo "🔍 Checking for crashes..."
             adb logcat -d *:E | grep -E "FirebaseAuth|ClassNotFound|WorkManager|RuntimeException|FATAL" > runtime-errors.txt || true
             
             if [ -s runtime-errors.txt ]; then
-              echo "❌ FATAL RUNTIME ERRORS DETECTED:"
+              echo "❌ RUNTIME ERRORS DETECTED:"
               cat runtime-errors.txt
               exit 1
             fi
             
             if ! adb shell pidof com.excell44.educam.debug > /dev/null; then
-              echo "❌ App crashed after launch"
+              echo "❌ App crashed"
               exit 1
             fi
             
-            echo "✅ Smoke test passed!"
+            echo "✅ Runtime smoke test PASSED"
 
-      - name: 📤 Upload Runtime Logs
-        if: failure()
+      - name: 📊 Phase 2 Metrics
+        if: always()
+        run: |
+          cat > phase2-metrics.json << EOF
+          {
+            "phase": "2-build-smoke",
+            "build_number": "${{ github.run_number }}",
+            "build_duration_sec": "${{ steps.build_apk.outputs.build_duration }}",
+            "apk_size": "${{ steps.build_apk.outputs.apk_size }}",
+            "timestamp": "$(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+          }
+          EOF
+          cat phase2-metrics.json
+
+      - name: 📤 Upload APK for Phase 3
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: phase2-runtime-errors-${{ github.run_number }}
-          path: runtime-errors.txt
+          name: debug-apk-${{ github.run_number }}
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 1
+
+      - name: 📤 Upload Phase 2 Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase2-build-smoke-${{ github.run_number }}
+          path: |
+            build-apk.log
+            phase2-metrics.json
+            runtime-errors.txt
           retention-days: 30
 
+    outputs:
+      build_status: ${{ steps.build_apk.outputs.build_exit_code == '0' && 'success' || 'failure' }}
+      apk_size: ${{ steps.build_apk.outputs.apk_size }}
+
   # ═══════════════════════════════════════════════════════════════════════
-  #  PHASE 3 : PACKAGE & REPORT
+  #  PHASE 3 : PACKAGES & REPORT
   # ═══════════════════════════════════════════════════════════════════════
   package-and-report:
-    name: 📦 Phase 3 - Package & Report
+    name: 📦 Phase 3 - Packages & Report
     runs-on: ubuntu-latest
-    needs: [build-and-test, smoke-test]
+    needs: [compile-and-test, build-and-smoke-test]
     if: always()
 
     steps:
-      - name: 📥 Download APK
-        if: needs.build-and-test.outputs.build_status == 'success'
+      - name: 📦 Download APK
+        if: needs.build-and-smoke-test.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: debug-apk-${{ github.run_number }}
           path: apk/
 
-      - name: 📥 Download Build Logs
-        if: needs.build-and-test.result == 'failure'
-        uses: actions/download-artifact@v4
-        with:
-          name: phase1-logs-${{ github.run_number }}
-          path: logs/
-        continue-on-error: true
-
-      - name: 🏷️ Rename & Package APK
-        if: needs.build-and-test.outputs.build_status == 'success'
+      - name: 🏷️ Package & Label APK
+        if: needs.build-and-smoke-test.result == 'success'
         run: |
+          echo "════════════════════════════════════════════════════════════"
+          echo "📦 Phase 3: Packaging APK"
+          echo "════════════════════════════════════════════════════════════"
+          
           cd apk/
-          APK_NAME="Bac-X_237-${{ needs.build-and-test.outputs.version }}.apk"
+          APK_NAME="Bac-X_237-${{ needs.compile-and-test.outputs.version }}.apk"
           mv app-debug.apk "$APK_NAME"
           
           cat > BUILD-INFO.txt << EOF
           📱 Bac-X_237 Android Build
           ==========================================
-          Version: ${{ needs.build-and-test.outputs.version }}
-          Version Code: ${{ needs.build-and-test.outputs.version_code }}
+          Version: ${{ needs.compile-and-test.outputs.version }}
+          Version Code: ${{ needs.compile-and-test.outputs.version_code }}
+          APK Size: ${{ needs.build-and-smoke-test.outputs.apk_size }}
+          
+          Phase 1 - Compilation: ${{ needs.compile-and-test.result }}
+          Phase 2 - Build & Smoke: ${{ needs.build-and-smoke-test.result }}
+          Phase 3 - Packaging: success
+          
           Commit: ${{ github.sha }}
           Branch: ${{ github.ref_name }}
-          Build Status: ${{ needs.build-and-test.result }}
-          Smoke Test: ${{ needs.smoke-test.result }}
+          Author: ${{ github.actor }}
           Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
           ==========================================
           EOF
           
+          echo "✅ APK packaged: ${APK_NAME}"
           cat BUILD-INFO.txt
 
-      - name: 📤 Upload Final APK
-        if: needs.build-and-test.result == 'success' && needs.smoke-test.result == 'success'
+      - name: 📤 Upload Final Packaged APK
+        if: needs.compile-and-test.result == 'success' && needs.build-and-smoke-test.result == 'success'
         uses: actions/upload-artifact@v4
         with:
-          name: Bac-X_237-APK-${{ needs.build-and-test.outputs.version }}
+          name: Bac-X_237-APK-${{ needs.compile-and-test.outputs.version }}
           path: apk/*
           retention-days: 14
 
-      - name: 📊 Generate Build Report
+      - name: 📊 Generate Final Report
         run: |
           echo "════════════════════════════════════════════════════════════"
           echo "    🎓 BAC-X_237 BUILD REPORT - Run #${{ github.run_number }}"
           echo "════════════════════════════════════════════════════════════"
           echo ""
-          echo "📋 PHASE 1 - Build & Test: ${{ needs.build-and-test.result }}"
-          echo "🔥 PHASE 2 - Smoke Test:   ${{ needs.smoke-test.result }}"
-          echo "📦 PHASE 3 - Packaging:    success"
+          echo "⚙️ PHASE 1 - Compiling & Unit Tests:    ${{ needs.compile-and-test.result }}"
+          echo "   └─ Duration: ${{ needs.compile-and-test.outputs.compile_duration }}s"
           echo ""
-          echo "📦 Version: ${{ needs.build-and-test.outputs.version }}"
+          echo "🔨 PHASE 2 - Building APK & Smoke Test: ${{ needs.build-and-smoke-test.result }}"
+          echo "   └─ APK Size: ${{ needs.build-and-smoke-test.outputs.apk_size }}"
+          echo ""
+          echo "📦 PHASE 3 - Packages & Report:         success"
+          echo ""
+          echo "📦 Version: ${{ needs.compile-and-test.outputs.version }}"
           echo "🌿 Branch: ${{ github.ref_name }}"
           echo "📝 Commit: ${{ github.sha }}"
           echo "👤 Author: ${{ github.actor }}"
           echo ""
           
-          if [[ "${{ needs.build-and-test.result }}" == "success" && "${{ needs.smoke-test.result }}" == "success" ]]; then
-            echo "✅ BUILD SUCCESSFUL - APK READY"
-          elif [[ "${{ needs.build-and-test.result }}" == "failure" ]]; then
-            echo "❌ BUILD FAILED - CHECK build-errors.md IN ARTIFACTS"
-          else
-            echo "❌ SMOKE TEST FAILED - CHECK runtime-errors.txt IN ARTIFACTS"
+          if [[ "${{ needs.compile-and-test.result }}" == "success" && "${{ needs.build-and-smoke-test.result }}" == "success" ]]; then
+            echo "✅ ALL PHASES SUCCESSFUL - APK READY FOR DEPLOYMENT"
+          elif [[ "${{ needs.compile-and-test.result }}" == "failure" ]]; then
+            echo "❌ FAILED AT PHASE 1 - Check compilation-errors.md"
+          elif [[ "${{ needs.build-and-smoke-test.result }}" == "failure" ]]; then
+            echo "❌ FAILED AT PHASE 2 - Check build-apk.log or runtime-errors.txt"
           fi
           
           echo "════════════════════════════════════════════════════════════"
 
-      - name: 💬 Comment on PR (Success)
-        if: github.event_name == 'pull_request' && needs.build-and-test.result == 'success' && needs.smoke-test.result == 'success'
+      - name: 💬 PR Comment (Success)
+        if: github.event_name == 'pull_request' && needs.compile-and-test.result == 'success' && needs.build-and-smoke-test.result == 'success'
         uses: actions/github-script@v7
         with:
           script: |
-            const version = '${{ needs.build-and-test.outputs.version }}';
+            const version = '${{ needs.compile-and-test.outputs.version }}';
             await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: `## ✅ Build Successful - #${{ github.run_number }}
               
-              **📦 APK:** \`${version}.apk\`
+              **📦 APK:** \`Bac-X_237-${version}.apk\` (${{ needs.build-and-smoke-test.outputs.apk_size }})
               
-              **✅ Phase 1:** Build & Tests - PASSED
-              **✅ Phase 2:** Smoke Test (API 24) - PASSED
-              **✅ Phase 3:** Packaging - COMPLETED
+              **Phase 1:** ⚙️ Compiling & Unit Tests - ✅ PASSED (${{ needs.compile-and-test.outputs.compile_duration }}s)
+              **Phase 2:** 🔨 Building APK & Smoke Test - ✅ PASSED
+              **Phase 3:** 📦 Packages & Report - ✅ COMPLETED
               
               [📥 Download APK](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`
             });
 
-      - name: 💬 Comment on PR (Failure)
-        if: github.event_name == 'pull_request' && (needs.build-and-test.result == 'failure' || needs.smoke-test.result == 'failure')
+      - name: 💬 PR Comment (Failure)
+        if: github.event_name == 'pull_request' && (needs.compile-and-test.result == 'failure' || needs.build-and-smoke-test.result == 'failure')
         uses: actions/github-script@v7
         with:
           script: |
-            let phase = 'Phase 1 (Build & Test)';
-            let artifact = 'build-errors.md';
+            let failedPhase = '';
+            let artifact = '';
             
-            if ('${{ needs.build-and-test.result }}' === 'success') {
-              phase = 'Phase 2 (Smoke Test)';
-              artifact = 'runtime-errors.txt';
+            if ('${{ needs.compile-and-test.result }}' === 'failure') {
+              failedPhase = 'Phase 1 (Compiling & Unit Tests)';
+              artifact = 'compilation-errors.md';
+            } else {
+              failedPhase = 'Phase 2 (Building APK & Smoke Test)';
+              artifact = 'build-apk.log or runtime-errors.txt';
             }
             
             await github.rest.issues.createComment({
@@ -554,10 +504,10 @@ jobs:
               repo: context.repo.repo,
               body: `## ❌ Build Failed - #${{ github.run_number }}
               
-              **Failed at:** ${phase}
+              **Failed at:** ${failedPhase}
               
-              **Phase 1:** Build & Tests - ${{ needs.build-and-test.result }}
-              **Phase 2:** Smoke Test - ${{ needs.smoke-test.result }}
+              **Phase 1:** Compiling & Unit Tests - ${{ needs.compile-and-test.result }}
+              **Phase 2:** Building APK & Smoke Test - ${{ needs.build-and-smoke-test.result }}
               
               📁 **Error Report:** Check \`${artifact}\` in artifacts
               
