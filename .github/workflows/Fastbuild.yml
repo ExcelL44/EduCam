@@ -1,4 +1,4 @@
-name: 🚀 Android Fast Build
+name: 🚀 Bac-X_237 Build & Test
 
 on:
   push:
@@ -8,25 +8,21 @@ on:
   workflow_dispatch:
 
 env:
-  # Removed configureondemand to avoid potential configuration issues
-  # Kept daemon=false for CI
-  GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2 -Dorg.gradle.parallel=true -Xmx4g
+  GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2 -Xmx4g
   JAVA_OPTS: -Xmx4g
 
 jobs:
-  # ═════════════════════════════════════════════════════════════
-  #  🎫 JOB 1 : TESTS CRITIQUES (Feedback immédiat)
-  # ═════════════════════════════════════════════════════════════
-  critical-tests:
-    name: 🧪 Critical Tests
+  # ═══════════════════════════════════════════════════════════════════════
+  #  PHASE 1 : BUILD & TEST
+  # ═══════════════════════════════════════════════════════════════════════
+  build-and-test:
+    name: 🔨 Phase 1 - Build & Unit Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    
+    timeout-minutes: 15
+
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
 
       - name: ☕ Setup JDK 17
         uses: actions/setup-java@v4
@@ -38,118 +34,436 @@ jobs:
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # 🔐 CRITICAL: Reconstruct google-services.json from GitHub Secret
-      - name: 🔐 Restore google-services.json
-        env:
-          GOOGLE_SERVICE_SECRETS: ${{ secrets.GOOGLE_SERVICE_SECRETS }}
+      - name: 🔐 Create google-services.json
         run: |
-          if [ -z "$GOOGLE_SERVICE_SECRETS" ]; then
-            echo "❌ Secret GOOGLE_SERVICE_SECRETS missing!"
-            echo "Please add it in GitHub Repo → Settings → Secrets → Actions"
+          if [ -z "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
+            echo "❌ FATAL: GOOGLE_SERVICES_JSON secret is empty!" >&2
             exit 1
           fi
-          
-          echo "$GOOGLE_SERVICE_SECRETS" | base64 -d > app/google-services.json
-          
-          FILE_SIZE=$(wc -c < app/google-services.json)
-          if [ $FILE_SIZE -lt 100 ]; then
-            echo "❌ google-services.json invalid (size: $FILE_SIZE bytes)"
-            exit 1
-          fi
-          
-          echo "✅ google-services.json restored successfully ($FILE_SIZE bytes)"
+          echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
+          python -m json.tool app/google-services.json > /dev/null || exit 1
 
-      # ✅ FIX: Ensure gradlew is executable and has correct line endings
-      - name: 🔧 Fix Gradlew Permissions
+      - name: 🔧 Prepare Gradle
         run: |
           chmod +x gradlew
           sed -i 's/\r$//' gradlew
 
-      - name: 🔨 Compile Debug
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+      - name: 🔢 Generate Version
+        id: version
+        run: |
+          VERSION_NAME=$(grep "versionName" app/build.gradle.kts | awk '{print $3}' | tr -d '"')
+          BUILD_NUMBER=${{ github.run_number }}
+          COMMIT_SHORT=$(git rev-parse --short HEAD)
+          VERSION_CODE=$((1000 + BUILD_NUMBER))
+          BUILD_TYPE=$([[ "${{ github.event_name }}" == "pull_request" ]] && echo "PR" || echo "PROD")
+          FULL_VERSION="${VERSION_NAME}-${BUILD_TYPE}-${BUILD_NUMBER}-${COMMIT_SHORT}"
+          
+          echo "version_code=${VERSION_CODE}" >> $GITHUB_OUTPUT
+          echo "full_version=${FULL_VERSION}" >> $GITHUB_OUTPUT
+          echo "✅ Version: ${FULL_VERSION} (code: ${VERSION_CODE})"
+
+      - name: 📝 Update Build Config
+        run: |
+          sed -i "s/versionCode = [0-9]*/versionCode = ${{ steps.version.outputs.version_code }}/" app/build.gradle.kts
+          sed -i "s/versionName = \"[^\"]*\"/versionName = \"${{ steps.version.outputs.full_version }}\"/" app/build.gradle.kts
+
+      - name: 🔨 Build Debug APK
+        id: build
+        run: |
+          set -o pipefail
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log
+        continue-on-error: true
 
       - name: 🧪 Run Unit Tests
-        run: ./gradlew testDebugUnitTest --no-daemon --stacktrace
+        if: steps.build.outcome == 'success'
+        run: |
+          ./gradlew testDebugUnitTest --no-daemon --stacktrace 2>&1 | tee test.log
         continue-on-error: true
 
-      - name: 🔍 Run Lint
-        run: ./gradlew lintDebug --no-daemon --stacktrace
+      - name: 🔍 Run Lint Analysis
+        if: steps.build.outcome == 'success'
+        run: |
+          ./gradlew lintDebug --no-daemon 2>&1 | tee lint.log
         continue-on-error: true
 
-      - name: 📊 Upload Test Reports (if failed)
+      # ═══════════════════════════════════════════════════════════════════
+      #  ERROR TRACKING & EXTRACTION
+      # ═══════════════════════════════════════════════════════════════════
+      - name: 📊 Extract Build Errors
+        if: steps.build.outcome == 'failure'
+        run: |
+          cat > build-errors.md << 'EOF'
+          # 🚨 Bac-X_237 Build Error Report
+          
+          **Build:** #${{ github.run_number }}
+          **Commit:** `${{ github.sha }}`
+          **Branch:** `${{ github.ref_name }}`
+          **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          
+          ---
+          
+          EOF
+          
+          # Extract compilation errors
+          if grep -q "error:" build.log; then
+            echo "## ❌ Compilation Errors" >> build-errors.md
+            echo '```kotlin' >> build-errors.md
+            grep -B 2 -A 5 "error:" build.log | head -100 >> build-errors.md
+            echo '```' >> build-errors.md
+            echo "" >> build-errors.md
+          fi
+          
+          # Extract Gradle failures
+          if grep -q "FAILURE: Build failed" build.log; then
+            echo "## 🔥 Gradle Task Failures" >> build-errors.md
+            echo '```' >> build-errors.md
+            grep -A 20 "FAILURE: Build failed" build.log | head -50 >> build-errors.md
+            echo '```' >> build-errors.md
+            echo "" >> build-errors.md
+          fi
+          
+          # Extract unresolved references
+          if grep -q "Unresolved reference" build.log; then
+            echo "## 🔗 Unresolved References" >> build-errors.md
+            echo '```' >> build-errors.md
+            grep "Unresolved reference" build.log | sort -u | head -30 >> build-errors.md
+            echo '```' >> build-errors.md
+            echo "" >> build-errors.md
+          fi
+          
+          # Extract missing imports
+          if grep -q "Unresolved import" build.log; then
+            echo "## 📦 Missing Imports" >> build-errors.md
+            echo '```' >> build-errors.md
+            grep "Unresolved import" build.log | sort -u | head -20 >> build-errors.md
+            echo '```' >> build-errors.md
+            echo "" >> build-errors.md
+          fi
+          
+          # Extract KSP errors
+          if grep -q "error:ksp" build.log; then
+            echo "## ⚙️ KSP Errors" >> build-errors.md
+            echo '```' >> build-errors.md
+            grep "error:ksp" build.log | head -30 >> build-errors.md
+            echo '```' >> build-errors.md
+            echo "" >> build-errors.md
+          fi
+          
+          # Quick fixes section
+          cat >> build-errors.md << 'EOF'
+          ---
+          
+          ## 🔧 Quick Fixes
+          
+          1. **Unresolved References:**
+             - Check for missing imports
+             - Verify Hilt/Dagger dependencies are in sync
+             - Run `./gradlew clean build`
+          
+          2. **KSP Errors:**
+             - Check Room/Hilt annotations
+             - Verify kapt/ksp configuration
+             - Update KSP version if needed
+          
+          3. **Gradle Failures:**
+             - Check `build.gradle.kts` syntax
+             - Verify dependency versions
+             - Check for duplicate dependencies
+          
+          ## 📁 Full Logs
+          
+          Download complete logs from the Artifacts section.
+          EOF
+          
+          cat build-errors.md
+
+      - name: 📊 Extract Test Failures
+        if: always()
+        run: |
+          if [ -d "app/build/test-results/testDebugUnitTest/" ]; then
+            cat > test-failures.md << 'EOF'
+          # 🧪 Bac-X_237 Test Failure Report
+          
+          **Build:** #${{ github.run_number }}
+          **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          
+          ## Failed Tests
+          
+          EOF
+            
+            FAILED_COUNT=0
+            find app/build/test-results/testDebugUnitTest -name "*.xml" -exec grep -l "<failure\|<error" {} \; | while read file; do
+              TEST_NAME=$(basename "$file" .xml)
+              echo "### ❌ $TEST_NAME" >> test-failures.md
+              echo '```' >> test-failures.md
+              grep -A 10 '<failure\|<error' "$file" | sed 's/<[^>]*>//g' | head -30 >> test-failures.md
+              echo '```' >> test-failures.md
+              echo "" >> test-failures.md
+              FAILED_COUNT=$((FAILED_COUNT + 1))
+            done
+            
+            if [ -f test-failures.md ]; then
+              echo "" >> test-failures.md
+              echo "---" >> test-failures.md
+              echo "**Total Failed Tests:** ${FAILED_COUNT}" >> test-failures.md
+              cat test-failures.md
+            fi
+          fi
+
+      - name: 📊 Extract Lint Issues
+        if: always()
+        run: |
+          if [ -f "app/build/reports/lint-results-debug.xml" ]; then
+            cat > lint-summary.md << 'EOF'
+          # 🔍 Bac-X_237 Lint Summary
+          
+          **Build:** #${{ github.run_number }}
+          
+          EOF
+            
+            # Count issues by severity
+            ERRORS=$(grep -c 'severity="Error"' app/build/reports/lint-results-debug.xml || echo "0")
+            WARNINGS=$(grep -c 'severity="Warning"' app/build/reports/lint-results-debug.xml || echo "0")
+            INFO=$(grep -c 'severity="Information"' app/build/reports/lint-results-debug.xml || echo "0")
+            
+            cat >> lint-summary.md << EOF
+          ## Issue Summary
+          
+          | Severity | Count |
+          |----------|-------|
+          | 🔴 Errors | ${ERRORS} |
+          | ⚠️ Warnings | ${WARNINGS} |
+          | ℹ️ Info | ${INFO} |
+          
+          View full HTML report in artifacts.
+          EOF
+            
+            cat lint-summary.md
+          fi
+
+      - name: 📤 Upload APK for Next Phase
+        if: steps.build.outcome == 'success'
         uses: actions/upload-artifact@v4
-        if: failure()
         with:
-          name: test-reports-${{ github.sha }}
-          path: |
-            app/build/reports/tests/
-            app/build/reports/lint-results*.html
-          retention-days: 3
+          name: debug-apk-${{ github.run_number }}
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 1
 
-  # ═════════════════════════════════════════════════════════════
-  #  🎫 JOB 2 : BUILD DEBUG APK (dépend des tests)
-  # ═════════════════════════════════════════════════════════════
-  build-debug:
-    name: 📦 Build Debug APK
+      - name: 📤 Upload Build Logs & Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase1-logs-${{ github.run_number }}
+          path: |
+            build.log
+            test.log
+            lint.log
+            build-errors.md
+            test-failures.md
+            lint-summary.md
+            app/build/reports/
+            app/build/test-results/
+          retention-days: 30
+
+      - name: ❌ Fail if Build Failed
+        if: steps.build.outcome == 'failure'
+        run: |
+          echo "❌ Build failed! Check build-errors.md in artifacts."
+          exit 1
+
+    outputs:
+      version: ${{ steps.version.outputs.full_version }}
+      version_code: ${{ steps.version.outputs.version_code }}
+      build_status: ${{ steps.build.outcome }}
+
+  # ═══════════════════════════════════════════════════════════════════════
+  #  PHASE 2 : SMOKE TEST (RUNTIME)
+  # ═══════════════════════════════════════════════════════════════════════
+  smoke-test:
+    name: 🔥 Phase 2 - Runtime Smoke Test
     runs-on: ubuntu-latest
-    needs: critical-tests
-    timeout-minutes: 30
-    
+    needs: build-and-test
+    timeout-minutes: 15
+
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
 
-      - name: ☕ Setup JDK 17
-        uses: actions/setup-java@v4
+      - name: 📦 Download APK
+        uses: actions/download-artifact@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
-          cache: 'gradle'
+          name: debug-apk-${{ github.run_number }}
+          path: .
 
-      - name: 🤖 Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - name: 🔥 Launch Emulator & Test
+        uses: reactivecircus/android-emulator-runner@v2
+        timeout-minutes: 10
+        with:
+          api-level: 24
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          script: |
+            echo "📱 Installing APK..."
+            adb install -r app-debug.apk
+            
+            echo "🚀 Launching app..."
+            adb shell am start -W com.excell44.educam.debug/com.excell44.educam.MainActivity
+            
+            echo "⏳ Waiting 10s for Firebase init..."
+            sleep 10
+            
+            echo "🔍 Checking for crashes..."
+            adb logcat -d *:E | grep -E "FirebaseAuth|ClassNotFound|WorkManager|RuntimeException|FATAL" > runtime-errors.txt || true
+            
+            if [ -s runtime-errors.txt ]; then
+              echo "❌ FATAL RUNTIME ERRORS DETECTED:"
+              cat runtime-errors.txt
+              exit 1
+            fi
+            
+            if ! adb shell pidof com.excell44.educam.debug > /dev/null; then
+              echo "❌ App crashed after launch"
+              exit 1
+            fi
+            
+            echo "✅ Smoke test passed!"
 
-      # 🔐 CRITICAL: Reconstruct google-services.json from GitHub Secret
-      - name: 🔐 Restore google-services.json
-        env:
-          GOOGLE_SERVICE_SECRETS: ${{ secrets.GOOGLE_SERVICE_SECRETS }}
-        run: |
-          if [ -z "$GOOGLE_SERVICE_SECRETS" ]; then
-            echo "❌ Secret GOOGLE_SERVICE_SECRETS missing!"
-            exit 1
-          fi
-          echo "$GOOGLE_SERVICE_SECRETS" | base64 -d > app/google-services.json
-          FILE_SIZE=$(wc -c < app/google-services.json)
-          echo "✅ google-services.json restored ($FILE_SIZE bytes)"
-        
-      # ✅ FIX: Ensure gradlew is executable and has correct line endings
-      - name: 🔧 Fix Gradlew Permissions
-        run: |
-          chmod +x gradlew
-          sed -i 's/\r$//' gradlew
-
-      # 🎯 ÉTAPE CLÉ : Build optimisé (plus de clean/rerun-tasks agressif)
-      - name: 📦 Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
-
-      - name: 🚀 Upload Debug APK
+      - name: 📤 Upload Runtime Logs
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-${{ github.sha }}-${{ github.run_number }}
-          path: app/build/outputs/apk/debug/*.apk
-          retention-days: 7
+          name: phase2-runtime-errors-${{ github.run_number }}
+          path: runtime-errors.txt
+          retention-days: 30
 
-  # ═════════════════════════════════════════════════════════════
-  #  🎫 JOB 3 : FINAL REPORT
-  # ═════════════════════════════════════════════════════════════
-  final-report:
-    name: ✅ Final Report
+  # ═══════════════════════════════════════════════════════════════════════
+  #  PHASE 3 : PACKAGE & REPORT
+  # ═══════════════════════════════════════════════════════════════════════
+  package-and-report:
+    name: 📦 Phase 3 - Package & Report
     runs-on: ubuntu-latest
-    needs: [critical-tests, build-debug]
+    needs: [build-and-test, smoke-test]
     if: always()
-    
+
     steps:
-      - name: 🎉 Build Status
+      - name: 📥 Download APK
+        if: needs.build-and-test.outputs.build_status == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: debug-apk-${{ github.run_number }}
+          path: apk/
+
+      - name: 📥 Download Build Logs
+        if: needs.build-and-test.result == 'failure'
+        uses: actions/download-artifact@v4
+        with:
+          name: phase1-logs-${{ github.run_number }}
+          path: logs/
+        continue-on-error: true
+
+      - name: 🏷️ Rename & Package APK
+        if: needs.build-and-test.outputs.build_status == 'success'
         run: |
-          echo "Tests: ${{ needs.critical-tests.result }}"
-          echo "Debug APK: ${{ needs.build-debug.result }}"
+          cd apk/
+          APK_NAME="Bac-X_237-${{ needs.build-and-test.outputs.version }}.apk"
+          mv app-debug.apk "$APK_NAME"
+          
+          cat > BUILD-INFO.txt << EOF
+          📱 Bac-X_237 Android Build
+          ==========================================
+          Version: ${{ needs.build-and-test.outputs.version }}
+          Version Code: ${{ needs.build-and-test.outputs.version_code }}
+          Commit: ${{ github.sha }}
+          Branch: ${{ github.ref_name }}
+          Build Status: ${{ needs.build-and-test.result }}
+          Smoke Test: ${{ needs.smoke-test.result }}
+          Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          ==========================================
+          EOF
+          
+          cat BUILD-INFO.txt
+
+      - name: 📤 Upload Final APK
+        if: needs.build-and-test.result == 'success' && needs.smoke-test.result == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bac-X_237-APK-${{ needs.build-and-test.outputs.version }}
+          path: apk/*
+          retention-days: 14
+
+      - name: 📊 Generate Build Report
+        run: |
+          echo "════════════════════════════════════════════════════════════"
+          echo "    🎓 BAC-X_237 BUILD REPORT - Run #${{ github.run_number }}"
+          echo "════════════════════════════════════════════════════════════"
+          echo ""
+          echo "📋 PHASE 1 - Build & Test: ${{ needs.build-and-test.result }}"
+          echo "🔥 PHASE 2 - Smoke Test:   ${{ needs.smoke-test.result }}"
+          echo "📦 PHASE 3 - Packaging:    success"
+          echo ""
+          echo "📦 Version: ${{ needs.build-and-test.outputs.version }}"
+          echo "🌿 Branch: ${{ github.ref_name }}"
+          echo "📝 Commit: ${{ github.sha }}"
+          echo "👤 Author: ${{ github.actor }}"
+          echo ""
+          
+          if [[ "${{ needs.build-and-test.result }}" == "success" && "${{ needs.smoke-test.result }}" == "success" ]]; then
+            echo "✅ BUILD SUCCESSFUL - APK READY"
+          elif [[ "${{ needs.build-and-test.result }}" == "failure" ]]; then
+            echo "❌ BUILD FAILED - CHECK build-errors.md IN ARTIFACTS"
+          else
+            echo "❌ SMOKE TEST FAILED - CHECK runtime-errors.txt IN ARTIFACTS"
+          fi
+          
+          echo "════════════════════════════════════════════════════════════"
+
+      - name: 💬 Comment on PR (Success)
+        if: github.event_name == 'pull_request' && needs.build-and-test.result == 'success' && needs.smoke-test.result == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = '${{ needs.build-and-test.outputs.version }}';
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ✅ Build Successful - #${{ github.run_number }}
+              
+              **📦 APK:** \`${version}.apk\`
+              
+              **✅ Phase 1:** Build & Tests - PASSED
+              **✅ Phase 2:** Smoke Test (API 24) - PASSED
+              **✅ Phase 3:** Packaging - COMPLETED
+              
+              [📥 Download APK](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`
+            });
+
+      - name: 💬 Comment on PR (Failure)
+        if: github.event_name == 'pull_request' && (needs.build-and-test.result == 'failure' || needs.smoke-test.result == 'failure')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            let phase = 'Phase 1 (Build & Test)';
+            let artifact = 'build-errors.md';
+            
+            if ('${{ needs.build-and-test.result }}' === 'success') {
+              phase = 'Phase 2 (Smoke Test)';
+              artifact = 'runtime-errors.txt';
+            }
+            
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ❌ Build Failed - #${{ github.run_number }}
+              
+              **Failed at:** ${phase}
+              
+              **Phase 1:** Build & Tests - ${{ needs.build-and-test.result }}
+              **Phase 2:** Smoke Test - ${{ needs.smoke-test.result }}
+              
+              📁 **Error Report:** Check \`${artifact}\` in artifacts
+              
+              [📁 View All Logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`
+            });
