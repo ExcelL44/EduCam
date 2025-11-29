@@ -17,9 +17,9 @@ class SecurePrefs @Inject constructor(
         .build()
     
     private val prefs = EncryptedSharedPreferences.create(
+        context,
         "auth_secured_prefs",
         masterKey,
-        context,
         EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
     )

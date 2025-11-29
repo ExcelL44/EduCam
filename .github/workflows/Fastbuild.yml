@@ -281,121 +281,6 @@ jobs:
           chmod +x gradlew
           sed -i 's/\r$//' gradlew
 
-      - name: 📝 Restore Version
-        run: |
-          sed -i "s/versionCode = [0-9]*/versionCode = ${{ needs.compile-and-test.outputs.version_code }}/" app/build.gradle.kts
-          sed -i "s/versionName = \"[^\"]*\"/versionName = \"${{ needs.compile-and-test.outputs.version }}\"/" app/build.gradle.kts
-
-      # ═══════════════════════════════════════════════════════════════════
-      #  BUILD APK
-      # ═══════════════════════════════════════════════════════════════════
-      - name: 🔨 Build Debug APK
-        id: build_apk
-        run: |
-          echo "════════════════════════════════════════════════════════════"
-          echo "🔨 Phase 2: Building APK"
-          echo "════════════════════════════════════════════════════════════"
-          
-          START_TIME=$(date +%s)
-          
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee build-apk.log
-          
-          EXIT_CODE=${PIPESTATUS[0]}
-          END_TIME=$(date +%s)
-          DURATION=$((END_TIME - START_TIME))
-          
-          echo "build_duration=${DURATION}" >> $GITHUB_OUTPUT
-          echo "build_exit_code=${EXIT_CODE}" >> $GITHUB_OUTPUT
-          
-          if [ -f "app/build/outputs/apk/debug/app-debug.apk" ]; then
-            APK_SIZE=$(du -h app/build/outputs/apk/debug/app-debug.apk | cut -f1)
-            echo "apk_size=${APK_SIZE}" >> $GITHUB_OUTPUT
-            echo "✅ APK built successfully (${APK_SIZE})"
-          else
-            echo "❌ APK build failed"
-            exit 1
-          fi
-
-      # ═══════════════════════════════════════════════════════════════════
-      #  RUNTIME SMOKE TEST
-      # ═══════════════════════════════════════════════════════════════════
-      - name: 🔥 Runtime Smoke Test (Emulator API 24)
-        if: steps.build_apk.outputs.build_exit_code == '0'
-        uses: reactivecircus/android-emulator-runner@v2
-        timeout-minutes: 12
-        with:
-          api-level: 24
-          target: google_apis
-          arch: x86_64
-          profile: pixel_5
-          script: |
-            echo "🔥 Starting Runtime Smoke Test..."
-            
-            adb install -r app/build/outputs/apk/debug/app-debug.apk
-            echo "✅ APK installed"
-            
-            adb shell am start -W com.excell44.educam.debug/com.excell44.educam.MainActivity
-            echo "✅ App launched"
-            
-            sleep 10
-            
-            adb logcat -d *:E | grep -E "FirebaseAuth|ClassNotFound|WorkManager|RuntimeException|FATAL" > runtime-errors.txt || true
-            
-            if [ -s runtime-errors.txt ]; then
-              echo "❌ RUNTIME ERRORS DETECTED:"
-              cat runtime-errors.txt
-              exit 1
-            fi
-            
-            if ! adb shell pidof com.excell44.educam.debug > /dev/null; then
-              echo "❌ App crashed"
-              exit 1
-            fi
-            
-            echo "✅ Runtime smoke test PASSED"
-
-      - name: 📊 Phase 2 Metrics
-        if: always()
-        run: |
-          cat > phase2-metrics.json << EOF
-          {
-            "phase": "2-build-smoke",
-            "build_number": "${{ github.run_number }}",
-            "build_duration_sec": "${{ steps.build_apk.outputs.build_duration }}",
-            "apk_size": "${{ steps.build_apk.outputs.apk_size }}",
-            "timestamp": "$(date -u +"%Y-%m-%d %H:%M:%S UTC")"
-          }
-          EOF
-          cat phase2-metrics.json
-
-      - name: 📤 Upload APK for Phase 3
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-apk-${{ github.run_number }}
-          path: app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 1
-
-      - name: 📤 Upload Phase 2 Artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: phase2-build-smoke-${{ github.run_number }}
-          path: |
-            build-apk.log
-            phase2-metrics.json
-            runtime-errors.txt
-          retention-days: 30
-
-    outputs:
-      build_status: ${{ steps.build_apk.outputs.build_exit_code == '0' && 'success' || 'failure' }}
-      apk_size: ${{ steps.build_apk.outputs.apk_size }}
-
-  # ═══════════════════════════════════════════════════════════════════════
-  #  PHASE 3 : PACKAGES & REPORT
-  # ═══════════════════════════════════════════════════════════════════════
-  package-and-report:
-    name: 📦 Phase 3 - Packages & Report
     runs-on: ubuntu-latest
     needs: [compile-and-test, build-and-smoke-test]
     if: always()
@@ -511,14 +396,18 @@ jobs:
               failedPhase = 'Phase 1 (Compiling & Unit Tests)';
               artifact = 'compilation-errors.md';
               
-              // Add first error to comment
               const firstError = `${{ needs.compile-and-test.outputs.first_error }}`.replace(/\n/g, '<br>');
               if (firstError) {
-                extraInfo = `\n\n### 🔴 Priority Error\n<pre>${firstError}</pre>`;
+                extraInfo = `\n\n### 🔴 Priority Error (Phase 1)\n<pre>${firstError}</pre>`;
               }
             } else {
               failedPhase = 'Phase 2 (Building APK & Smoke Test)';
               artifact = 'build-apk.log or runtime-errors.txt';
+              
+              const firstError = `${{ needs.build-and-smoke-test.outputs.first_error }}`.replace(/\n/g, '<br>');
+              if (firstError) {
+                extraInfo = `\n\n### 🔴 Priority Error (Phase 2)\n<pre>${firstError}</pre>`;
+              }
             }
             
             await github.rest.issues.createComment({
