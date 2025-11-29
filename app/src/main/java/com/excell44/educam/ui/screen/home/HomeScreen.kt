@@ -106,7 +106,7 @@ fun HomeScreen(
         // Accueil: message amélioré
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = "Prépare ton examen avec Bac-X_237 AI en un clin d'œil",
+                text = "Prépare ton examen avec Bac-X_237 AI en un clin d'œil ! 😉",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary
             )
