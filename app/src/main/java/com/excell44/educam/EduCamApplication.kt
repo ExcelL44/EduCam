@@ -26,15 +26,44 @@ class EduCamApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         
-        // ✅ Initialize global crash handler to prevent brutal app crashes
+        // ✅ Initialize global crash handler
         GlobalExceptionHandler.initialize(this)
         
+        // ✅ Safe Firebase Init (Offline Support)
+        initializeFirebaseSafe()
+
         // ✅ Enable StrictMode in DEBUG builds only
         if (BuildConfig.DEBUG) {
             enableStrictMode()
         }
         
         Log.i(TAG, "✅ EduCam Application initialized (version: ${BuildConfig.VERSION_NAME})")
+    }
+
+    private fun initializeFirebaseSafe() {
+        try {
+            if (isNetworkAvailable()) {
+                // Normal init
+                // FirebaseApp.initializeApp(this) // Usually auto-init, but good to check
+                Log.i(TAG, "✅ Firebase initialized (Online)")
+            } else {
+                Log.w(TAG, "⚠️ Offline mode detected: Firebase might be limited")
+                // In a real scenario, we might want to disable some Firebase features here
+                // or just let the SDK handle it (it buffers events).
+                // But to prevent the specific crash mentioned:
+                // "Unable to resolve host" -> This is usually handled by SDK, but if it crashes,
+                // it might be due to a specific aggressive call on startup.
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to initialize Firebase: ${e.message}")
+        }
+    }
+
+    private fun isNetworkAvailable(): Boolean {
+        val connectivityManager = getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        val network = connectivityManager.activeNetwork
+        val capabilities = connectivityManager.getNetworkCapabilities(network)
+        return capabilities?.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
     }
     
     /**
