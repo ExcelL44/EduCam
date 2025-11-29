@@ -87,7 +87,7 @@ class AuthRepository @Inject constructor(
                 val user = User(
                     id = UUID.randomUUID().toString(),
                     email = email,
-                    passwordHash = password.hashCode().toString(),
+                    passwordHash = java.security.MessageDigest.getInstance("SHA-256").digest(password.toByteArray()).joinToString("") { "%02x".format(it) },
                     name = name,
                     gradeLevel = gradeLevel
                 )
@@ -128,7 +128,7 @@ class AuthRepository @Inject constructor(
                 val user = User(
                     id = UUID.randomUUID().toString(),
                     email = email,
-                    passwordHash = password.hashCode().toString(),
+                    passwordHash = java.security.MessageDigest.getInstance("SHA-256").digest(password.toByteArray()).joinToString("") { "%02x".format(it) },
                     name = fullName,
                     gradeLevel = gradeLevel
                 )
@@ -170,7 +170,7 @@ class AuthRepository @Inject constructor(
                 val user = User(
                     id = UUID.randomUUID().toString(),
                     email = email,
-                    passwordHash = password.hashCode().toString(),
+                    passwordHash = java.security.MessageDigest.getInstance("SHA-256").digest(password.toByteArray()).joinToString("") { "%02x".format(it) },
                     name = fullName,
                     gradeLevel = gradeLevel,
                     isOfflineAccount = true,
