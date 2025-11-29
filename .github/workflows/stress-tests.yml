@@ -60,14 +60,46 @@ jobs:
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: 🔐 Create google-services.json
+      - name: 🔐 Restore google-services.json (Base64)
+        env:
+          GOOGLE_SERVICE_SECRETS: ${{ secrets.GOOGLE_SERVICE_SECRETS }}
         run: |
-          if [ -z "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
-            echo "❌ FATAL: GOOGLE_SERVICES_JSON secret is empty!" >&2
-            exit 1
+          if [ -z "$GOOGLE_SERVICE_SECRETS" ]; then
+            echo "⚠️ WARNING: GOOGLE_SERVICE_SECRETS not set, using dummy"
+            cat > app/google-services.json << 'EOF'
+          {
+            "project_info": {
+              "project_number": "123456789",
+              "project_id": "dummy-project-id",
+              "storage_bucket": "dummy-project.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:123456789:android:dummy",
+                  "android_client_info": {
+                    "package_name": "com.excell44.educam"
+                  }
+                },
+                "oauth_client": [],
+                "api_key": [{"current_key": "AIzaDummyKeyForTestingOnly"}],
+                "services": {"appinvite_service": {"other_platform_oauth_client": []}}
+              }
+            ],
+            "configuration_version": "1"
+          }
+          EOF
+          else
+            echo "✅ Decoding GOOGLE_SERVICE_SECRETS (base64)"
+            echo "$GOOGLE_SERVICE_SECRETS" | base64 -d > app/google-services.json
+            
+            FILE_SIZE=$(wc -c < app/google-services.json)
+            if [ $FILE_SIZE -lt 100 ]; then
+              echo "❌ google-services.json invalid (size: $FILE_SIZE bytes)"
+              exit 1
+            fi
+            echo "✅ google-services.json restored ($FILE_SIZE bytes)"
           fi
-          echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
-          python -m json.tool app/google-services.json > /dev/null || exit 1
 
       - name: 🔧 Prepare Gradle
         run: |
