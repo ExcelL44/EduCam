@@ -89,8 +89,9 @@ object Logger {
     fun wtf(tag: String, message: String, throwable: Throwable? = null) {
         if (Level.CRITICAL in enabledLevels) {
             Log.wtf("$TAG_PREFIX:$tag", message, throwable)
-            Firebase.crashlytics.log("Priority: HIGH - ${throwable.message}")
-            Firebase.crashlytics.recordException(throwable)
+            Firebase.crashlytics.log("Priority: HIGH - ${throwable?.message ?: message}")
+            throwable?.let { Firebase.crashlytics.recordException(it) }
+                ?: Firebase.crashlytics.recordException(Exception("WTF: $message"))
         }
     }
     
