@@ -48,8 +48,10 @@ fun HomeScreen(
     NavigationCommandHandler(homeViewModel)
 
     val homeState by homeViewModel.uiState.collectAsState()
-    val isGuest = authViewModel.getAccountType() == "GUEST"
-    val isAdmin = authViewModel.getAccountType() == "ADMIN"
+    val authState by authViewModel.authState.collectAsState()
+    val user = (authState as? com.excell44.educam.domain.model.AuthState.Authenticated)?.user
+    val isGuest = user?.role == "GUEST" || user == null
+    val isAdmin = user?.role == "ADMIN"
     var showLockedDialog by remember { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
 
@@ -92,7 +94,7 @@ fun HomeScreen(
                         .putInt("theme_index", 0)
                         .apply()
 
-                    authViewModel.submitAction(AuthAction.Logout)
+                    authViewModel.logout()
                     homeViewModel.submitAction(HomeAction.Logout)
                 }) {
                     Icon(

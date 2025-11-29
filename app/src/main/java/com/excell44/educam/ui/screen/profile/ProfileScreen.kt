@@ -32,24 +32,21 @@ fun ProfileScreen(
     onNavigateBack: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
-    val accountType = viewModel.getAccountType()
+    val authState by viewModel.authState.collectAsState()
+    val user = (authState as? com.excell44.educam.domain.model.AuthState.Authenticated)?.user
+    
     var pseudo by remember { mutableStateOf("") }
     var userMode by remember { mutableStateOf<UserMode?>(null) }
 
-    // Fetch user mode
-    LaunchedEffect(Unit) {
-        userMode = when (accountType) {
-            "TRIAL" -> UserMode.TRIAL
-            "ACTIVE" -> UserMode.ACTIVE
-            "BETA" -> UserMode.BETA_T
-            "ADMIN" -> UserMode.ADMIN
-            else -> UserMode.GUEST
-        }
-
-        viewModel.getProfileJsonForCurrentUser()?.let { json ->
-            val regex = "\"pseudo\":\"(.*?)\"".toRegex()
-            val match = regex.find(json)
-            if (match != null) pseudo = match.groupValues[1]
+    // Fetch user mode and data
+    LaunchedEffect(user) {
+        if (user != null) {
+            userMode = user.getUserMode()
+            // Derive pseudo from email (e.g. pseudo@local.excell)
+            pseudo = user.email.substringBefore("@")
+        } else {
+            userMode = UserMode.GUEST
+            pseudo = "Invité"
         }
     }
 
