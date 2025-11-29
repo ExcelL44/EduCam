@@ -3,6 +3,8 @@ package com.excell44.educam.core.error
 import android.content.Context
 import android.content.Intent
 import com.excell44.educam.core.fallback.EmergencyFallback
+import com.google.firebase.ktx.Firebase
+import com.google.firebase.crashlytics.ktx.crashlytics
 import kotlin.system.exitProcess
 
 /**
@@ -52,7 +54,7 @@ class GlobalExceptionHandler private constructor(
         // Logger dans logcat
         println(crashReport)
         
-        // TODO: Envoyer à Firebase Crashlytics en production
+        Firebase.crashlytics.recordException(throwable)
         // FirebaseCrashlytics.getInstance().recordException(throwable)
         
         // Sauvegarder localement

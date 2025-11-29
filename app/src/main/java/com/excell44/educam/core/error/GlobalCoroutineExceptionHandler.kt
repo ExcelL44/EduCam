@@ -3,6 +3,8 @@ package com.excell44.educam.core.error
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import com.google.firebase.ktx.Firebase
+import com.google.firebase.crashlytics.ktx.crashlytics
 import kotlin.coroutines.CoroutineContext
 
 /**
@@ -23,7 +25,7 @@ object GlobalCoroutineExceptionHandler {
         println("Stack trace:")
         throwable.printStackTrace()
         
-        // TODO: Envoyer à Firebase Crashlytics
+        Firebase.crashlytics.recordException(throwable)
         // FirebaseCrashlytics.getInstance().recordException(throwable)
     }
 

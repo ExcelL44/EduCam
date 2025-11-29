@@ -1,6 +1,8 @@
 package com.excell44.educam.util
 
 import android.util.Log
+import com.google.firebase.ktx.Firebase
+import com.google.firebase.crashlytics.ktx.crashlytics
 
 /**
  * Système de logging structuré avec niveaux.
@@ -76,7 +78,7 @@ object Logger {
     fun e(tag: String, message: String, throwable: Throwable? = null) {
         if (Level.ERROR in enabledLevels) {
             Log.e("$TAG_PREFIX:$tag", message, throwable)
-            // TODO: Send to Firebase Crashlytics
+            Firebase.crashlytics.recordException(throwable)
             // FirebaseCrashlytics.getInstance().recordException(throwable)
         }
     }
@@ -87,7 +89,8 @@ object Logger {
     fun wtf(tag: String, message: String, throwable: Throwable? = null) {
         if (Level.CRITICAL in enabledLevels) {
             Log.wtf("$TAG_PREFIX:$tag", message, throwable)
-            // TODO: Send to Firebase Crashlytics with high priority
+            Firebase.crashlytics.log("Priority: HIGH - ${throwable.message}")
+            Firebase.crashlytics.recordException(throwable)
         }
     }
     
