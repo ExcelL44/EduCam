@@ -61,7 +61,7 @@ class UserSyncWorker @AssistedInject constructor(
                     // Upload user metadata to Firestore (no private data)
                     val userMetadata = hashMapOf(
                         "localId" to user.localId,
-                        "email" to user.email,
+                        "pseudo" to user.pseudo,
                         "name" to user.name,
                         "gradeLevel" to user.gradeLevel,
                         "createdAt" to user.createdAt,
@@ -85,28 +85,28 @@ class UserSyncWorker @AssistedInject constructor(
                     )
                     userDao.insertUser(updatedUser)
                     
-                    Logger.i("UserSyncWorker", "Synced user: ${user.email} (${firebaseDocId})")
+                    Logger.i("UserSyncWorker", "Synced user: ${user.pseudo} (${firebaseDocId})")
                     syncedCount++
-                    
+
                 } catch (e: com.google.firebase.firestore.FirebaseFirestoreException) {
                     when (e.code) {
                         com.google.firebase.firestore.FirebaseFirestoreException.Code.UNAVAILABLE -> {
                             // Network temporarily unavailable - retry later
-                            Logger.w("UserSyncWorker", "Network unavailable for ${user.email}, will retry")
+                            Logger.w("UserSyncWorker", "Network unavailable for ${user.pseudo}, will retry")
                             failedCount++
                         }
                         com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED -> {
                             // Permissions issue - log but don't retry
-                            Logger.e("UserSyncWorker", "Permission denied for ${user.email}", e)
+                            Logger.e("UserSyncWorker", "Permission denied for ${user.pseudo}", e)
                             failedCount++
                         }
                         else -> {
-                            Logger.e("UserSyncWorker", "Failed to sync user ${user.email}", e)
+                            Logger.e("UserSyncWorker", "Failed to sync user ${user.pseudo}", e)
                             failedCount++
                         }
                     }
                 } catch (e: Exception) {
-                    Logger.e("UserSyncWorker", "Failed to sync user ${user.email}", e)
+                    Logger.e("UserSyncWorker", "Failed to sync user ${user.pseudo}", e)
                     failedCount++
                 }
             }

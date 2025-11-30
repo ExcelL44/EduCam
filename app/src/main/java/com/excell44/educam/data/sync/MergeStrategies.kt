@@ -42,7 +42,7 @@ object MergeStrategies {
             },
             
             // Garde les données serveur pour les champs critiques
-            email = server.email,
+            pseudo = server.pseudo,
             passwordHash = server.passwordHash.takeIf { it.isNotBlank() } ?: local.passwordHash,
             role = server.role,
             

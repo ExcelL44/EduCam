@@ -140,7 +140,7 @@ fun RegisterScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = androidx.compose.material.icons.Icons.Filled.CloudOff,
+                            imageVector = Icons.Default.CloudOff,
                             contentDescription = "Offline",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -704,7 +704,7 @@ fun RegisterScreen(
                                                 if (isOnline) {
                                                     // Online: Create ACTIVE account
                                                     viewModel.register(
-                                                        email = "${pseudo.lowercase()}@local.excell",
+                                                        pseudo = "${pseudo.lowercase()}@local.excell",
                                                         code = password,
                                                         name = fullName,
                                                         gradeLevel = selectedClass
@@ -799,4 +799,3 @@ fun CompactProgressBar(currentStep: Int, modifier: Modifier = Modifier) {
         }
     }
 }
-

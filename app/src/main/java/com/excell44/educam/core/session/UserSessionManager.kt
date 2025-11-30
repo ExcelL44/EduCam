@@ -61,7 +61,7 @@ class UserSessionManager private constructor(
         val session = UserSession(
             userId = user.id,
             userName = user.name,
-            userEmail = user.email,
+            userEmail = user.pseudo,
             isOfflineAccount = user.isOfflineAccount,
             sessionStartTime = System.currentTimeMillis(),
             lastActivityTime = System.currentTimeMillis()
@@ -160,7 +160,7 @@ class UserSessionManager private constructor(
         val deviceAccount = DeviceAccount(
             userId = user.id,
             userName = user.name,
-            userEmail = user.email,
+            userEmail = user.pseudo,
             isOfflineAccount = user.isOfflineAccount,
             addedAt = System.currentTimeMillis(),
             lastUsedAt = System.currentTimeMillis()

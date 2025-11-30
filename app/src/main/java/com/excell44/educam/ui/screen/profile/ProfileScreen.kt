@@ -42,8 +42,8 @@ fun ProfileScreen(
     LaunchedEffect(user) {
         if (user != null) {
             userMode = user.getUserMode()
-            // Derive pseudo from email (e.g. pseudo@local.excell)
-            pseudo = user.email.substringBefore("@")
+            // Derive pseudo from pseudo field (contains email format)
+            pseudo = user.pseudo.substringBefore("@")
         } else {
             userMode = UserMode.GUEST
             pseudo = "Invité"
