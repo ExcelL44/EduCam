@@ -205,11 +205,33 @@ class AuthViewModel @Inject constructor(
             Logger.logUserAction("ForceAdminLogin", mapOf("warning" to "test_only"))
 
             try {
-                android.util.Log.d("🟡 AUTH_VIEWMODEL", "🚨 Creating fake admin user object")
+                val adminPseudo = "Sup_Admin"
+                android.util.Log.d("🟡 AUTH_VIEWMODEL", "🚨 Checking if admin user already exists: $adminPseudo")
+
+                // First, check if admin user already exists
+                val existingAdmin = authRepository.getUserByPseudo(adminPseudo)
+                if (existingAdmin != null) {
+                    android.util.Log.d("🟡 AUTH_VIEWMODEL", "✅ Admin user already exists: ${existingAdmin.id}")
+                    // Just log in the existing admin user
+                    securePrefs.saveUserId(existingAdmin.id)
+
+                    val isOffline = !networkObserver.isOnline()
+
+                    _authState.value = AuthState.Authenticated(
+                        user = existingAdmin.copy(role = "ADMIN"), // Ensure role is ADMIN
+                        isOffline = isOffline
+                    )
+
+                    Logger.i("AuthViewModel", "Force admin login successful - using existing user - TEST ONLY")
+                    android.util.Log.d("🟡 AUTH_VIEWMODEL", "🚨 forceAdminLogin() COMPLETED SUCCESSFULLY (existing user)")
+                    return@launch
+                }
+
+                android.util.Log.d("🟡 AUTH_VIEWMODEL", "🚨 Creating new admin user object")
                 // Create fake admin user
                 val adminUser = com.excell44.educam.data.model.User(
                     id = "admin_test_123",
-                    pseudo = "Sup_Admin",
+                    pseudo = adminPseudo,
                     passwordHash = "", // No password for admin bypass
                     salt = "",
                     name = "Super Administrateur",
@@ -234,28 +256,28 @@ class AuthViewModel @Inject constructor(
                         val adminUserWithId = createdUser.copy(role = "ADMIN", syncStatus = "SYNCED")
                         // Save ID to prefs
                         securePrefs.saveUserId(adminUserWithId.id)
-                        
+
                         android.util.Log.d("🟡 AUTH_VIEWMODEL", "✅ Admin user saved to DB and SecurePrefs")
-                        
+
                         val isOffline = !networkObserver.isOnline()
-                        
+
                         // Set authenticated state
                         _authState.value = AuthState.Authenticated(
                             user = adminUserWithId,
                             isOffline = isOffline
                         )
-                        
+
                         Logger.i("AuthViewModel", "Force admin login successful - TEST ONLY")
                         android.util.Log.d("🟡 AUTH_VIEWMODEL", "🚨 forceAdminLogin() COMPLETED SUCCESSFULLY")
                     }.onFailure { error ->
                         android.util.Log.e("🟡 AUTH_VIEWMODEL", "Failed to save admin to DB: ${error.message}")
-                        
+
                         // Fallback: Just save to prefs (in-memory only)
                         securePrefs.saveUserId(adminUser.id)
                         android.util.Log.d("🟡 AUTH_VIEWMODEL", "✅ Admin user ID saved to SecurePrefs (fallback)")
-                        
+
                         val isOffline = !networkObserver.isOnline()
-                        
+
                         _authState.value = AuthState.Authenticated(
                             user = adminUser,
                             isOffline = isOffline
@@ -263,12 +285,12 @@ class AuthViewModel @Inject constructor(
                     }
                 } catch (e: Exception) {
                     android.util.Log.e("🟡 AUTH_VIEWMODEL", "Exception saving admin: ${e.message}", e)
-                    
+
                     // Fallback: Just save to prefs
                     securePrefs.saveUserId(adminUser.id)
-                    
+
                     val isOffline = !networkObserver.isOnline()
-                    
+
                     _authState.value = AuthState.Authenticated(
                         user = adminUser,
                         isOffline = isOffline

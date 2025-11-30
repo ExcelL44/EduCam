@@ -254,6 +254,18 @@ class AuthRepository @Inject constructor(
     }
 
     /**
+     * Get user by pseudo for admin operations.
+     */
+    suspend fun getUserByPseudo(pseudo: String): User? {
+        return try {
+            userDao.getUserByPseudo(pseudo)
+        } catch (e: Exception) {
+            Logger.e("AuthRepository", "Error getting user by pseudo: $pseudo", e)
+            null
+        }
+    }
+
+    /**
      * Récupère l'utilisateur actuel via Flow (réactif).
      */
     fun getCurrentUser(userId: String): Flow<User?> = userDao.getUserById(userId)
@@ -389,24 +401,24 @@ class AuthRepository @Inject constructor(
             // ✅ FIX: Use 7 days instead of 24h to match trial duration
             val TRIAL_DURATION_MILLIS = 7L * 24 * 60 * 60 * 1000
             val expiryThreshold = now - TRIAL_DURATION_MILLIS
-            
+
             // Get list of expired accounts for logging
             val expiredUsers = userDao.getExpiredUnsyncedUsers(expiryThreshold)
-            
+
             if (expiredUsers.isNotEmpty()) {
                 Logger.w("AuthRepository", "Cleaning ${expiredUsers.size} expired offline account(s)")
                 expiredUsers.forEach { user ->
                     Logger.d("AuthRepository", "Deleting expired account: ${user.pseudo} (created: ${user.createdAt})")
                 }
             }
-            
+
             // Delete expired unsynced accounts
             val deletedCount = userDao.deleteExpiredUnsyncedUsers(expiryThreshold)
-            
+
             if (deletedCount > 0) {
                 Logger.i("AuthRepository", "Cleaned up $deletedCount expired offline account(s)")
             }
-            
+
             deletedCount
         } catch (e: Exception) {
             Logger.e("AuthRepository", "Error cleaning expired accounts", e)
