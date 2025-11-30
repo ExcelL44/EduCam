@@ -705,7 +705,7 @@ fun RegisterScreen(
                                                 if (isOnline) {
                                                     // Online: Create ACTIVE account
                                                     viewModel.register(
-                                                        pseudo = "${pseudo.lowercase()}@local.excell",
+                                                        pseudo = pseudo,
                                                         code = password,
                                                         name = fullName,
                                                         gradeLevel = selectedClass

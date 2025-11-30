@@ -53,10 +53,17 @@ jobs:
       - name: 📦 Download Test APK
         uses: actions/download-artifact@v4
         with:
-          name: app-debug
+          name: Bac-X_237-Debug
           path: .
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
+
+      - name: 📦 Extract APK from Archive
+        run: |
+          echo "📦 Extracting APK from Bac-X_237-Debug.zip..."
+          unzip -j Bac-X_237-Debug.zip "*.apk" -d .
+          ls -la *.apk
+          echo "✅ APK extracted successfully"
 
   performance-tests:
     name: ⚡ Phase 2 - Performance Measurements
@@ -71,10 +78,17 @@ jobs:
       - name: 📦 Download Test APK
         uses: actions/download-artifact@v4
         with:
-          name: app-debug
+          name: Bac-X_237-Debug
           path: .
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
+
+      - name: 📦 Extract APK from Archive
+        run: |
+          echo "📦 Extracting APK from Bac-X_237-Debug.zip..."
+          unzip -j Bac-X_237-Debug.zip "*.apk" -d .
+          ls -la *.apk
+          echo "✅ APK extracted successfully"
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -353,10 +367,17 @@ jobs:
       - name: 📦 Download Test APK
         uses: actions/download-artifact@v4
         with:
-          name: app-debug
+          name: Bac-X_237-Debug
           path: .
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
+
+      - name: 📦 Extract APK from Archive
+        run: |
+          echo "📦 Extracting APK from Bac-X_237-Debug.zip..."
+          unzip -j Bac-X_237-Debug.zip "*.apk" -d .
+          ls -la *.apk
+          echo "✅ APK extracted successfully"
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -373,7 +394,7 @@ jobs:
       - name: 📱 Install APK on Emulator
         run: |
           adb wait-for-device
-          adb install -r app-debug.apk || adb install -r Bac-X_237-Debug.apk
+          adb install -r app-debug.apk
           echo "✅ APK installed"
 
       # ─────────────────────────────────────────────────────────────────
