@@ -60,7 +60,7 @@ class ChatViewModelTest {
         // Then
         verify(smartyAI).saveChatMessage(userId, userMessage, true, 1.0f)
         verify(smartyAI).generateResponse(userId, userMessage)
-        verify(smartyAI).saveChatMessage(userId, aiResponse.message, false, aiResponse.confidence, any(), null, aiResponse.isLearned)
+        verify(smartyAI).saveChatMessage(userId, aiResponse.message, false, aiResponse.confidence, any<MessageType>(), null, aiResponse.isLearned)
         verify(smartyAI).learnFromInteraction(
             userId = userId,
             userMessage = userMessage,
@@ -79,7 +79,7 @@ class ChatViewModelTest {
 
         // Then
         verify(smartyAI, never()).generateResponse(any(), any())
-        verify(smartyAI, never()).saveChatMessage(any(), any(), any(), any(), any(), any(), any(), any())
+        verify(smartyAI, never()).saveChatMessage(any(), any(), any(), any(), any(), any(), any())
     }
 
     @Test
@@ -93,7 +93,7 @@ class ChatViewModelTest {
 
         // Then
         verify(smartyAI, never()).generateResponse(any(), any())
-        verify(smartyAI, never()).saveChatMessage(any(), any(), any(), any(), any(), any(), any(), any())
+        verify(smartyAI, never()).saveChatMessage(any(), any(), any(), any(), any(), any(), any())
     }
 
     @Test

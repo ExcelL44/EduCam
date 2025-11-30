@@ -175,7 +175,7 @@ class SmartyAITest {
     }
 
     @Test
-    fun `calculateSimilarity should return 1 for identical texts`() {
+    fun `calculateSimilarity should return 1 for identical texts`() = runTest {
         // Test de la logique de similarité - accès via reflection si nécessaire
         // Pour l'instant, test indirect via generateResponse
         val userId = "test_user"
@@ -190,7 +190,7 @@ class SmartyAITest {
     }
 
     @Test
-    fun `detectSubject should identify math keywords`() {
+    fun `detectSubject should identify math keywords`() = runTest {
         // Test indirect via generateResponse avec mots-clés
         val userId = "test_user"
         val mathMessage = "résoudre équation linéaire"
