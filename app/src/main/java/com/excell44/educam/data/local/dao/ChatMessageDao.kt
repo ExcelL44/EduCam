@@ -30,7 +30,7 @@ interface ChatMessageDao {
     @Query("DELETE FROM chat_messages WHERE userId = :userId AND timestamp < :before")
     suspend fun deleteOldMessages(userId: String, before: Long): Int
 
-    @Query("SELECT * FROM chat_messages WHERE userId = :userId AND isFromUser = 0 AND confidence > 0.7 ORDER BY usageCount DESC LIMIT 20")
+    @Query("SELECT * FROM chat_messages WHERE userId = :userId AND isFromUser = 0 AND confidence > 0.7 ORDER BY confidence DESC LIMIT 20")
     suspend fun getBestLearnedResponses(userId: String): List<ChatMessageEntity>
 
     // Nettoyage périodique (garde seulement 100 derniers messages par utilisateur)

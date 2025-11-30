@@ -290,52 +290,79 @@ class AuthRepository @Inject constructor(
 
     /**
      * Récupère l'utilisateur actuel avec fallback offline.
-     * Source of Truth: Firebase (Online) -> SecurePrefs + Room (Offline)
+     * Source of Truth: Local DB (primary) -> Firebase (secondary for online accounts)
      */
     suspend fun getUser(): Result<User> = withContext(Dispatchers.IO) {
         try {
+            // 1. FIRST: Try to get from local cache (SecurePrefs + Room)
+            val cachedId = securePrefs.getUserId()
+            Logger.d("AuthRepository", "Checking local cache (Cached ID: $cachedId)")
+
+            if (cachedId != null) {
+                // Fetch from local DB with timeout to avoid infinite blocking
+                val user = withTimeoutOrNull(5000) {
+                    userDao.getUserById(cachedId).first()
+                }
+                if (user != null) {
+                    Logger.i("AuthRepository", "Local user found: ${user.id} (${user.pseudo})")
+
+                    // 2. SECONDARY: If online and user is online account, sync with Firebase
+                    if (networkObserver.isOnline() && !user.isOfflineAccount) {
+                        try {
+                            val firebaseUser = firebaseAuth.currentUser
+                            if (firebaseUser != null && firebaseUser.uid == user.id) {
+                                Logger.d("AuthRepository", "Firebase sync OK for user: ${user.id}")
+                            } else {
+                                Logger.w("AuthRepository", "Firebase sync mismatch for user: ${user.id}")
+                                // Could logout here, but for now just log
+                            }
+                        } catch (e: Exception) {
+                            Logger.w("AuthRepository", "Firebase sync failed, continuing with local user", e)
+                        }
+                    }
+
+                    return@withContext Result.success(user)
+                } else {
+                    Logger.w("AuthRepository", "Local user not found for cached ID: $cachedId")
+                    // Clear invalid cached ID
+                    securePrefs.clearUserId()
+                }
+            }
+
+            // 3. FALLBACK: If no local user, check Firebase (for online accounts only)
             if (networkObserver.isOnline()) {
-                // ONLINE: Vérifie Firebase
                 val firebaseUser = firebaseAuth.currentUser
                 if (firebaseUser != null) {
-                    Logger.d("AuthRepository", "Fetching online user: ${firebaseUser.uid}")
+                    Logger.d("AuthRepository", "Creating user from Firebase: ${firebaseUser.uid}")
+
+                    // Create basic user from Firebase data
                     val user = User(
                         id = firebaseUser.uid,
-                        pseudo = firebaseUser.email ?: firebaseUser.uid, // Use email or UID as pseudo
+                        pseudo = firebaseUser.email ?: firebaseUser.uid,
                         passwordHash = "", // Not needed for Firebase user
                         salt = "", // No salt for Firebase users
                         name = firebaseUser.displayName ?: "Utilisateur",
-                        gradeLevel = "TBD", // Should fetch from Firestore
+                        gradeLevel = "TBD",
                         isOfflineAccount = false
                     )
-                    // ✅ CRITICAL: Cache user to local DB for offline fallback
+
+                    // Save to local DB for future offline access
                     userDao.insertUser(user)
-                    securePrefs.saveUserId(user.id) // Cache ID
-                    Result.success(user)
+                    securePrefs.saveUserId(user.id)
+
+                    Logger.i("AuthRepository", "Firebase user cached locally: ${user.id}")
+                    return@withContext Result.success(user)
                 } else {
-                    Logger.d("AuthRepository", "No online user found (Firebase)")
-                    Result.failure(Exception("Not logged in"))
+                    Logger.d("AuthRepository", "No Firebase user found")
                 }
             } else {
-                // OFFLINE: Récupère du cache
-                val cachedId = securePrefs.getUserId()
-                Logger.d("AuthRepository", "Fetching offline user (Cached ID: $cachedId)")
-                if (cachedId != null) {
-                    // Fetch from local DB with timeout to avoid infinite blocking
-                    val user = withTimeoutOrNull(5000) {
-                        userDao.getUserById(cachedId).first()
-                    }
-                    if (user != null) {
-                        Logger.i("AuthRepository", "Offline user restored: ${user.id}")
-                        Result.success(user)
-                    } else {
-                        Logger.w("AuthRepository", "Offline user not found or timeout for ID: $cachedId")
-                        Result.failure(Exception("User not found in local DB or timeout"))
-                    }
-                } else {
-                    Result.failure(Exception("No offline user"))
-                }
+                Logger.d("AuthRepository", "Offline - no cached user available")
             }
+
+            // 4. No user found anywhere
+            Logger.d("AuthRepository", "No user found (local or Firebase)")
+            Result.failure(Exception("Utilisateur non connecté"))
+
         } catch (e: Exception) {
             Logger.e("AuthRepository", "Error fetching user", e)
             Result.failure(e)
