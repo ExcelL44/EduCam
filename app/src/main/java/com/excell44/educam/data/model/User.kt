@@ -9,7 +9,8 @@ data class User(
     val id: String, // Firebase UID (empty for offline, filled after sync)
     val localId: String = java.util.UUID.randomUUID().toString(), // Local UUID (NEVER conflicts)
     val pseudo: String, // Username/Pseudo (no email required - app for youth)
-    val passwordHash: String, // En production, utiliser un hash sécurisé
+    val passwordHash: String, // PBKDF2 hash
+    val salt: String = "", // Salt for PBKDF2 (empty for Firebase users)
     val name: String,
     val gradeLevel: String = "", // Niveau d'étude
     val createdAt: Long = System.currentTimeMillis(),
@@ -55,4 +56,3 @@ data class User(
         return age > twentyFourHours && syncStatus != "SYNCED"
     }
 }
-

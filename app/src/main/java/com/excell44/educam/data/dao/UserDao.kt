@@ -4,6 +4,8 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
+import androidx.room.Update
 import com.excell44.educam.data.model.User
 import kotlinx.coroutines.flow.Flow
 
@@ -18,16 +20,29 @@ interface UserDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUser(user: User)
 
+    @Update
+    suspend fun updateUser(user: User)
+
     @Query("UPDATE users SET gradeLevel = :gradeLevel WHERE id = :userId")
     suspend fun updateGradeLevel(userId: String, gradeLevel: String)
 
+    @Query("UPDATE users SET syncStatus = :syncStatus WHERE id = :userId")
+    suspend fun updateSyncStatus(userId: String, syncStatus: String)
+
     @Query("SELECT COUNT(*) FROM users WHERE isOfflineAccount = 1")
     suspend fun countOfflineUsers(): Int
-    
+
     @Query("DELETE FROM users WHERE syncStatus != 'SYNCED' AND createdAt < :expiryTimestamp")
     suspend fun deleteExpiredUnsyncedUsers(expiryTimestamp: Long): Int
-    
+
     @Query("SELECT * FROM users WHERE syncStatus != 'SYNCED' AND createdAt < :expiryTimestamp")
     suspend fun getExpiredUnsyncedUsers(expiryTimestamp: Long): List<User>
-}
 
+    /**
+     * Atomic operation to update sync status safely
+     */
+    @Transaction
+    suspend fun safeUpdateSyncStatus(userId: String, newStatus: String) {
+        updateSyncStatus(userId, newStatus)
+    }
+}

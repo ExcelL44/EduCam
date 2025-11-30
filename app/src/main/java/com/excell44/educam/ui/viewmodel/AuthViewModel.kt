@@ -98,13 +98,13 @@ class AuthViewModel @Inject constructor(
         }
     }
     
-    fun login(email: String, code: String) {
+    fun login(pseudo: String, code: String) {
         viewModelScope.launch(Dispatchers.IO) {
             _authState.value = AuthState.Loading
-            Logger.d("AuthViewModel", "Attempting login for $email")
-            Logger.logUserAction("LoginAttempt", mapOf("email" to email))
-            
-            authRepository.login(email, code)
+            Logger.d("AuthViewModel", "Attempting login for $pseudo")
+            Logger.logUserAction("LoginAttempt", mapOf("pseudo" to pseudo))
+
+            authRepository.login(pseudo, code)
                 .onSuccess { user ->
                     Logger.i("AuthViewModel", "Login success: ${user.id}")
                     _authState.value = AuthState.Authenticated(user, !networkObserver.isOnline())
@@ -119,13 +119,13 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun register(email: String, code: String, name: String, gradeLevel: String) {
+    fun register(pseudo: String, code: String, name: String, gradeLevel: String) {
         viewModelScope.launch(Dispatchers.IO) {
             _authState.value = AuthState.Loading
-            Logger.d("AuthViewModel", "Attempting registration for $email")
-            Logger.logUserAction("RegisterAttempt", mapOf("email" to email, "grade" to gradeLevel))
-            
-            authRepository.register(email, code, name, gradeLevel)
+            Logger.d("AuthViewModel", "Attempting registration for $pseudo")
+            Logger.logUserAction("RegisterAttempt", mapOf("pseudo" to pseudo, "grade" to gradeLevel))
+
+            authRepository.register(pseudo, code, name, gradeLevel)
                 .onSuccess { user ->
                     Logger.i("AuthViewModel", "Registration success: ${user.id}")
                     _authState.value = AuthState.Authenticated(user, !networkObserver.isOnline())

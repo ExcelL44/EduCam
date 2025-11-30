@@ -36,7 +36,7 @@ import com.excell44.educam.data.model.ProblemSolution
         User::class,
         ProblemSolution::class
     ],
-    version = 3, // Incremented for localId field
+    version = 4, // Incremented for salt field and pseudo migration
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -77,11 +77,23 @@ abstract class AppDatabase : RoomDatabase() {
                 database.execSQL(
                     """
                     UPDATE users SET localId = (
-                        SELECT lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-' || 
+                        SELECT lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-' ||
                                hex(randomblob(2)) || '-' || hex(randomblob(2)) || '-' || hex(randomblob(6)))
                     )
                     """
                 )
+            }
+        }
+
+        /**
+         * Migration from version 3 to 4: Rename email to pseudo and add salt field for security.
+         */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Rename email column to pseudo
+                database.execSQL("ALTER TABLE users RENAME COLUMN email TO pseudo")
+                // Add salt column for password hashing
+                database.execSQL("ALTER TABLE users ADD COLUMN salt TEXT NOT NULL DEFAULT ''")
             }
         }
     }

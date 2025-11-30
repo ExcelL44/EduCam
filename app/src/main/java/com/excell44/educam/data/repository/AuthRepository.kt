@@ -13,13 +13,14 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
+
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import android.os.Build
 
 @Singleton
 class AuthRepository @Inject constructor(
@@ -29,53 +30,75 @@ class AuthRepository @Inject constructor(
     private val securePrefs: SecurePrefs,
     private val networkObserver: NetworkObserver
 ) {
-    // Mutex pour protéger les écritures critiques en base de données
-    private val dbMutex = Mutex()
-    
+    // Room handles concurrency - no need for mutex
+
     // SupervisorScope pour isoler les erreurs de coroutines
     private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    
+
     // Retry policy removed as unused
+
+    /**
+     * Generate a random salt for password hashing
+     */
+    private suspend fun generateSalt(): String = withContext(Dispatchers.IO) {
+        withTimeoutOrNull(2000) {
+            val random = java.security.SecureRandom()
+            val bytes = ByteArray(16)
+            random.nextBytes(bytes)
+            bytes.joinToString("") { "%02x".format(it) }
+        } ?: "default-salt-fallback".also {
+            Logger.w("AuthRepository", "SecureRandom timeout, using fallback salt")
+        }
+    }
+
+    /**
+     * Get the appropriate PBKDF2 algorithm based on API level
+     */
+    private fun getPBKDF2Algorithm(): String {
+        return if (Build.VERSION.SDK_INT >= 23) {
+            "PBKDF2WithHmacSHA256"
+        } else {
+            "PBKDF2WithHmacSHA1" // Fallback for older APIs
+        }
+    }
     
     /**
      * Authentifie un utilisateur.
      * Thread-safe avec mutex sur la lecture DB.
      */
-    suspend fun login(email: String, password: String): Result<User> {
-        Logger.d("AuthRepository", "Attempting login for: $email")
+    suspend fun login(pseudo: String, password: String): Result<User> {
+        Logger.d("AuthRepository", "Attempting login for: $pseudo")
         return try {
-            // Lecture DB avec mutex pour éviter les conflits
-            val user = dbMutex.withLock {
-                userDao.getUserByEmail(email)
-            }
-            
+            // Room is thread-safe
+            val user = userDao.getUserByPseudo(pseudo)
+
             if (user == null) {
-                Logger.w("AuthRepository", "Login failed: User not found ($email)")
+                Logger.w("AuthRepository", "Login failed: User not found ($pseudo)")
                 return Result.failure(Exception("Aucun compte trouvé avec ce pseudo"))
             }
-            
+
             // Validate password
             val isPasswordValid = if (user.passwordHash.isEmpty()) {
                 // Offline account without password - should not be allowed to login this way
-                Logger.w("AuthRepository", "Login blocked: Offline account without password ($email)")
+                Logger.w("AuthRepository", "Login blocked: Offline account without password ($pseudo)")
                 false
             } else {
-                // Use SHA-256 for better security than hashCode
-                val inputHash = java.security.MessageDigest.getInstance("SHA-256")
-                    .digest(password.toByteArray())
-                    .joinToString("") { "%02x".format(it) }
-                user.passwordHash == inputHash
+                // Use PBKDF2 with stored salt
+                val spec = javax.crypto.spec.PBEKeySpec(password.toCharArray(), user.salt.toByteArray(), 10000, 256)
+                val factory = javax.crypto.SecretKeyFactory.getInstance(getPBKDF2Algorithm())
+                val hash = factory.generateSecret(spec).encoded.joinToString("") { "%02x".format(it) }
+                user.passwordHash == hash
             }
-            
+
             if (isPasswordValid) {
-                Logger.i("AuthRepository", "Login successful: ${user.id} ($email)")
+                Logger.i("AuthRepository", "Login successful: ${user.id} ($pseudo)")
                 Result.success(user)
             } else {
-                Logger.w("AuthRepository", "Login failed: Invalid password ($email)")
+                Logger.w("AuthRepository", "Login failed: Invalid password ($pseudo)")
                 Result.failure(Exception("Code incorrect"))
             }
         } catch (e: Exception) {
-            Logger.e("AuthRepository", "Login error for $email", e)
+            Logger.e("AuthRepository", "Login error for $pseudo", e)
             Result.failure(Exception("Erreur lors de la connexion: ${e.message}"))
         }
     }
@@ -84,33 +107,36 @@ class AuthRepository @Inject constructor(
      * Enregistre un nouvel utilisateur (simple).
      * Thread-safe avec mutex sur les opérations DB.
      */
-    suspend fun register(email: String, password: String, name: String, gradeLevel: String): Result<User> {
-        Logger.d("AuthRepository", "Attempting registration: $email")
+    suspend fun register(pseudo: String, password: String, name: String, gradeLevel: String): Result<User> {
+        Logger.d("AuthRepository", "Attempting registration: $pseudo")
         return try {
-            dbMutex.withLock {
-                val existingUser = userDao.getUserByEmail(email)
-                if (existingUser != null) {
-                    Logger.w("AuthRepository", "Registration failed: Email already exists ($email)")
-                    return Result.failure(Exception("Cet email est déjà utilisé"))
-                }
-                
-                // Online registration creates ACTIVE user (paid, synced)
-                val user = User(
-                    id = UUID.randomUUID().toString(),
-                    email = email,
-                    passwordHash = java.security.MessageDigest.getInstance("SHA-256").digest(password.toByteArray()).joinToString("") { "%02x".format(it) },
-                    name = name,
-                    gradeLevel = gradeLevel,
-                    role = "ACTIVE", // Online paid registration
-                    syncStatus = "SYNCED", // Already online
-                    isOfflineAccount = false
-                )
-                userDao.insertUser(user)
-                Logger.i("AuthRepository", "Registration successful: ${user.id} ($email) - ACTIVE")
-                Result.success(user)
+            val existingUser = userDao.getUserByPseudo(pseudo)
+            if (existingUser != null) {
+                Logger.w("AuthRepository", "Registration failed: Pseudo already exists ($pseudo)")
+                return Result.failure(Exception("Ce pseudo est déjà utilisé"))
             }
+
+            // Generate salt and hash password
+            val salt = generateSalt()
+            val spec = javax.crypto.spec.PBEKeySpec(password.toCharArray(), salt.toByteArray(), 10000, 256)
+            val factory = javax.crypto.SecretKeyFactory.getInstance(getPBKDF2Algorithm())
+            val passwordHash = factory.generateSecret(spec).encoded.joinToString("") { "%02x".format(it) }
+            val user = User(
+                id = UUID.randomUUID().toString(),
+                pseudo = pseudo,
+                passwordHash = passwordHash,
+                salt = salt,
+                name = name,
+                gradeLevel = gradeLevel,
+                role = "ACTIVE", // Online paid registration
+                syncStatus = "SYNCED", // Already online
+                isOfflineAccount = false
+            )
+            userDao.insertUser(user)
+            Logger.i("AuthRepository", "Registration successful: ${user.id} ($pseudo) - ACTIVE")
+            Result.success(user)
         } catch (e: Exception) {
-            Logger.e("AuthRepository", "Registration error for $email", e)
+            Logger.e("AuthRepository", "Registration error for $pseudo", e)
             Result.failure(Exception("Erreur lors de l'inscription: ${e.message}"))
         }
     }
@@ -133,24 +159,25 @@ class AuthRepository @Inject constructor(
         promoCode: String?
     ): Result<User> {
         return try {
-            val email = "${pseudo.lowercase()}@local.excell"
-            
-            dbMutex.withLock {
-                val existingUser = userDao.getUserByEmail(email)
-                if (existingUser != null) {
-                    return Result.failure(Exception("Ce pseudo est déjà utilisé"))
-                }
-                
-                val user = User(
-                    id = UUID.randomUUID().toString(),
-                    email = email,
-                    passwordHash = java.security.MessageDigest.getInstance("SHA-256").digest(password.toByteArray()).joinToString("") { "%02x".format(it) },
-                    name = fullName,
-                    gradeLevel = gradeLevel
-                )
-                userDao.insertUser(user)
-                Result.success(user)
+            val existingUser = userDao.getUserByPseudo(pseudo)
+            if (existingUser != null) {
+                return Result.failure(Exception("Ce pseudo est déjà utilisé"))
             }
+
+            val salt = generateSalt()
+            val spec = javax.crypto.spec.PBEKeySpec(password.toCharArray(), salt.toByteArray(), 10000, 256)
+            val factory = javax.crypto.SecretKeyFactory.getInstance(getPBKDF2Algorithm())
+            val passwordHash = factory.generateSecret(spec).encoded.joinToString("") { "%02x".format(it) }
+            val user = User(
+                id = UUID.randomUUID().toString(),
+                pseudo = pseudo,
+                passwordHash = passwordHash,
+                salt = salt,
+                name = fullName,
+                gradeLevel = gradeLevel
+            )
+            userDao.insertUser(user)
+            Result.success(user)
         } catch (e: Exception) {
             Result.failure(Exception("Erreur lors de l'inscription: ${e.message}"))
         }
@@ -168,39 +195,43 @@ class AuthRepository @Inject constructor(
     ): Result<User> {
         Logger.d("AuthRepository", "Attempting offline registration: $pseudo")
         return try {
-            dbMutex.withLock {
-                // Check limit
-                val offlineCount = userDao.countOfflineUsers()
-                if (offlineCount >= 3) {
-                    Logger.w("AuthRepository", "Offline registration failed: Limit reached ($offlineCount/3)")
-                    return Result.failure(Exception("Limite de 3 comptes hors ligne atteinte sur cet appareil."))
-                }
-
-                // Check if pseudo exists
-                val email = "${pseudo.lowercase()}@local.excell"
-                val existingUser = userDao.getUserByEmail(email)
-                if (existingUser != null) {
-                    Logger.w("AuthRepository", "Offline registration failed: Pseudo taken ($pseudo)")
-                    return Result.failure(Exception("Ce pseudo est déjà utilisé"))
-                }
-
-                // Create offline user with 24-hour trial (PASSIVE role)
-                val trialDuration = 24L * 60 * 60 * 1000 // 24 hours in millis
-                val user = User(
-                    id = UUID.randomUUID().toString(),
-                    email = email,
-                    passwordHash = java.security.MessageDigest.getInstance("SHA-256").digest(password.toByteArray()).joinToString("") { "%02x".format(it) },
-                    name = fullName,
-                    gradeLevel = gradeLevel,
-                    isOfflineAccount = true,
-                    trialExpiresAt = System.currentTimeMillis() + trialDuration,
-                    syncStatus = "PENDING_CREATE",
-                    role = "PASSIVE" // Trial account, needs sync to become ACTIVE
-                )
-                userDao.insertUser(user)
-                Logger.i("AuthRepository", "Offline registration successful: ${user.id} ($pseudo) - 24h trial")
-                Result.success(user)
+            // Check limit
+            val offlineCount = userDao.countOfflineUsers()
+            if (offlineCount >= 3) {
+                Logger.w("AuthRepository", "Offline registration failed: Limit reached ($offlineCount/3)")
+                return Result.failure(Exception("Limite de 3 comptes hors ligne atteinte sur cet appareil."))
             }
+
+            // Check if pseudo exists
+            val existingUser = userDao.getUserByPseudo(pseudo)
+            if (existingUser != null) {
+                Logger.w("AuthRepository", "Offline registration failed: Pseudo taken ($pseudo)")
+                return Result.failure(Exception("Ce pseudo est déjà utilisé"))
+            }
+
+            // Generate salt and hash password
+            val salt = generateSalt()
+            val spec = javax.crypto.spec.PBEKeySpec(password.toCharArray(), salt.toByteArray(), 10000, 256)
+            val factory = javax.crypto.SecretKeyFactory.getInstance(getPBKDF2Algorithm())
+            val passwordHash = factory.generateSecret(spec).encoded.joinToString("") { "%02x".format(it) }
+
+            // Create offline user with 24-hour trial (PASSIVE role)
+            val trialDuration = 24L * 60 * 60 * 1000 // 24 hours in millis
+            val user = User(
+                id = UUID.randomUUID().toString(),
+                pseudo = pseudo,
+                passwordHash = passwordHash,
+                salt = salt,
+                name = fullName,
+                gradeLevel = gradeLevel,
+                isOfflineAccount = true,
+                trialExpiresAt = System.currentTimeMillis() + trialDuration,
+                syncStatus = "PENDING_CREATE",
+                role = "PASSIVE" // Trial account, needs sync to become ACTIVE
+            )
+            userDao.insertUser(user)
+            Logger.i("AuthRepository", "Offline registration successful: ${user.id} ($pseudo) - 24h trial")
+            Result.success(user)
         } catch (e: Exception) {
             Logger.e("AuthRepository", "Offline registration error", e)
             Result.failure(Exception("Erreur lors de la création du compte hors ligne: ${e.message}"))
@@ -218,9 +249,7 @@ class AuthRepository @Inject constructor(
      */
     suspend fun updateGradeLevel(userId: String, gradeLevel: String) {
         try {
-            dbMutex.withLock {
-                userDao.updateGradeLevel(userId, gradeLevel)
-            }
+            userDao.updateGradeLevel(userId, gradeLevel)
         } catch (e: Exception) {
             // Log error but don't throw (graceful degradation)
             println("Error updating grade level: ${e.message}")
@@ -240,16 +269,15 @@ class AuthRepository @Inject constructor(
                     Logger.d("AuthRepository", "Fetching online user: ${firebaseUser.uid}")
                     val user = User(
                         id = firebaseUser.uid,
-                        email = firebaseUser.email ?: "",
+                        pseudo = firebaseUser.email ?: firebaseUser.uid, // Use email or UID as pseudo
                         passwordHash = "", // Not needed for Firebase user
+                        salt = "", // No salt for Firebase users
                         name = firebaseUser.displayName ?: "Utilisateur",
                         gradeLevel = "TBD", // Should fetch from Firestore
                         isOfflineAccount = false
                     )
                     // ✅ CRITICAL: Cache user to local DB for offline fallback
-                    dbMutex.withLock {
-                        userDao.insertUser(user)
-                    }
+                    userDao.insertUser(user)
                     securePrefs.saveUserId(user.id) // Cache ID
                     Result.success(user)
                 } else {
@@ -261,14 +289,16 @@ class AuthRepository @Inject constructor(
                 val cachedId = securePrefs.getUserId()
                 Logger.d("AuthRepository", "Fetching offline user (Cached ID: $cachedId)")
                 if (cachedId != null) {
-                    // Fetch from local DB
-                    val user = userDao.getUserById(cachedId).first()
+                    // Fetch from local DB with timeout to avoid infinite blocking
+                    val user = withTimeoutOrNull(5000) {
+                        userDao.getUserById(cachedId).first()
+                    }
                     if (user != null) {
                         Logger.i("AuthRepository", "Offline user restored: ${user.id}")
                         Result.success(user)
                     } else {
-                        Logger.w("AuthRepository", "Offline user not found in DB for ID: $cachedId")
-                        Result.failure(Exception("User not found in local DB"))
+                        Logger.w("AuthRepository", "Offline user not found or timeout for ID: $cachedId")
+                        Result.failure(Exception("User not found in local DB or timeout"))
                     }
                 } else {
                     Result.failure(Exception("No offline user"))
@@ -290,8 +320,9 @@ class AuthRepository @Inject constructor(
             
             val user = User(
                 id = firebaseUser.uid,
-                email = "",
+                pseudo = firebaseUser.uid, // Use UID as pseudo for anonymous users
                 passwordHash = "",
+                salt = "",
                 name = "Invité",
                 gradeLevel = "TBD",
                 isOfflineAccount = false
@@ -347,7 +378,7 @@ class AuthRepository @Inject constructor(
             if (expiredUsers.isNotEmpty()) {
                 Logger.w("AuthRepository", "Cleaning ${expiredUsers.size} expired offline account(s)")
                 expiredUsers.forEach { user ->
-                    Logger.d("AuthRepository", "Deleting expired account: ${user.email} (created: ${user.createdAt})")
+                    Logger.d("AuthRepository", "Deleting expired account: ${user.pseudo} (created: ${user.createdAt})")
                 }
             }
             
