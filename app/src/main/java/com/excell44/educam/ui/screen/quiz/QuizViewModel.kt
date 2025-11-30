@@ -65,10 +65,6 @@ class QuizViewModel @Inject constructor(
     // accumulate per-question details during the quiz
     private val answerDetails = mutableListOf<AnswerDetail>()
 
-    // hint usage tracking (limit for guests)
-    private var hintsUsed = 0
-    private val guestHintLimit = 3
-
     fun loadSubjects() {
         // Les sujets sont hardcodés pour l'instant
         // Peut être amélioré avec un repository
@@ -120,7 +116,7 @@ class QuizViewModel @Inject constructor(
                 currentSession = session
                 // reset per-quiz accumulators
                 answerDetails.clear()
-                hintsUsed = 0
+                // Reset quiz state
 
                 // Charger les questions (adaptatif selon le mode)
                 val questionCount = if (mode == QuizMode.FAST) 10 else 20

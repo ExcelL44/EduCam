@@ -31,7 +31,7 @@ import com.excell44.educam.ui.base.UiAction
 import com.excell44.educam.ui.base.UiState
 
 // États et Actions pour HomeScreen
-data class HomeState(val isGuest: Boolean = false) : UiState
+data class HomeState(val isLoading: Boolean = false) : UiState
 sealed class HomeAction : UiAction {
     object NavigateToQuiz : HomeAction()
     object NavigateToSubjects : HomeAction()

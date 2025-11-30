@@ -73,8 +73,8 @@ fun SplashScreen(
 
         // Déterminer la destination finale basée sur l'état d'auth actuel
         val finalDestination = when (authState) {
-            is com.excell44.educam.domain.model.AuthState.Authenticated -> "home"
-            else -> "login"
+            is com.excell44.educam.domain.model.AuthState.Authenticated -> com.excell44.educam.ui.navigation.Screen.Home.route
+            else -> com.excell44.educam.ui.navigation.Screen.Login.route
         }
 
         android.util.Log.d("SplashScreen", "Navigation to: $finalDestination (authState: $authState)")

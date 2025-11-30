@@ -371,32 +371,6 @@ class AuthRepository @Inject constructor(
     }
 
     /**
-     * Connexion anonyme via Firebase.
-     */
-    suspend fun loginAnonymous(): Result<User> = withContext(Dispatchers.IO) {
-        try {
-            val authResult = firebaseAuth.signInAnonymously().await()
-            val firebaseUser = authResult.user!!
-            
-            val user = User(
-                id = firebaseUser.uid,
-                pseudo = firebaseUser.uid, // Use UID as pseudo for anonymous users
-                passwordHash = "",
-                salt = "",
-                name = "Invité",
-                gradeLevel = "TBD",
-                isOfflineAccount = false
-            )
-            
-            securePrefs.saveUserId(user.id)
-            Result.success(user)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-
-    /**
      * Flux temps réel de l'utilisateur (Firestore + Offline Persistence).
      * C'est la méthode recommandée pour l'UI réactive.
      */
@@ -430,10 +404,12 @@ class AuthRepository @Inject constructor(
     suspend fun cleanExpiredOfflineAccounts(): Int {
         return try {
             val now = System.currentTimeMillis()
-            val twentyFourHoursAgo = now - (24L * 60 * 60 * 1000)
+            // ✅ FIX: Use 7 days instead of 24h to match trial duration
+            val TRIAL_DURATION_MILLIS = 7L * 24 * 60 * 60 * 1000
+            val expiryThreshold = now - TRIAL_DURATION_MILLIS
             
             // Get list of expired accounts for logging
-            val expiredUsers = userDao.getExpiredUnsyncedUsers(twentyFourHoursAgo)
+            val expiredUsers = userDao.getExpiredUnsyncedUsers(expiryThreshold)
             
             if (expiredUsers.isNotEmpty()) {
                 Logger.w("AuthRepository", "Cleaning ${expiredUsers.size} expired offline account(s)")
@@ -443,7 +419,7 @@ class AuthRepository @Inject constructor(
             }
             
             // Delete expired unsynced accounts
-            val deletedCount = userDao.deleteExpiredUnsyncedUsers(twentyFourHoursAgo)
+            val deletedCount = userDao.deleteExpiredUnsyncedUsers(expiryThreshold)
             
             if (deletedCount > 0) {
                 Logger.i("AuthRepository", "Cleaned up $deletedCount expired offline account(s)")

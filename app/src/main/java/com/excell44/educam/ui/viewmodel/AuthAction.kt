@@ -25,6 +25,5 @@ sealed interface AuthAction : UiAction {
         val gradeLevel: String
     ) : AuthAction
     object Logout : AuthAction
-    object GuestMode : AuthAction
     object ClearError : AuthAction
 }

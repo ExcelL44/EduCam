@@ -40,13 +40,9 @@ fun NavGraph(
     navigationViewModel: NavigationViewModel = hiltViewModel(),
     authViewModel: com.excell44.educam.ui.viewmodel.AuthViewModel = hiltViewModel() // ✅ Injecter AuthViewModel
 ) {
-    // Attach NavController to NavigationViewModel
-    LaunchedEffect(navController) {
-        android.util.Log.d("🟢 NAV_GRAPH", "🔗 Attaching NavController to NavigationViewModel")
-        navigationViewModel.setNavController(navController)
-        android.util.Log.d("🟢 NAV_GRAPH", "✅ NavController attached successfully to NavigationViewModel")
-    }
-
+    // ⚠️ NavController is now attached in MainActivity via SideEffect
+    // This removes the race condition where NavGraph children try to navigate before LaunchedEffect runs
+    
     // Observe navigation state (optional, for debugging)
     val navState by navigationViewModel.navigationState.collectAsState()
 
@@ -59,6 +55,8 @@ fun NavGraph(
     val userMode = user?.getUserMode()
     val isTrial = userMode == com.excell44.educam.data.model.UserMode.TRIAL
     val isAdmin = user?.role == "ADMIN"
+
+    android.util.Log.d("🟢 NAV_GRAPH", "📊 Auth state updated: isLoggedIn=$isLoggedIn, userMode=$userMode, userRole=${user?.role}")
     
     LaunchedEffect(isLoggedIn) {
         val currentRoute = navController.currentDestination?.route
@@ -66,22 +64,11 @@ fun NavGraph(
 
         // Si user se connecte depuis n'importe quel écran d'auth → Aller à Home
         if (isLoggedIn && currentRoute in listOf(Screen.Login.route, Screen.Register.route, Screen.Splash.route)) {
-            android.util.Log.d("NavGraph", "✅ Navigating to Home after normal login")
+            android.util.Log.d("NavGraph", "✅ Navigating to Home after login")
             navigationViewModel.navigate(
                 NavCommand.NavigateTo(
                     route = Screen.Home.route,
                     popUpTo = Screen.Splash.route,
-                    inclusive = true
-                )
-            )
-        }
-        // Si user se connecte depuis LoginScreen (cas Sup_Admin) → Forcer navigation vers Home
-        else if (isLoggedIn && currentRoute == Screen.Login.route) {
-            android.util.Log.d("NavGraph", "🚨 FORCE NAVIGATING to Home after admin login from LoginScreen")
-            navigationViewModel.navigate(
-                NavCommand.NavigateTo(
-                    route = Screen.Home.route,
-                    popUpTo = Screen.Login.route,
                     inclusive = true
                 )
             )

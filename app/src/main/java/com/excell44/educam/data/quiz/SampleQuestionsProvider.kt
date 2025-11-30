@@ -128,26 +128,6 @@ object SampleQuestionsProvider {
     }
 
     /**
-     * Get guest-friendly questions - limit to 5 questions per quiz for better guest experience
-     */
-    fun getGuestQuestions(count: Int = 10): List<Pair<Question, List<OptionEntity>>> {
-        return sample().take(count.coerceIn(5, 15)) // Guest gets 5-15 questions max
-    }
-
-    /**
-     * Get questions by subject for guest mode
-     */
-    fun getGuestQuestionsBySubject(subject: String, count: Int = 8): List<Pair<Question, List<OptionEntity>>> {
-        val subjectQuestions = when(subject.lowercase()) {
-            "mathématiques", "math", "maths" -> mathQuestions
-            "physique", "physics" -> physicsQuestions
-            "chimie", "chemistry" -> chemistryQuestions
-            else -> sample() // Mix if subject not recognized
-        }
-        return subjectQuestions.shuffled().take(count.coerceIn(3, 10))
-    }
-
-    /**
      * Get introductory questions for new users (easier level)
      */
     fun getIntroQuestions(): List<Pair<Question, List<OptionEntity>>> {

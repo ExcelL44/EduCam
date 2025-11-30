@@ -53,9 +53,20 @@ fun appContent() {
 
     val authViewModel: AuthViewModel = hiltViewModel()
     val authState by authViewModel.authState.collectAsState()
+    
+    // ✅ Inject NavigationViewModel here to attach controller early
+    val navigationViewModel: com.excell44.educam.ui.navigation.NavigationViewModel = hiltViewModel()
+    
     val navController = rememberNavController()
+    
+    // ✅ Attach NavController IMMEDIATELY via SideEffect to avoid race conditions
+    androidx.compose.runtime.SideEffect {
+        android.util.Log.d("🔴 MAIN_ACTIVITY", "🔗 Attaching NavController via SideEffect")
+        navigationViewModel.setNavController(navController)
+    }
 
-    android.util.Log.d("🔴 MAIN_ACTIVITY", "📱 NavController created, AuthViewModel injected")
+    android.util.Log.d("🔴 MAIN_ACTIVITY", "📱 NavController created: $navController")
+    android.util.Log.d("🔴 MAIN_ACTIVITY", "📱 AuthViewModel injected successfully")
 
     val mainViewModel: com.excell44.educam.ui.viewmodel.MainViewModel = hiltViewModel()
     android.util.Log.d("🔴 MAIN_ACTIVITY", "📊 MainViewModel injected")
@@ -79,6 +90,11 @@ fun appContent() {
         com.excell44.educam.ui.components.OfflineIndicator(networkObserver = mainViewModel.networkObserver)
         
         // Start with splash, then the splash composable will navigate to startDestination
-        NavGraph(navController = navController, startDestination = com.excell44.educam.ui.navigation.Screen.Splash.route, postSplashDestination = startDestination)
+        NavGraph(
+            navController = navController, 
+            startDestination = com.excell44.educam.ui.navigation.Screen.Splash.route, 
+            postSplashDestination = startDestination,
+            navigationViewModel = navigationViewModel // ✅ Pass the instance with attached controller
+        )
     }
 }

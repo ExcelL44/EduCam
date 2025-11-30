@@ -166,27 +166,6 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun loginAsGuest() {
-        viewModelScope.launch(Dispatchers.IO) {
-            _authState.value = AuthState.Loading
-            Logger.d("AuthViewModel", "Attempting guest login...")
-            Logger.logUserAction("GuestLoginAttempt")
-            
-            authRepository.loginAnonymous()
-                .onSuccess { user ->
-                    Logger.i("AuthViewModel", "Guest login success: ${user.id}")
-                    _authState.value = AuthState.Authenticated(user)
-                }
-                .onFailure { e ->
-                    Logger.e("AuthViewModel", "Guest login failed", e)
-                    _authState.value = AuthState.Error(
-                        message = e.message ?: "Erreur de connexion invité",
-                        canRetry = true
-                    )
-                }
-        }
-    }
-    
     fun retry() {
         initialize()
     }
@@ -241,18 +220,59 @@ class AuthViewModel @Inject constructor(
                 )
                 android.util.Log.d("🟡 AUTH_VIEWMODEL", "🚨 Admin user created: ${adminUser.pseudo} (${adminUser.role})")
 
-                val isOffline = !networkObserver.isOnline()
-                android.util.Log.d("🟡 AUTH_VIEWMODEL", "🚨 Network status: online=${!isOffline}, setting auth state")
-
-                // Set authenticated state directly (bypass all auth checks)
-                _authState.value = AuthState.Authenticated(
-                    user = adminUser,
-                    isOffline = isOffline
-                )
-                android.util.Log.d("🟡 AUTH_VIEWMODEL", "🚨 Auth state set to Authenticated - user: ${adminUser.pseudo}")
-
-                Logger.i("AuthViewModel", "Force admin login successful - TEST ONLY")
-                android.util.Log.d("🟡 AUTH_VIEWMODEL", "🚨 forceAdminLogin() COMPLETED SUCCESSFULLY")
+                // ✅ CRITICAL: Save to database AND SecurePrefs to persist session
+                // This ensures initialize() can find the user
+                try {
+                    authRepository.registerOffline(
+                        pseudo = adminUser.pseudo,
+                        code = "0000", // Dummy code
+                        name = adminUser.name,
+                        gradeLevel = adminUser.gradeLevel
+                    ).onSuccess { createdUser ->
+                        // Update with ADMIN role
+                        val adminUserWithId = createdUser.copy(role = "ADMIN", syncStatus = "SYNCED")
+                        // Save ID to prefs
+                        securePrefs.saveUserId(adminUserWithId.id)
+                        
+                        android.util.Log.d("🟡 AUTH_VIEWMODEL", "✅ Admin user saved to DB and SecurePrefs")
+                        
+                        val isOffline = !networkObserver.isOnline()
+                        
+                        // Set authenticated state
+                        _authState.value = AuthState.Authenticated(
+                            user = adminUserWithId,
+                            isOffline = isOffline
+                        )
+                        
+                        Logger.i("AuthViewModel", "Force admin login successful - TEST ONLY")
+                        android.util.Log.d("🟡 AUTH_VIEWMODEL", "🚨 forceAdminLogin() COMPLETED SUCCESSFULLY")
+                    }.onFailure { error ->
+                        android.util.Log.e("🟡 AUTH_VIEWMODEL", "Failed to save admin to DB: ${error.message}")
+                        
+                        // Fallback: Just save to prefs (in-memory only)
+                        securePrefs.saveUserId(adminUser.id)
+                        android.util.Log.d("🟡 AUTH_VIEWMODEL", "✅ Admin user ID saved to SecurePrefs (fallback)")
+                        
+                        val isOffline = !networkObserver.isOnline()
+                        
+                        _authState.value = AuthState.Authenticated(
+                            user = adminUser,
+                            isOffline = isOffline
+                        )
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("🟡 AUTH_VIEWMODEL", "Exception saving admin: ${e.message}", e)
+                    
+                    // Fallback: Just save to prefs
+                    securePrefs.saveUserId(adminUser.id)
+                    
+                    val isOffline = !networkObserver.isOnline()
+                    
+                    _authState.value = AuthState.Authenticated(
+                        user = adminUser,
+                        isOffline = isOffline
+                    )
+                }
 
             } catch (e: Exception) {
                 android.util.Log.e("🟡 AUTH_VIEWMODEL", "🚨 forceAdminLogin() FAILED with exception: ${e.message}", e)
