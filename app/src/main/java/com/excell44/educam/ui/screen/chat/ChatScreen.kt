@@ -30,3 +30,206 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.excell44.educam.data.local.entity.MessageType
 import com.excell44.educam.util.Logger
 import kotlinx.coroutines.launch
+
+/**
+ * Écran principal du chat IA Smarty
+ */
+@Composable
+fun ChatScreen(
+    onNavigateBack: () -> Unit,
+    viewModel: com.excell44.educam.ui.viewmodel.ChatViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    val messages by viewModel.messages.collectAsState()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Chat IA Smarty") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Retour")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Liste des messages
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                state = rememberLazyListState(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(messages) { message ->
+                    MessageBubble(message = message)
+                }
+
+                // Indicateur de frappe
+                if (uiState.isTyping) {
+                    item {
+                        TypingIndicator()
+                    }
+                }
+            }
+
+            // Zone de saisie
+            MessageInput(
+                onSendMessage = { message ->
+                    viewModel.sendMessage(message)
+                },
+                enabled = !uiState.isTyping
+            )
+
+            // Message d'erreur
+            uiState.errorMessage?.let { error ->
+                Text(
+                    text = error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Bulle de message
+ */
+@Composable
+fun MessageBubble(message: com.excell44.educam.ui.viewmodel.ChatMessage) {
+    val isUser = message.isFromUser
+    val backgroundColor = if (isUser) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant
+    }
+    val textColor = if (isUser) {
+        MaterialTheme.colorScheme.onPrimary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
+    ) {
+        Card(
+            modifier = Modifier.widthIn(max = 280.dp),
+            colors = CardDefaults.cardColors(containerColor = backgroundColor)
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(
+                    text = message.content,
+                    color = textColor,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                if (message.confidence < 1.0f) {
+                    Text(
+                        text = "Confiance: ${(message.confidence * 100).toInt()}%",
+                        color = textColor.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Indicateur de frappe
+ */
+@Composable
+fun TypingIndicator() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Start
+    ) {
+        Card(
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                repeat(3) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(Color.Gray)
+                    )
+                }
+                Text(
+                    text = "Smarty écrit...",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Zone de saisie de message
+ */
+@Composable
+fun MessageInput(
+    onSendMessage: (String) -> Unit,
+    enabled: Boolean = true
+) {
+    var message by remember { mutableStateOf("") }
+    val focusManager = LocalFocusManager.current
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        OutlinedTextField(
+            value = message,
+            onValueChange = { message = it },
+            modifier = Modifier.weight(1f),
+            placeholder = { Text("Tapez votre message...") },
+            enabled = enabled,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+            keyboardActions = KeyboardActions(
+                onSend = {
+                    if (message.isNotBlank() && enabled) {
+                        onSendMessage(message)
+                        message = ""
+                        focusManager.clearFocus()
+                    }
+                }
+            )
+        )
+
+        IconButton(
+            onClick = {
+                if (message.isNotBlank() && enabled) {
+                    onSendMessage(message)
+                    message = ""
+                    focusManager.clearFocus()
+                }
+            },
+            enabled = message.isNotBlank() && enabled
+        ) {
+            Icon(
+                Icons.Filled.Send,
+                contentDescription = "Envoyer",
+                tint = if (message.isNotBlank() && enabled) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                }
+            )
+        }
+    }
+}
