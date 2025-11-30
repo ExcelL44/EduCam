@@ -37,6 +37,7 @@ fun LoginScreen(
     // Memoize callbacks
     val onLoginClick = remember(pseudo, code) {
         { 
+            android.util.Log.d("🔴 DEBUG_AUTH", "👆 Login button clicked. Pseudo: '$pseudo', Code: '$code'")
             viewModel.login(pseudo, code)
         }
     }

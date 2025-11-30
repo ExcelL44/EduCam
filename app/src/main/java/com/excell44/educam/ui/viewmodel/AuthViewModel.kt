@@ -102,6 +102,7 @@ class AuthViewModel @Inject constructor(
     fun login(pseudo: String, code: String) {
         viewModelScope.launch(Dispatchers.IO) {
             _authState.value = AuthState.Loading
+            android.util.Log.d("🔴 DEBUG_AUTH", "🚀 AuthViewModel.login() called for pseudo: '$pseudo', code: '$code'")
             Logger.d("AuthViewModel", "Attempting login for $pseudo")
             Logger.logUserAction("LoginAttempt", mapOf("pseudo" to pseudo))
 
