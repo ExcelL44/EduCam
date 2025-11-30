@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.NavigateNext
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,12 +35,53 @@ fun QuizScreen(
     question: QuizQuestion,
     onAnswerSelected: (Int) -> Unit,
     onNextClicked: () -> Unit,
+    onCancelQuiz: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     var selectedAnswer by remember { mutableIntStateOf(-1) }
     var showFeedback by remember { mutableStateOf(false) }
-    
+    var showCancelDialog by remember { mutableStateOf(false) }
+
+    // Boîte de dialogue de confirmation d'annulation
+    if (showCancelDialog) {
+        AlertDialog(
+            onDismissRequest = { showCancelDialog = false },
+            title = {
+                Text(
+                    text = "Annuler le quiz ?",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+            },
+            text = {
+                Text(
+                    text = "Votre progression sera sauvegardée. Voulez-vous vraiment quitter ce quiz ?",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showCancelDialog = false
+                        onCancelQuiz()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Annuler le quiz")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showCancelDialog = false }
+                ) {
+                    Text("Continuer le quiz")
+                }
+            }
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -47,13 +89,42 @@ fun QuizScreen(
             .screenPadding()  // Gère tous les paddings système (status bar, nav bar, clavier)
             .padding(16.dp)
     ) {
-        // Timer en haut (10min max)
-        TimerBar(
-            totalSeconds = 600,
-            currentSeconds = question.timeSpent,
-            modifier = Modifier.fillMaxWidth()
-        )
-        
+        // Barre supérieure avec timer et bouton annulation
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Timer en haut (10min max)
+            TimerBar(
+                totalSeconds = 600,
+                currentSeconds = question.timeSpent,
+                modifier = Modifier.weight(1f)
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Bouton d'annulation
+            OutlinedButton(
+                onClick = { showCancelDialog = true },
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                ),
+                modifier = Modifier.height(36.dp)
+            ) {
+                Icon(
+                    Icons.Filled.Close,
+                    contentDescription = "Annuler le quiz",
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "Annuler",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
         
         // Contenu question (WebView pour formules, images, HTML)

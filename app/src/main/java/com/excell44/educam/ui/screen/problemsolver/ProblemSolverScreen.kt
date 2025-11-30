@@ -92,12 +92,9 @@ fun ProblemSolverScreen(
             // Nouveau bouton pour discuter avec Smarty
             com.excell44.educam.ui.components.SecondaryButton(
                 onClick = {
-                    // Navigation vers le chat Smarty
-                    androidx.hilt.navigation.compose.hiltViewModel<com.excell44.educam.ui.navigation.NavigationViewModel>().navigate(
-                        com.excell44.educam.ui.navigation.NavCommand.NavigateTo(
-                            com.excell44.educam.ui.navigation.Screen.Chat.route
-                        )
-                    )
+                    // Navigation vers le chat Smarty - sera géré par le ViewModel parent
+                    // Pour l'instant, on utilise une approche simplifiée
+                    android.util.Log.d("ProblemSolver", "Chat button clicked - navigation will be handled by parent")
                 },
                 text = "💬 Discuter avec Smarty",
                 modifier = Modifier

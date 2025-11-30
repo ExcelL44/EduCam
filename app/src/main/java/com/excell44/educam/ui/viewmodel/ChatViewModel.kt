@@ -47,8 +47,8 @@ class ChatViewModel @Inject constructor(
                 val userId = authStateManager.getUserId()
                 if (userId != null) {
                     chatDao.getRecentMessages(userId, 50)
-                        .map { entities ->
-                            entities.map { entity ->
+                        .collect { entities ->
+                            val messages = entities.map { entity ->
                                 ChatMessage(
                                     id = entity.id,
                                     content = entity.message,
@@ -59,8 +59,6 @@ class ChatViewModel @Inject constructor(
                                     messageType = entity.messageType
                                 )
                             }
-                        }
-                        .collect { messages ->
                             _messages.value = messages
                             Logger.d(TAG, "Loaded ${messages.size} messages from history")
                         }

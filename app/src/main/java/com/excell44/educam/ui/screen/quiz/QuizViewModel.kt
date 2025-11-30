@@ -7,6 +7,7 @@ import com.excell44.educam.data.model.QuizMode
 import com.excell44.educam.data.model.QuizQuestion
 import com.excell44.educam.data.repository.QuizRepository
 import com.excell44.educam.util.AuthStateManager
+import com.excell44.educam.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -374,4 +375,61 @@ class QuizViewModel @Inject constructor(
     }
 
     fun getCurrentSessionId(): String? = currentSession?.id
+
+    /**
+     * Annule le quiz en cours et nettoie l'état.
+     * Persiste la session comme annulée avec les données partielles.
+     */
+    fun cancelQuiz() {
+        viewModelScope.launch {
+            try {
+                currentSession?.let { session ->
+                    val state = _uiState.value
+                    val wrapper = org.json.JSONObject()
+
+                    // Marquer comme annulé
+                    wrapper.put("cancelled", true)
+                    wrapper.put("cancelledAt", System.currentTimeMillis())
+                    wrapper.put("currentIndex", state.currentQuestionIndex)
+                    wrapper.put("score", state.score)
+                    wrapper.put("totalQuestions", state.totalQuestions)
+
+                    // Sauvegarder les réponses déjà données
+                    val arr = org.json.JSONArray()
+                    for (d in answerDetails) {
+                        val obj = org.json.JSONObject()
+                        obj.put("questionId", d.questionId)
+                        obj.put("selectedAnswer", d.selectedAnswer)
+                        obj.put("isCorrect", d.isCorrect)
+                        obj.put("timeRemaining", d.timeRemaining)
+                        arr.put(obj)
+                    }
+                    wrapper.put("answers", arr)
+
+                    // Mettre à jour la session comme annulée
+                    val updated = session.copy(
+                        detailsJson = wrapper.toString(),
+                        isCompleted = false,
+                        endTime = System.currentTimeMillis(),
+                        score = state.score
+                    )
+                    quizRepository.updateSession(updated)
+
+                    Logger.i("QuizViewModel", "Quiz cancelled - session ${session.id} saved with partial progress")
+                }
+            } catch (e: Exception) {
+                Logger.e("QuizViewModel", "Error cancelling quiz", e)
+            } finally {
+                // Nettoyer l'état du quiz
+                currentSession = null
+                answerDetails.clear()
+                _uiState.value = QuizUiState(
+                    selectedMode = _uiState.value.selectedMode,
+                    selectedSubject = _uiState.value.selectedSubject,
+                    availableSubjects = _uiState.value.availableSubjects
+                )
+                Logger.d("QuizViewModel", "Quiz state cleaned after cancellation")
+            }
+        }
+    }
 }

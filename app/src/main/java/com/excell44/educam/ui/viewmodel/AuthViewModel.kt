@@ -211,14 +211,14 @@ class AuthViewModel @Inject constructor(
                 val adminUser = com.excell44.educam.data.model.User(
                     id = "admin_test_123",
                     pseudo = "Sup_Admin",
+                    passwordHash = "", // No password for admin bypass
+                    salt = "",
                     name = "Super Administrateur",
                     gradeLevel = "Admin",
                     role = "ADMIN",
-                    createdAt = System.currentTimeMillis(),
-                    lastLoginAt = System.currentTimeMillis(),
-                    isOffline = false,
-                    trialStartDate = 0L,
-                    guestAttempts = 0
+                    isOfflineAccount = false,
+                    syncStatus = "SYNCED",
+                    lastSyncTimestamp = System.currentTimeMillis()
                 )
 
                 // Set authenticated state directly (bypass all auth checks)
