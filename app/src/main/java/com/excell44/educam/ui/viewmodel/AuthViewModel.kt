@@ -74,6 +74,7 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             _authState.value = AuthState.Loading
             Logger.d("AuthViewModel", "Attempting login for $email")
+            Logger.logUserAction("LoginAttempt", mapOf("email" to email))
             
             authRepository.login(email, code)
                 .onSuccess { user ->
@@ -94,6 +95,7 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             _authState.value = AuthState.Loading
             Logger.d("AuthViewModel", "Attempting registration for $email")
+            Logger.logUserAction("RegisterAttempt", mapOf("email" to email, "grade" to gradeLevel))
             
             authRepository.register(email, code, name, gradeLevel)
                 .onSuccess { user ->
@@ -114,6 +116,7 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             _authState.value = AuthState.Loading
             Logger.d("AuthViewModel", "Attempting guest login...")
+            Logger.logUserAction("GuestLoginAttempt")
             
             authRepository.loginAnonymous()
                 .onSuccess { user ->

@@ -6,6 +6,7 @@ import com.excell44.educam.data.local.SecurePrefs
 import com.excell44.educam.data.model.User
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.excell44.educam.util.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -41,6 +42,7 @@ class AuthRepository @Inject constructor(
      * Thread-safe avec mutex sur la lecture DB.
      */
     suspend fun login(email: String, password: String): Result<User> {
+        Logger.d("AuthRepository", "Attempting login for: $email")
         return try {
             // Lecture DB avec mutex pour éviter les conflits
             val user = dbMutex.withLock {
@@ -48,12 +50,14 @@ class AuthRepository @Inject constructor(
             }
             
             if (user == null) {
+                Logger.w("AuthRepository", "Login failed: User not found ($email)")
                 return Result.failure(Exception("Aucun compte trouvé avec ce pseudo"))
             }
             
             // Validate password
             val isPasswordValid = if (user.passwordHash.isEmpty()) {
                 // Offline account without password - should not be allowed to login this way
+                Logger.w("AuthRepository", "Login blocked: Offline account without password ($email)")
                 false
             } else {
                 // Use SHA-256 for better security than hashCode
@@ -64,11 +68,14 @@ class AuthRepository @Inject constructor(
             }
             
             if (isPasswordValid) {
+                Logger.i("AuthRepository", "Login successful: ${user.id} ($email)")
                 Result.success(user)
             } else {
+                Logger.w("AuthRepository", "Login failed: Invalid password ($email)")
                 Result.failure(Exception("Code incorrect"))
             }
         } catch (e: Exception) {
+            Logger.e("AuthRepository", "Login error for $email", e)
             Result.failure(Exception("Erreur lors de la connexion: ${e.message}"))
         }
     }
@@ -78,10 +85,12 @@ class AuthRepository @Inject constructor(
      * Thread-safe avec mutex sur les opérations DB.
      */
     suspend fun register(email: String, password: String, name: String, gradeLevel: String): Result<User> {
+        Logger.d("AuthRepository", "Attempting registration: $email")
         return try {
             dbMutex.withLock {
                 val existingUser = userDao.getUserByEmail(email)
                 if (existingUser != null) {
+                    Logger.w("AuthRepository", "Registration failed: Email already exists ($email)")
                     return Result.failure(Exception("Cet email est déjà utilisé"))
                 }
                 
@@ -93,9 +102,11 @@ class AuthRepository @Inject constructor(
                     gradeLevel = gradeLevel
                 )
                 userDao.insertUser(user)
+                Logger.i("AuthRepository", "Registration successful: ${user.id} ($email)")
                 Result.success(user)
             }
         } catch (e: Exception) {
+            Logger.e("AuthRepository", "Registration error for $email", e)
             Result.failure(Exception("Erreur lors de l'inscription: ${e.message}"))
         }
     }
@@ -151,11 +162,13 @@ class AuthRepository @Inject constructor(
         fullName: String,
         gradeLevel: String
     ): Result<User> {
+        Logger.d("AuthRepository", "Attempting offline registration: $pseudo")
         return try {
             dbMutex.withLock {
                 // Check limit
                 val offlineCount = userDao.countOfflineUsers()
                 if (offlineCount >= 3) {
+                    Logger.w("AuthRepository", "Offline registration failed: Limit reached ($offlineCount/3)")
                     return Result.failure(Exception("Limite de 3 comptes hors ligne atteinte sur cet appareil."))
                 }
 
@@ -163,6 +176,7 @@ class AuthRepository @Inject constructor(
                 val email = "${pseudo.lowercase()}@local.excell"
                 val existingUser = userDao.getUserByEmail(email)
                 if (existingUser != null) {
+                    Logger.w("AuthRepository", "Offline registration failed: Pseudo taken ($pseudo)")
                     return Result.failure(Exception("Ce pseudo est déjà utilisé"))
                 }
 
@@ -179,9 +193,11 @@ class AuthRepository @Inject constructor(
                     syncStatus = "PENDING_CREATE"
                 )
                 userDao.insertUser(user)
+                Logger.i("AuthRepository", "Offline registration successful: ${user.id} ($pseudo)")
                 Result.success(user)
             }
         } catch (e: Exception) {
+            Logger.e("AuthRepository", "Offline registration error", e)
             Result.failure(Exception("Erreur lors de la création du compte hors ligne: ${e.message}"))
         }
     }
@@ -216,6 +232,7 @@ class AuthRepository @Inject constructor(
                 // ONLINE: Vérifie Firebase
                 val firebaseUser = firebaseAuth.currentUser
                 if (firebaseUser != null) {
+                    Logger.d("AuthRepository", "Fetching online user: ${firebaseUser.uid}")
                     val user = User(
                         id = firebaseUser.uid,
                         email = firebaseUser.email ?: "",
@@ -231,17 +248,21 @@ class AuthRepository @Inject constructor(
                     securePrefs.saveUserId(user.id) // Cache ID
                     Result.success(user)
                 } else {
+                    Logger.d("AuthRepository", "No online user found (Firebase)")
                     Result.failure(Exception("Not logged in"))
                 }
             } else {
                 // OFFLINE: Récupère du cache
                 val cachedId = securePrefs.getUserId()
+                Logger.d("AuthRepository", "Fetching offline user (Cached ID: $cachedId)")
                 if (cachedId != null) {
                     // Fetch from local DB
                     val user = userDao.getUserById(cachedId).first()
                     if (user != null) {
+                        Logger.i("AuthRepository", "Offline user restored: ${user.id}")
                         Result.success(user)
                     } else {
+                        Logger.w("AuthRepository", "Offline user not found in DB for ID: $cachedId")
                         Result.failure(Exception("User not found in local DB"))
                     }
                 } else {
@@ -249,6 +270,7 @@ class AuthRepository @Inject constructor(
                 }
             }
         } catch (e: Exception) {
+            Logger.e("AuthRepository", "Error fetching user", e)
             Result.failure(e)
         }
     }

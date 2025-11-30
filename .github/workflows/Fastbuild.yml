@@ -83,7 +83,7 @@ jobs:
       - name: 🔢 Generate Version
         id: version
         run: |
-          VERSION_NAME=$(grep "versionName" app/build.gradle.kts | awk '{print $3}' | tr -d '"')
+          VERSION_NAME=$(grep "versionName" app/build.gradle.kts | sed -E 's/.*versionName[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/')
           BUILD_NUMBER=${{ github.run_number }}
           COMMIT_SHORT=$(git rev-parse --short HEAD)
           VERSION_CODE=$((1000 + BUILD_NUMBER))
@@ -116,7 +116,6 @@ jobs:
           # Compilation + Tests unitaires (pas de build APK encore)
           ./gradlew compileDebugKotlin compileDebugJavaWithJavac testDebugUnitTest \
             --no-daemon \
-            --stacktrace \
             --warning-mode all \
             2>&1 | tee compile-output.log
           
@@ -144,6 +143,13 @@ jobs:
           if [ "$ERROR_COUNT" -gt 0 ]; then
             FIRST_ERROR=$(grep -m 1 -A 2 "e: file:///" compile-output.log | sed 's/e: file:.*\/app\/src\/main\/java\///')
             echo "first_error<<EOF" >> $GITHUB_OUTPUT
+            echo "$FIRST_ERROR" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          elif [ "$EXIT_CODE" -ne 0 ]; then
+            # Fallback for non-compilation errors (e.g. configuration issues)
+            FIRST_ERROR=$(tail -n 10 compile-output.log)
+            echo "first_error<<EOF" >> $GITHUB_OUTPUT
+            echo "⚠️ Build Failed (See logs for details):" >> $GITHUB_OUTPUT
             echo "$FIRST_ERROR" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
           fi
@@ -281,20 +287,56 @@ jobs:
           chmod +x gradlew
           sed -i 's/\r$//' gradlew
 
+      - name: 🔨 Build APK (Debug)
+        id: build_apk
+        run: |
+          echo "════════════════════════════════════════════════════════════"
+          echo "🔨 Phase 2: Building Debug APK"
+          echo "════════════════════════════════════════════════════════════"
+          
+          ./gradlew assembleDebug --no-daemon
+          
+          APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
+          if [ -f "$APK_PATH" ]; then
+            APK_SIZE=$(du -h "$APK_PATH" | cut -f1)
+            echo "apk_size=$APK_SIZE" >> $GITHUB_OUTPUT
+            echo "✅ APK Built Successfully ($APK_SIZE)"
+          else
+            echo "❌ APK Build Failed - File not found"
+            exit 1
+          fi
+
+      - name: 📤 Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-apk-${{ github.run_number }}
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 1
+
+    outputs:
+      apk_size: ${{ steps.build_apk.outputs.apk_size }}
+      first_error: "" # Placeholder as we don't parse build logs deeply here yet
+
+  # ═══════════════════════════════════════════════════════════════════════
+  #  PHASE 3 : PACKAGING & REPORT
+  # ═══════════════════════════════════════════════════════════════════════
+  package-and-report:
+    name: 📦 Phase 3 - Packaging & Report
     runs-on: ubuntu-latest
     needs: [compile-and-test, build-and-smoke-test]
-    if: always()
-
+    # Removed if: always() to ensure strict sequential execution (Fail-Fast)
+    
     steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
       - name: 📦 Download APK
-        if: needs.build-and-smoke-test.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: debug-apk-${{ github.run_number }}
           path: apk/
 
       - name: 🏷️ Package & Label APK
-        if: needs.build-and-smoke-test.result == 'success'
         run: |
           echo "════════════════════════════════════════════════════════════"
           echo "📦 Phase 3: Packaging APK"
@@ -302,7 +344,18 @@ jobs:
           
           cd apk/
           APK_NAME="Bac-X_237-${{ needs.compile-and-test.outputs.version }}.apk"
-          mv app-debug.apk "$APK_NAME"
+          
+          # Robustly find the APK file (handles potential directory nesting from upload-artifact)
+          FOUND_APK=$(find . -name "*.apk" -type f | head -n 1)
+          
+          if [ -n "$FOUND_APK" ]; then
+            echo "Found APK at: $FOUND_APK"
+            mv "$FOUND_APK" "$APK_NAME"
+          else
+            echo "❌ Error: No APK file found in artifact!"
+            ls -R
+            exit 1
+          fi
           
           cat > BUILD-INFO.txt << EOF
           📱 Bac-X_237 Android Build
@@ -326,7 +379,6 @@ jobs:
           cat BUILD-INFO.txt
 
       - name: 📤 Upload Final Packaged APK
-        if: needs.compile-and-test.result == 'success' && needs.build-and-smoke-test.result == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: Bac-X_237-APK-${{ needs.compile-and-test.outputs.version }}
@@ -352,19 +404,11 @@ jobs:
           echo "📝 Commit: ${{ github.sha }}"
           echo "👤 Author: ${{ github.actor }}"
           echo ""
-          
-          if [[ "${{ needs.compile-and-test.result }}" == "success" && "${{ needs.build-and-smoke-test.result }}" == "success" ]]; then
-            echo "✅ ALL PHASES SUCCESSFUL - APK READY FOR DEPLOYMENT"
-          elif [[ "${{ needs.compile-and-test.result }}" == "failure" ]]; then
-            echo "❌ FAILED AT PHASE 1 - Check compilation-errors.md"
-          elif [[ "${{ needs.build-and-smoke-test.result }}" == "failure" ]]; then
-            echo "❌ FAILED AT PHASE 2 - Check build-apk.log or runtime-errors.txt"
-          fi
-          
+          echo "✅ ALL PHASES SUCCESSFUL - APK READY FOR DEPLOYMENT"
           echo "════════════════════════════════════════════════════════════"
 
       - name: 💬 PR Comment (Success)
-        if: github.event_name == 'pull_request' && needs.compile-and-test.result == 'success' && needs.build-and-smoke-test.result == 'success'
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
@@ -382,46 +426,4 @@ jobs:
               **Phase 3:** 📦 Packages & Report - ✅ COMPLETED
               
               [📥 Download APK](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`
-            });
-
-      - name: 💬 PR Comment (Failure)
-        if: github.event_name == 'pull_request' && (needs.compile-and-test.result == 'failure' || needs.build-and-smoke-test.result == 'failure')
-        uses: actions/github-script@v7
-        with:
-          script: |
-            let failedPhase = '';
-            let artifact = '';
-            
-            if ('${{ needs.compile-and-test.result }}' === 'failure') {
-              failedPhase = 'Phase 1 (Compiling & Unit Tests)';
-              artifact = 'compilation-errors.md';
-              
-              const firstError = `${{ needs.compile-and-test.outputs.first_error }}`.replace(/\n/g, '<br>');
-              if (firstError) {
-                extraInfo = `\n\n### 🔴 Priority Error (Phase 1)\n<pre>${firstError}</pre>`;
-              }
-            } else {
-              failedPhase = 'Phase 2 (Building APK & Smoke Test)';
-              artifact = 'build-apk.log or runtime-errors.txt';
-              
-              const firstError = `${{ needs.build-and-smoke-test.outputs.first_error }}`.replace(/\n/g, '<br>');
-              if (firstError) {
-                extraInfo = `\n\n### 🔴 Priority Error (Phase 2)\n<pre>${firstError}</pre>`;
-              }
-            }
-            
-            await github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `## ❌ Build Failed - #${{ github.run_number }}
-              
-              **Failed at:** ${failedPhase}
-              
-              **Phase 1:** Compiling & Unit Tests - ${{ needs.compile-and-test.result }}
-              **Phase 2:** Building APK & Smoke Test - ${{ needs.build-and-smoke-test.result }}${extraInfo}
-              
-              📁 **Error Report:** Check \`${artifact}\` in artifacts
-              
-              [📁 View All Logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`
             });
