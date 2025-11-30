@@ -53,6 +53,14 @@ android {
     }
 }
 
+// Force correct coroutines version to resolve dependency conflicts
+configurations.all {
+    resolutionStrategy {
+        force("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+        force("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    }
+}
+
 dependencies {
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(libs.androidx.compose.ui.tooling.preview)
