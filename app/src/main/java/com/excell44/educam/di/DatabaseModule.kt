@@ -26,7 +26,10 @@ object DatabaseModule {
             AppDatabase::class.java,
             "quiz_database"
         )
-        .addMigrations(AppDatabase.MIGRATION_1_2) // Add migration for new field
+        .addMigrations(
+            AppDatabase.MIGRATION_1_2,
+            AppDatabase.MIGRATION_2_3
+        ) // Add migrations for new fields
         .build()
     
     @Provides

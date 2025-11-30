@@ -36,7 +36,7 @@ import com.excell44.educam.data.model.ProblemSolution
         User::class,
         ProblemSolution::class
     ],
-    version = 2, // Incremented for new field
+    version = 3, // Incremented for localId field
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -60,6 +60,27 @@ abstract class AppDatabase : RoomDatabase() {
                 // Add lastSyncTimestamp column with default value 0
                 database.execSQL(
                     "ALTER TABLE users ADD COLUMN lastSyncTimestamp INTEGER NOT NULL DEFAULT 0"
+                )
+            }
+        }
+        
+        /**
+         * Migration from version 2 to 3: Adds localId field for multi-device conflict resolution.
+         */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Add localId column with unique UUID for each existing user
+                database.execSQL(
+                    "ALTER TABLE users ADD COLUMN localId TEXT NOT NULL DEFAULT ''"
+                )
+                // Update existing users with unique localIds
+                database.execSQL(
+                    """
+                    UPDATE users SET localId = (
+                        SELECT lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-' || 
+                               hex(randomblob(2)) || '-' || hex(randomblob(2)) || '-' || hex(randomblob(6)))
+                    )
+                    """
                 )
             }
         }

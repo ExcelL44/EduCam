@@ -51,9 +51,16 @@ class UserSyncWorker @AssistedInject constructor(
             
             for (user in pendingUsers) {
                 try {
+                    // Use localId for temp tracking, id for Firebase UID
+                    val firebaseDocId = if (user.id.isNotEmpty() && user.id != user.localId) {
+                        user.id // Already has Firebase UID
+                    } else {
+                        user.localId // Use local UUID as temp Firebase doc ID
+                    }
+                    
                     // Upload user metadata to Firestore (no private data)
                     val userMetadata = hashMapOf(
-                        "id" to user.id,
+                        "localId" to user.localId,
                         "email" to user.email,
                         "name" to user.name,
                         "gradeLevel" to user.gradeLevel,
@@ -62,13 +69,15 @@ class UserSyncWorker @AssistedInject constructor(
                         "syncedAt" to System.currentTimeMillis()
                     )
                     
+                    // UPSERT with merge: If exists, update; if not, create
                     firestore.collection("users")
-                        .document(user.id)
-                        .set(userMetadata)
+                        .document(firebaseDocId)
+                        .set(userMetadata, com.google.firebase.firestore.SetOptions.merge())
                         .await()
                     
                     // Update local user to ACTIVE and SYNCED
                     val updatedUser = user.copy(
+                        id = firebaseDocId, // Update Firebase UID
                         role = "ACTIVE",
                         syncStatus = "SYNCED",
                         lastSyncTimestamp = System.currentTimeMillis(),
@@ -76,9 +85,26 @@ class UserSyncWorker @AssistedInject constructor(
                     )
                     userDao.insertUser(updatedUser)
                     
-                    Logger.i("UserSyncWorker", "Synced user: ${user.email} (${user.id})")
+                    Logger.i("UserSyncWorker", "Synced user: ${user.email} (${firebaseDocId})")
                     syncedCount++
                     
+                } catch (e: com.google.firebase.firestore.FirebaseFirestoreException) {
+                    when (e.code) {
+                        com.google.firebase.firestore.FirebaseFirestoreException.Code.UNAVAILABLE -> {
+                            // Network temporarily unavailable - retry later
+                            Logger.w("UserSyncWorker", "Network unavailable for ${user.email}, will retry")
+                            failedCount++
+                        }
+                        com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED -> {
+                            // Permissions issue - log but don't retry
+                            Logger.e("UserSyncWorker", "Permission denied for ${user.email}", e)
+                            failedCount++
+                        }
+                        else -> {
+                            Logger.e("UserSyncWorker", "Failed to sync user ${user.email}", e)
+                            failedCount++
+                        }
+                    }
                 } catch (e: Exception) {
                     Logger.e("UserSyncWorker", "Failed to sync user ${user.email}", e)
                     failedCount++

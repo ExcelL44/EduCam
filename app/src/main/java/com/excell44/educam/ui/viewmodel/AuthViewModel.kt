@@ -23,19 +23,29 @@ class AuthViewModel @Inject constructor(
     private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
     
+    // Connection state for graceful offline degradation
+    private val _connectionState = MutableStateFlow<com.excell44.educam.domain.model.ConnectionState>(
+        com.excell44.educam.domain.model.ConnectionState.Offline
+    )
+    val connectionState: StateFlow<com.excell44.educam.domain.model.ConnectionState> = _connectionState.asStateFlow()
+    
     init {
-        // Observe network changes to trigger sync or update state
+        // Observe network changes to update connection state
         viewModelScope.launch {
             networkObserver.networkStatus.collect { isOnline ->
                 Logger.d("AuthViewModel", "Network status changed: Online=$isOnline")
-                // If we are authenticated, we might want to update the offline flag
+                
+                // Update connection state
+                _connectionState.value = if (isOnline) {
+                    com.excell44.educam.domain.model.ConnectionState.Online
+                } else {
+                    com.excell44.educam.domain.model.ConnectionState.Offline
+                }
+                
+                // If we are authenticated, update the offline flag
                 val currentState = _authState.value
                 if (currentState is AuthState.Authenticated) {
                     _authState.value = currentState.copy(isOffline = !isOnline)
-                }
-                // Potentially trigger sync if coming online
-                if (isOnline) {
-                    // TODO: Trigger sync if needed
                 }
             }
         }
@@ -47,13 +57,20 @@ class AuthViewModel @Inject constructor(
             Logger.d("AuthViewModel", "Initializing auth state...")
             
             // Clean up expired offline accounts (>24h, unsynced)
-            try {
-                val cleanedCount = authRepository.cleanExpiredOfflineAccounts()
-                if (cleanedCount > 0) {
-                    Logger.i("AuthViewModel", "Startup cleanup: removed $cleanedCount expired account(s)")
+            // ⚠️ HYGIÈNE ONLY: Real enforcement is server-side
+            // If cleanup fails, DON'T block app startup
+            launch {
+                try {
+                    val cleanedCount = authRepository.cleanExpiredOfflineAccounts()
+                    if (cleanedCount > 0) {
+                        Logger.i("AuthViewModel", "Startup cleanup: removed $cleanedCount expired account(s)")
+                    }
+                } catch (e: Exception) {
+                    // SURVIE: Log but continue app startup
+                    Logger.e("AuthViewModel", "Cleanup failed (non-critical)", e)
+                    com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance()
+                        .log("Cleanup error: ${e.message}")
                 }
-            } catch (e: Exception) {
-                Logger.e("AuthViewModel", "Error during startup cleanup", e)
             }
             
             try {

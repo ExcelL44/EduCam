@@ -6,7 +6,8 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "users")
 data class User(
     @PrimaryKey
-    val id: String,
+    val id: String, // Firebase UID (empty for offline, filled after sync)
+    val localId: String = java.util.UUID.randomUUID().toString(), // Local UUID (NEVER conflicts)
     val email: String,
     val passwordHash: String, // En production, utiliser un hash sécurisé
     val name: String,
@@ -44,6 +45,7 @@ data class User(
     
     /**
      * Check if account needs cleanup (24h expired and not synced).
+     * ⚠️ Client-side hygiene only - real enforcement is server-side.
      */
     fun needsCleanup(): Boolean {
         if (role == "ACTIVE" || syncStatus == "SYNCED") return false
@@ -53,3 +55,4 @@ data class User(
         return age > twentyFourHours && syncStatus != "SYNCED"
     }
 }
+
