@@ -2,6 +2,7 @@
 
 package com.excell44.educam.ui.screen.subjects
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,6 +22,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.excell44.educam.ui.components.PrimaryButton
 
 // --- Data Models ---
@@ -73,44 +75,37 @@ enum class NavigationLevel {
 
 @Composable
 fun SubjectsScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    viewModel: SubjectsNavigationViewModel = hiltViewModel()
 ) {
-    var currentLevel by remember { mutableStateOf(NavigationLevel.SUBJECTS) }
-    var selectedSubject by remember { mutableStateOf<SubjectType?>(null) }
-    var selectedCategory by remember { mutableStateOf<CategoryType?>(null) }
-    var selectedItem by remember { mutableStateOf<BankItem?>(null) }
+    val navigationState by viewModel.navigationState.collectAsState()
+
+    // Handle system back button
+    BackHandler {
+        if (!viewModel.navigateBack()) {
+            onNavigateBack()
+        }
+    }
 
     // Handle back navigation internally first
     val handleBack = {
-        when (currentLevel) {
-            NavigationLevel.SUBJECTS -> onNavigateBack()
-            NavigationLevel.CATEGORIES -> {
-                selectedSubject = null
-                currentLevel = NavigationLevel.SUBJECTS
-            }
-            NavigationLevel.ITEMS -> {
-                selectedCategory = null
-                currentLevel = NavigationLevel.CATEGORIES
-            }
-            NavigationLevel.DOCUMENTS -> {
-                selectedItem = null
-                currentLevel = NavigationLevel.ITEMS
-            }
+        if (!viewModel.navigateBack()) {
+            onNavigateBack()
         }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { 
+                title = {
                     Text(
-                        text = when (currentLevel) {
+                        text = when (navigationState.level) {
                             NavigationLevel.SUBJECTS -> "Banque de Sujets"
-                            NavigationLevel.CATEGORIES -> selectedSubject?.label ?: "Matière"
-                            NavigationLevel.ITEMS -> selectedCategory?.label ?: "Catégorie"
-                            NavigationLevel.DOCUMENTS -> selectedItem?.label ?: "Documents"
+                            NavigationLevel.CATEGORIES -> navigationState.selectedSubject?.label ?: "Matière"
+                            NavigationLevel.ITEMS -> navigationState.selectedCategory?.label ?: "Catégorie"
+                            NavigationLevel.DOCUMENTS -> navigationState.selectedItem?.label ?: "Documents"
                         }
-                    ) 
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = handleBack) {
@@ -127,8 +122,8 @@ fun SubjectsScreen(
                 .padding(16.dp)
         ) {
             val isWideScreen = maxWidth > 600.dp
-            
-            when (currentLevel) {
+
+            when (navigationState.level) {
                 NavigationLevel.SUBJECTS -> {
                     if (isWideScreen) {
                         LazyVerticalGrid(
@@ -141,8 +136,7 @@ fun SubjectsScreen(
                                     title = subject.label,
                                     icon = subject.icon,
                                     onClick = {
-                                        selectedSubject = subject
-                                        currentLevel = NavigationLevel.CATEGORIES
+                                        viewModel.navigateToCategories(subject)
                                     }
                                 )
                             }
@@ -154,8 +148,7 @@ fun SubjectsScreen(
                                     title = subject.label,
                                     icon = subject.icon,
                                     onClick = {
-                                        selectedSubject = subject
-                                        currentLevel = NavigationLevel.CATEGORIES
+                                        viewModel.navigateToCategories(subject)
                                     }
                                 )
                             }
@@ -166,11 +159,11 @@ fun SubjectsScreen(
                 NavigationLevel.CATEGORIES -> {
                     Column {
                         Text(
-                            text = "Choisissez une catégorie pour ${selectedSubject?.label}",
+                            text = "Choisissez une catégorie pour ${navigationState.selectedSubject?.label}",
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
-                        
+
                         if (isWideScreen) {
                             LazyVerticalGrid(
                                 columns = GridCells.Fixed(2),
@@ -182,8 +175,7 @@ fun SubjectsScreen(
                                         title = category.label,
                                         icon = category.icon,
                                         onClick = {
-                                            selectedCategory = category
-                                            currentLevel = NavigationLevel.ITEMS
+                                            viewModel.navigateToItems(category)
                                         }
                                     )
                                 }
@@ -195,8 +187,7 @@ fun SubjectsScreen(
                                         title = category.label,
                                         icon = category.icon,
                                         onClick = {
-                                            selectedCategory = category
-                                            currentLevel = NavigationLevel.ITEMS
+                                            viewModel.navigateToItems(category)
                                         }
                                     )
                                 }
@@ -208,36 +199,34 @@ fun SubjectsScreen(
                 NavigationLevel.ITEMS -> {
                     Column {
                         Text(
-                            text = "${selectedCategory?.label} - ${selectedSubject?.label}",
+                            text = "${navigationState.selectedCategory?.label} - ${navigationState.selectedSubject?.label}",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
-                        
+
                         if (isWideScreen) {
                             LazyVerticalGrid(
                                 columns = GridCells.Fixed(3), // More dense for years/items
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                items(getItemsForCategory(selectedCategory!!)) { item ->
+                                items(viewModel.getCurrentItems()) { item ->
                                     ItemCard(
                                         item = item,
                                         onClick = {
-                                            selectedItem = item
-                                            currentLevel = NavigationLevel.DOCUMENTS
+                                            viewModel.navigateToDocuments(item)
                                         }
                                     )
                                 }
                             }
                         } else {
                             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                items(getItemsForCategory(selectedCategory!!)) { item ->
+                                items(viewModel.getCurrentItems()) { item ->
                                     ItemCard(
                                         item = item,
                                         onClick = {
-                                            selectedItem = item
-                                            currentLevel = NavigationLevel.DOCUMENTS
+                                            viewModel.navigateToDocuments(item)
                                         }
                                     )
                                 }
@@ -252,11 +241,11 @@ fun SubjectsScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = selectedItem?.label ?: "",
+                            text = navigationState.selectedItem?.label ?: "",
                             style = MaterialTheme.typography.headlineSmall,
                             modifier = Modifier.padding(bottom = 24.dp)
                         )
-                        
+
                         // Document Placeholders
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -267,16 +256,16 @@ fun SubjectsScreen(
                                 title = "📄 Sujet",
                                 modifier = Modifier.weight(1f)
                             )
-                            
+
                             // Corrigé PDF
                             DocumentPlaceholder(
                                 title = "📝 Corrigé",
                                 modifier = Modifier.weight(1f)
                             )
                         }
-                        
+
                         Spacer(modifier = Modifier.height(32.dp))
-                        
+
                         Text(
                             text = "Les fichiers seront disponibles au téléchargement prochainement.",
                             style = MaterialTheme.typography.bodySmall,

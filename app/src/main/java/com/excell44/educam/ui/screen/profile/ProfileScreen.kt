@@ -34,7 +34,6 @@ import androidx.compose.material.icons.filled.Check
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-@Composable
 fun ProfileScreen(
     onNavigateToBilan: () -> Unit,
     onNavigateBack: () -> Unit,
