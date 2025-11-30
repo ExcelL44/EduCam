@@ -45,6 +45,17 @@ class AuthViewModel @Inject constructor(
     private fun initialize() {
         viewModelScope.launch(Dispatchers.IO) {
             Logger.d("AuthViewModel", "Initializing auth state...")
+            
+            // Clean up expired offline accounts (>24h, unsynced)
+            try {
+                val cleanedCount = authRepository.cleanExpiredOfflineAccounts()
+                if (cleanedCount > 0) {
+                    Logger.i("AuthViewModel", "Startup cleanup: removed $cleanedCount expired account(s)")
+                }
+            } catch (e: Exception) {
+                Logger.e("AuthViewModel", "Error during startup cleanup", e)
+            }
+            
             try {
                 val result = authRepository.getUser()
                 result.onSuccess { user ->
@@ -106,6 +117,31 @@ class AuthViewModel @Inject constructor(
                     Logger.w("AuthViewModel", "Registration failed: ${e.message}")
                     _authState.value = AuthState.Error(
                         message = e.message ?: "Échec d'inscription",
+                        canRetry = true
+                    )
+                }
+        }
+    }
+
+    /**
+     * Register user offline (24h trial, PASSIVE role).
+     * Used when payment succeeds but device is offline.
+     */
+    fun registerOffline(pseudo: String, code: String, name: String, gradeLevel: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _authState.value = AuthState.Loading
+            Logger.d("AuthViewModel", "Attempting offline registration for $pseudo")
+            Logger.logUserAction("RegisterOfflineAttempt", mapOf("pseudo" to pseudo, "grade" to gradeLevel))
+            
+            authRepository.registerOffline(pseudo, code, name, gradeLevel)
+                .onSuccess { user ->
+                    Logger.i("AuthViewModel", "Offline registration success: ${user.id}")
+                    _authState.value = AuthState.Authenticated(user, isOffline = true)
+                }
+                .onFailure { e ->
+                    Logger.w("AuthViewModel", "Offline registration failed: ${e.message}")
+                    _authState.value = AuthState.Error(
+                        message = e.message ?: "Échec d'inscription hors ligne",
                         canRetry = true
                     )
                 }

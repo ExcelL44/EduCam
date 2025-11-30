@@ -36,7 +36,8 @@ env:
   #  PHASE 1 : RÉCUPÉRATION APK DE FASTBUILD
   #  On utilise l'APK fraîchement généré par Fastbuild, pas un rebuild
   # ═══════════════════════════════════════════════════════════════════════
-  download-fresh-apk:
+  # ═══════════════════════════════════════════════════════════════════════
+  prepare-apk:
     name: 📦 Phase 1 - Download Fresh APK from Fastbuild
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -58,8 +59,10 @@ env:
       - name: 📦 Download Test APK
         uses: actions/download-artifact@v4
         with:
-          name: test-target-apk-${{ github.run_number }}
+          name: Bac-X_237-Debug
           path: .
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -80,7 +83,7 @@ env:
             esac
             
             echo "📱 Installing APK (${{ needs.prepare-apk.outputs.apk_type }})..."
-            adb install -r test-target.apk
+            adb install -r app-debug.apk
             
             echo "⚡ Measuring Cold Start..."
             adb shell am start -W -S com.excell44.educam/com.excell44.educam.MainActivity | tee cold-start.log

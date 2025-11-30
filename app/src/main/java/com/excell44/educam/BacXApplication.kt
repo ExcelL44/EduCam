@@ -10,6 +10,8 @@ import com.google.firebase.ktx.Firebase
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.firestore.ktx.firestoreSettings
 import com.google.firebase.crashlytics.ktx.crashlytics
+import com.excell44.educam.data.worker.SyncManager
+import javax.inject.Inject
 
 /**
  * ✅ APPLICATION AVEC MONITORING FAIL-SAFE
@@ -22,6 +24,9 @@ import com.google.firebase.crashlytics.ktx.crashlytics
  */
 @HiltAndroidApp
 class BacXApplication : Application() {
+    
+    @Inject
+    lateinit var syncManager: SyncManager
     
     companion object {
         private const val TAG = "BacXApplication"
@@ -39,6 +44,14 @@ class BacXApplication : Application() {
         // ✅ Enable StrictMode in DEBUG builds only
         if (BuildConfig.DEBUG) {
             enableStrictMode()
+        }
+        
+        // ✅ Schedule periodic user sync
+        try {
+            syncManager.scheduleSyncWorker()
+            Log.i(TAG, "✅ User sync worker scheduled")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to schedule sync worker: ${e.message}")
         }
         
         Log.i(TAG, "✅ Bac-X_237 Application initialized (version: ${BuildConfig.VERSION_NAME})")

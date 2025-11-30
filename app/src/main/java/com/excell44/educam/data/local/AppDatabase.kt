@@ -3,6 +3,8 @@ package com.excell44.educam.data.local
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.excell44.educam.data.local.dao.AnswerDao
 import com.excell44.educam.data.local.dao.QuestionDao
 import com.excell44.educam.data.local.dao.QuizDao
@@ -34,7 +36,7 @@ import com.excell44.educam.data.model.ProblemSolution
         User::class,
         ProblemSolution::class
     ],
-    version = 1,
+    version = 2, // Incremented for new field
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -48,4 +50,18 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun quizSessionDao(): QuizSessionDao
     abstract fun userDao(): UserDao
     abstract fun problemSolutionDao(): ProblemSolutionDao
+    
+    companion object {
+        /**
+         * Migration from version 1 to 2: Adds lastSyncTimestamp field to users table.
+         */
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Add lastSyncTimestamp column with default value 0
+                database.execSQL(
+                    "ALTER TABLE users ADD COLUMN lastSyncTimestamp INTEGER NOT NULL DEFAULT 0"
+                )
+            }
+        }
+    }
 }

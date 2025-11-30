@@ -23,5 +23,11 @@ interface UserDao {
 
     @Query("SELECT COUNT(*) FROM users WHERE isOfflineAccount = 1")
     suspend fun countOfflineUsers(): Int
+    
+    @Query("DELETE FROM users WHERE syncStatus != 'SYNCED' AND createdAt < :expiryTimestamp")
+    suspend fun deleteExpiredUnsyncedUsers(expiryTimestamp: Long): Int
+    
+    @Query("SELECT * FROM users WHERE syncStatus != 'SYNCED' AND createdAt < :expiryTimestamp")
+    suspend fun getExpiredUnsyncedUsers(expiryTimestamp: Long): List<User>
 }
 

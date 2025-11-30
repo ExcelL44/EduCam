@@ -102,7 +102,7 @@ jobs:
       # ═══════════════════════════════════════════════════════════════════
       #  COMPILATION & TESTS UNITAIRES
       # ═══════════════════════════════════════════════════════════════════
-      - name: ⚙️ Compile & Run Unit Tests
+      - name: 🔨 Compile & Run Unit Tests
         id: compile
         run: |
           set -o pipefail
@@ -130,8 +130,8 @@ jobs:
           echo "Duration: ${DURATION}s"
           echo "Exit Code: ${EXIT_CODE}"
           
-          ERROR_COUNT=$(grep -c "error:" compile-output.log || echo "0")
-          WARNING_COUNT=$(grep -c "warning:" compile-output.log || echo "0")
+          ERROR_COUNT=$(grep -c "error:" compile-output.log || true)
+          WARNING_COUNT=$(grep -c "warning:" compile-output.log || true)
           
           echo "duration_sec=${DURATION}" >> $GITHUB_OUTPUT
           echo "exit_code=${EXIT_CODE}" >> $GITHUB_OUTPUT
@@ -309,7 +309,7 @@ jobs:
       - name: 📤 Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: debug-apk-${{ github.run_number }}
+          name: Bac-X_237-Debug
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 1
 
@@ -333,7 +333,7 @@ jobs:
       - name: 📦 Download APK
         uses: actions/download-artifact@v4
         with:
-          name: debug-apk-${{ github.run_number }}
+          name: Bac-X_237-Debug
           path: apk/
 
       - name: 🏷️ Package & Label APK

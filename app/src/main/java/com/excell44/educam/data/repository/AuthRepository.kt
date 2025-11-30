@@ -94,15 +94,19 @@ class AuthRepository @Inject constructor(
                     return Result.failure(Exception("Cet email est déjà utilisé"))
                 }
                 
+                // Online registration creates ACTIVE user (paid, synced)
                 val user = User(
                     id = UUID.randomUUID().toString(),
                     email = email,
                     passwordHash = java.security.MessageDigest.getInstance("SHA-256").digest(password.toByteArray()).joinToString("") { "%02x".format(it) },
                     name = name,
-                    gradeLevel = gradeLevel
+                    gradeLevel = gradeLevel,
+                    role = "ACTIVE", // Online paid registration
+                    syncStatus = "SYNCED", // Already online
+                    isOfflineAccount = false
                 )
                 userDao.insertUser(user)
-                Logger.i("AuthRepository", "Registration successful: ${user.id} ($email)")
+                Logger.i("AuthRepository", "Registration successful: ${user.id} ($email) - ACTIVE")
                 Result.success(user)
             }
         } catch (e: Exception) {
@@ -180,8 +184,8 @@ class AuthRepository @Inject constructor(
                     return Result.failure(Exception("Ce pseudo est déjà utilisé"))
                 }
 
-                // Create offline user with 7-day trial and password
-                val trialDuration = 7L * 24 * 60 * 60 * 1000 // 7 days in millis
+                // Create offline user with 24-hour trial (PASSIVE role)
+                val trialDuration = 24L * 60 * 60 * 1000 // 24 hours in millis
                 val user = User(
                     id = UUID.randomUUID().toString(),
                     email = email,
@@ -190,10 +194,11 @@ class AuthRepository @Inject constructor(
                     gradeLevel = gradeLevel,
                     isOfflineAccount = true,
                     trialExpiresAt = System.currentTimeMillis() + trialDuration,
-                    syncStatus = "PENDING_CREATE"
+                    syncStatus = "PENDING_CREATE",
+                    role = "PASSIVE" // Trial account, needs sync to become ACTIVE
                 )
                 userDao.insertUser(user)
-                Logger.i("AuthRepository", "Offline registration successful: ${user.id} ($pseudo)")
+                Logger.i("AuthRepository", "Offline registration successful: ${user.id} ($pseudo) - 24h trial")
                 Result.success(user)
             }
         } catch (e: Exception) {
@@ -325,5 +330,38 @@ class AuthRepository @Inject constructor(
         }
         
         awaitClose { listener.remove() }
+    }
+
+    /**
+     * Clean up expired offline accounts (>24h old, not synced).
+     * Called on app startup to enforce 24h offline trial limit.
+     */
+    suspend fun cleanExpiredOfflineAccounts(): Int {
+        return try {
+            val now = System.currentTimeMillis()
+            val twentyFourHoursAgo = now - (24L * 60 * 60 * 1000)
+            
+            // Get list of expired accounts for logging
+            val expiredUsers = userDao.getExpiredUnsyncedUsers(twentyFourHoursAgo)
+            
+            if (expiredUsers.isNotEmpty()) {
+                Logger.w("AuthRepository", "Cleaning ${expiredUsers.size} expired offline account(s)")
+                expiredUsers.forEach { user ->
+                    Logger.d("AuthRepository", "Deleting expired account: ${user.email} (created: ${user.createdAt})")
+                }
+            }
+            
+            // Delete expired unsynced accounts
+            val deletedCount = userDao.deleteExpiredUnsyncedUsers(twentyFourHoursAgo)
+            
+            if (deletedCount > 0) {
+                Logger.i("AuthRepository", "Cleaned up $deletedCount expired offline account(s)")
+            }
+            
+            deletedCount
+        } catch (e: Exception) {
+            Logger.e("AuthRepository", "Error cleaning expired accounts", e)
+            0
+        }
     }
 }

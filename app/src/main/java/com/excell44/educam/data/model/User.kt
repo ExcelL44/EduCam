@@ -15,22 +15,41 @@ data class User(
     val isOfflineAccount: Boolean = false,
     val trialExpiresAt: Long? = null, // Null si pas d'essai ou illimité
     val syncStatus: String = "SYNCED", // SYNCED, PENDING_CREATE, PENDING_UPDATE
-    val role: String = "USER" // USER, ADMIN, BETA, ACTIVE
+    val role: String = "PASSIVE", // ACTIVE (paid/synced), PASSIVE (trial/unsynced), ADMIN
+    val lastSyncTimestamp: Long = 0L // Track when user was last synced to server
 ) {
+    /**
+     * Get the current user mode based on role and sync status.
+     * - ACTIVE: Fully registered, synced account (online or cached)
+     * - PASSIVE: Trial/unsynced account (24h limit)
+     * - ADMIN: Admin account with special privileges
+     */
     fun getUserMode(): UserMode {
         return when {
             role == "ADMIN" -> UserMode.ADMIN
-            role == "BETA" -> UserMode.BETA_T
             role == "ACTIVE" -> UserMode.ACTIVE
-            isOfflineAccount -> {
+            role == "PASSIVE" -> {
+                // Check if 24h trial has expired
                 val now = System.currentTimeMillis()
                 if (trialExpiresAt != null && now < trialExpiresAt) {
                     UserMode.TRIAL
                 } else {
+                    // Trial expired - need sync or payment
                     UserMode.GUEST
                 }
             }
-            else -> UserMode.ACTIVE // Default for online users
+            else -> UserMode.GUEST
         }
+    }
+    
+    /**
+     * Check if account needs cleanup (24h expired and not synced).
+     */
+    fun needsCleanup(): Boolean {
+        if (role == "ACTIVE" || syncStatus == "SYNCED") return false
+        val now = System.currentTimeMillis()
+        val age = now - createdAt
+        val twentyFourHours = 24L * 60 * 60 * 1000
+        return age > twentyFourHours && syncStatus != "SYNCED"
     }
 }

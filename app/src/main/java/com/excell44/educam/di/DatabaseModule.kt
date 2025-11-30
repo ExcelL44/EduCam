@@ -26,7 +26,7 @@ object DatabaseModule {
             AppDatabase::class.java,
             "quiz_database"
         )
-        .fallbackToDestructiveMigration()
+        .addMigrations(AppDatabase.MIGRATION_1_2) // Add migration for new field
         .build()
     
     @Provides

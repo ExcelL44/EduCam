@@ -661,14 +661,32 @@ fun RegisterScreen(
                                             val ok = payment.attemptPayment()
                                             if (ok) {
                                                 success = true
-                                                // create account locally
-                                                // create account locally
-                                                viewModel.register(
-                                                    email = "${pseudo.lowercase()}@local.excell",
-                                                    code = password,
-                                                    name = fullName,
-                                                    gradeLevel = selectedClass
-                                                )
+                                                
+                                                // Check network status to determine registration type
+                                                val isOnline = try {
+                                                    val cm = ctx.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+                                                    cm.activeNetwork != null
+                                                } catch (e: Exception) {
+                                                    false
+                                                }
+                                                
+                                                if (isOnline) {
+                                                    // Online: Create ACTIVE account
+                                                    viewModel.register(
+                                                        email = "${pseudo.lowercase()}@local.excell",
+                                                        code = password,
+                                                        name = fullName,
+                                                        gradeLevel = selectedClass
+                                                    )
+                                                } else {
+                                                    // Offline: Create PASSIVE account (24h trial)
+                                                    viewModel.registerOffline(
+                                                        pseudo = pseudo,
+                                                        code = password,
+                                                        name = fullName,
+                                                        gradeLevel = selectedClass
+                                                    )
+                                                }
                                             }
                                         }
 

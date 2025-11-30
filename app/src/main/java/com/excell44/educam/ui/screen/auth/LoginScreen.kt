@@ -42,14 +42,11 @@ fun LoginScreen(
     // Memoize callbacks
     val onLoginClick = remember(pseudo, code) {
         { 
-            // TODO: Implement login in ViewModel (currently only guest login is fully refactored)
-            // viewModel.login(pseudo, code) 
+            viewModel.login(pseudo, code)
         }
     }
     
-    val onGuestClick = remember {
-        { viewModel.loginAsGuest() }
-    }
+
 
     Column(
         modifier = Modifier
@@ -132,11 +129,6 @@ fun LoginScreen(
 
                 TextButton(onClick = onNavigateToRegister) {
                     Text("Pas encore de compte ? S'inscrire")
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-                TextButton(onClick = onGuestClick) {
-                    Text("Continuer en tant qu'invité")
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
