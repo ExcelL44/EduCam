@@ -19,6 +19,7 @@ fun BilanScreen(onNavigateBack: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(androidx.compose.foundation.rememberScrollState())
             .padding(24.dp)
     ) {
         TopAppBar(

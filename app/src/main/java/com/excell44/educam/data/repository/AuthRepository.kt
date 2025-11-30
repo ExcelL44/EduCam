@@ -37,6 +37,11 @@ class AuthRepository @Inject constructor(
 
     // Retry policy removed as unused
 
+    companion object {
+        private const val TRIAL_DURATION_DAYS = 7L
+        const val TRIAL_DURATION_MILLIS = TRIAL_DURATION_DAYS * 24 * 60 * 60 * 1000
+    }
+
     /**
      * Generate a random salt for password hashing
      */
@@ -255,7 +260,6 @@ class AuthRepository @Inject constructor(
             val passwordHash = factory.generateSecret(spec).encoded.joinToString("") { "%02x".format(it) }
 
             // Create offline user with 7-day trial (PASSIVE role)
-            val TRIAL_DURATION_MILLIS = 7L * 24 * 60 * 60 * 1000 // 7 days in millis
             val trialDuration = TRIAL_DURATION_MILLIS
             val user = User(
                 id = UUID.randomUUID().toString(),
@@ -428,7 +432,6 @@ class AuthRepository @Inject constructor(
         return try {
             val now = System.currentTimeMillis()
             // ✅ FIX: Use 7 days instead of 24h to match trial duration
-            val TRIAL_DURATION_MILLIS = 7L * 24 * 60 * 60 * 1000
             val expiryThreshold = now - TRIAL_DURATION_MILLIS
 
             // Get list of expired accounts for logging

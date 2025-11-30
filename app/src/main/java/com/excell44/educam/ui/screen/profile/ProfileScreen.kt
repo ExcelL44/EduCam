@@ -34,15 +34,20 @@ import androidx.compose.material.icons.filled.Check
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Composable
 fun ProfileScreen(
     onNavigateToBilan: () -> Unit,
     onNavigateBack: () -> Unit,
-    viewModel: AuthViewModel = hiltViewModel(),
-    betaReferralViewModel: BetaReferralViewModel = hiltViewModel()
+    viewModel: AuthViewModel, // ✅ Shared instance passed from NavGraph
+    mainViewModel: com.excell44.educam.ui.viewmodel.MainViewModel, // ✅ Shared instance for Theme
+    betaReferralViewModel: BetaReferralViewModel = hiltViewModel() // Local instance OK for specific feature
 ) {
     val authState by viewModel.authState.collectAsState()
     val user = (authState as? com.excell44.educam.domain.model.AuthState.Authenticated)?.user
     val referralState by betaReferralViewModel.referralState.collectAsState()
+    
+    // Theme state from MainViewModel
+    val currentThemeIndex by mainViewModel.themeIndex.collectAsState()
     
     var pseudo by remember { mutableStateOf("") }
     var userMode by remember { mutableStateOf<UserMode?>(null) }
@@ -93,6 +98,7 @@ fun ProfileScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .verticalScroll(rememberScrollState()) // ✅ Make Profile scrollable too
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -108,10 +114,6 @@ fun ProfileScreen(
 
         // Enhanced theme Material3 choices
         val availableThemes = com.excell44.educam.ui.theme.BacXThemes
-        val prefs = remember { context.getSharedPreferences("bacx_prefs", android.content.Context.MODE_PRIVATE) }
-        var selectedThemeIndex by remember {
-            mutableStateOf(prefs.getInt("theme_index", 0))
-        }
         var isAnimating by remember { mutableStateOf(false) }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -121,7 +123,7 @@ fun ProfileScreen(
                 modifier = Modifier
             ) {
                 availableThemes.forEachIndexed { index, theme ->
-                    val isSelected = selectedThemeIndex == index
+                    val isSelected = currentThemeIndex == index
                     // Créer un gradient simple pour visualisation du thème
                     val themeGradient = Brush.horizontalGradient(
                         colors = listOf(
@@ -136,12 +138,11 @@ fun ProfileScreen(
                             .clip(RoundedCornerShape(16.dp))
                             .background(themeGradient)
                             .clickable(enabled = !isReadOnly) {
-                                selectedThemeIndex = index
-                                isAnimating = true
-                                // Sauvegarder le thème sélectionné
-                                prefs.edit().putInt("theme_index", index).apply()
-                                // Force recompose by recreating activity (theme will update)
-                                (context as? android.app.Activity)?.recreate()
+                                if (currentThemeIndex != index) {
+                                    isAnimating = true
+                                    // ✅ Use MainViewModel to update theme reactively
+                                    mainViewModel.updateTheme(index)
+                                }
                             }
                             .border(
                                 width = if (isSelected) 3.dp else 1.dp,
@@ -182,8 +183,8 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             // Theme description
-            if (selectedThemeIndex < availableThemes.size) {
-                val currentTheme = availableThemes[selectedThemeIndex]
+            if (currentThemeIndex < availableThemes.size) {
+                val currentTheme = availableThemes[currentThemeIndex]
                 Text(
                     text = currentTheme.name,
                     style = MaterialTheme.typography.bodyMedium,
@@ -200,7 +201,7 @@ fun ProfileScreen(
         }
 
         // Reset animation state after theme change
-        LaunchedEffect(selectedThemeIndex) {
+        LaunchedEffect(currentThemeIndex) {
             if (isAnimating) {
                 kotlinx.coroutines.delay(500)
                 isAnimating = false

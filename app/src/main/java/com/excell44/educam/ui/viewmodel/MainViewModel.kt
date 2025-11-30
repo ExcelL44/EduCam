@@ -40,4 +40,22 @@ class MainViewModel @Inject constructor(
             }
         }
     }
+
+    fun updateTheme(index: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // Save to prefs
+                val prefs = context.getSharedPreferences("bacx_prefs", Context.MODE_PRIVATE)
+                prefs.edit().putInt("theme_index", index).apply()
+                
+                // Update state (Main thread for UI)
+                launch(Dispatchers.Main) {
+                    _themeIndex.value = index
+                    Logger.d("MainViewModel", "Theme updated to: $index")
+                }
+            } catch (e: Exception) {
+                Logger.e("MainViewModel", "Error updating theme", e)
+            }
+        }
+    }
 }

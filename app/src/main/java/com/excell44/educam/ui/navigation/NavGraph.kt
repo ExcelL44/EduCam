@@ -15,6 +15,7 @@ import com.excell44.educam.ui.screen.home.HomeScreen
 import com.excell44.educam.ui.screen.problemsolver.ProblemSolverScreen
 import com.excell44.educam.ui.screen.quiz.QuizFlow
 import com.excell44.educam.ui.screen.subjects.SubjectsScreen
+import kotlinx.coroutines.delay
 
 sealed class Screen(val route: String) {
     object Login : Screen("login")
@@ -38,7 +39,8 @@ fun NavGraph(
     startDestination: String = Screen.Login.route,
     postSplashDestination: String = startDestination,
     navigationViewModel: NavigationViewModel = hiltViewModel(),
-    authViewModel: com.excell44.educam.ui.viewmodel.AuthViewModel = hiltViewModel() // ✅ Injecter AuthViewModel
+    authViewModel: com.excell44.educam.ui.viewmodel.AuthViewModel = hiltViewModel(), // ✅ Injecter AuthViewModel
+    mainViewModel: com.excell44.educam.ui.viewmodel.MainViewModel = hiltViewModel() // ✅ Injecter MainViewModel pour Thèmes
 ) {
     // ⚠️ NavController is now attached in MainActivity via SideEffect
     // This removes the race condition where NavGraph children try to navigate before LaunchedEffect runs
@@ -46,7 +48,6 @@ fun NavGraph(
     // Observe navigation state (optional, for debugging)
     val navState by navigationViewModel.navigationState.collectAsState()
 
-    // ✅ PHASE 2.3: SINGLE SOURCE OF TRUTH - Navigation Auth Centralisée
     // ✅ PHASE 2.3: SINGLE SOURCE OF TRUTH - Navigation Auth Centralisée
     val authState by authViewModel.authState.collectAsState()
 
@@ -60,7 +61,7 @@ fun NavGraph(
     
     LaunchedEffect(isLoggedIn) {
         // ✅ FIX: Small delay to ensure NavController is in stable state
-        delay(50)
+        delay(50L)
         
         val currentRoute = navController.currentDestination?.route
         android.util.Log.d("NavGraph", "🔥 Auth changed: isLoggedIn=$isLoggedIn, currentRoute=$currentRoute")
@@ -165,7 +166,9 @@ fun NavGraph(
                 },
                 onNavigateBack = {
                     navigationViewModel.navigate(NavCommand.PopBack)
-                }
+                },
+                viewModel = authViewModel, // ✅ Pass shared AuthViewModel
+                mainViewModel = mainViewModel // ✅ Pass shared MainViewModel
             )
         }
         composable(Screen.Bilan.route) {
