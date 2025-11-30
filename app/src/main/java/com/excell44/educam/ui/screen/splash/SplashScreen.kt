@@ -26,8 +26,11 @@ import kotlinx.coroutines.launch
 @Composable
 fun SplashScreen(
     postSplashDestination: String,
-    onNavigate: (String) -> Unit
+    onNavigate: (String) -> Unit,
+    authViewModel: com.excell44.educam.ui.viewmodel.AuthViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
+    val authState by authViewModel.authState.collectAsState()
+
     // State pour l'apparition progressive des textes
     var showLogo by remember { mutableStateOf(false) }
     var showTagline by remember { mutableStateOf(false) }
@@ -55,7 +58,27 @@ fun SplashScreen(
         delay(800) // La tagline apparait
         showPromo = true
         delay(2000) // On laisse tout affiché un moment
-        onNavigate(postSplashDestination)
+
+        // Attendre que l'auth soit déterminé (pas en Loading) - timeout 10s
+        var waitTime = 0
+        while (authState is com.excell44.educam.domain.model.AuthState.Loading && waitTime < 10000) {
+            delay(100) // Attendre 100ms et vérifier à nouveau
+            waitTime += 100
+        }
+
+        // Si toujours en Loading après 10s, forcer vers Login
+        if (authState is com.excell44.educam.domain.model.AuthState.Loading) {
+            android.util.Log.w("SplashScreen", "Auth still loading after 10s timeout, defaulting to login")
+        }
+
+        // Déterminer la destination finale basée sur l'état d'auth actuel
+        val finalDestination = when (authState) {
+            is com.excell44.educam.domain.model.AuthState.Authenticated -> "home"
+            else -> "login"
+        }
+
+        android.util.Log.d("SplashScreen", "Navigation to: $finalDestination (authState: $authState)")
+        onNavigate(finalDestination)
     }
 
     Box(

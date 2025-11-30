@@ -67,14 +67,7 @@ fun appContent() {
         else -> Screen.Login.route
     }
     
-    // Show Splash while loading
-    if (authState is com.excell44.educam.domain.model.AuthState.Loading) {
-        com.excell44.educam.ui.screen.splash.SplashScreen(
-            postSplashDestination = "",
-            onNavigate = {} 
-        )
-        return
-    }
+    // Always show splash first, then navigate based on auth state
     
     LaunchedEffect(startDestination) {
         android.util.Log.d("MainActivity", "Start Destination: $startDestination (State: $authState)")
