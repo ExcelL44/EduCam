@@ -112,7 +112,7 @@ fun ChatScreen(
 @Composable
 fun MessageBubble(
     message: com.excell44.educam.ui.viewmodel.ChatMessage,
-    onFeedbackSubmit: (Long, Boolean) -> Unit = {} // Nouveau paramètre pour le feedback
+    onFeedbackSubmit: (Long, Boolean) -> Unit = { _, _ -> } // Nouveau paramètre pour le feedback
 ) {
     val isUser = message.isFromUser
     val backgroundColor = if (isUser) {
