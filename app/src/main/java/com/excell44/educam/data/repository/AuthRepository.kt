@@ -91,6 +91,8 @@ class AuthRepository @Inject constructor(
             }
 
             if (isPasswordValid) {
+                // ✅ CRITICAL: Save user session after successful login
+                securePrefs.saveUserId(user.id)
                 Logger.i("AuthRepository", "Login successful: ${user.id} ($pseudo)")
                 Result.success(user)
             } else {
@@ -133,6 +135,8 @@ class AuthRepository @Inject constructor(
                 isOfflineAccount = false
             )
             userDao.insertUser(user)
+            // ✅ CRITICAL: Save user session after successful registration
+            securePrefs.saveUserId(user.id)
             Logger.i("AuthRepository", "Registration successful: ${user.id} ($pseudo) - ACTIVE")
             Result.success(user)
         } catch (e: Exception) {
@@ -230,6 +234,8 @@ class AuthRepository @Inject constructor(
                 role = "PASSIVE" // Trial account, needs sync to become ACTIVE
             )
             userDao.insertUser(user)
+            // ✅ CRITICAL: Save user session after successful offline registration
+            securePrefs.saveUserId(user.id)
             Logger.i("AuthRepository", "Offline registration successful: ${user.id} ($pseudo) - 24h trial")
             Result.success(user)
         } catch (e: Exception) {
