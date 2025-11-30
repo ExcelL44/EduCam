@@ -140,7 +140,7 @@ fun RegisterScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.CloudOff,
+                            imageVector = Icons.Default.WifiOff,
                             contentDescription = "Offline",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )

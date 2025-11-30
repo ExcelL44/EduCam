@@ -345,6 +345,24 @@ jobs:
     runs-on: ubuntu-latest
     needs: [prepare-apk, performance-tests]
     timeout-minutes: 30
+
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 📦 Download Test APK
+        uses: actions/download-artifact@v4
+        with:
+          name: app-debug
+          path: .
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: 🤖 Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 📱 Launch Emulator
+        uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 29
           target: default
