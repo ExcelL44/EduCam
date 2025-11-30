@@ -86,6 +86,7 @@ fun RegisterScreen(
     var agreedTerms by remember { mutableStateOf(false) }
     var paymentAttempts by remember { mutableStateOf(0) }
     val authState by viewModel.authState.collectAsState()
+    val connectionState by viewModel.connectionState.collectAsState()
     val isLoading = authState is com.excell44.educam.domain.model.AuthState.Loading
     val errorMessage = (authState as? com.excell44.educam.domain.model.AuthState.Error)?.message
 
@@ -127,6 +128,36 @@ fun RegisterScreen(
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Connection State Banner
+        when (connectionState) {
+            is com.excell44.educam.domain.model.ConnectionState.Offline -> {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Filled.CloudOff,
+                            contentDescription = "Offline",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "Mode Hors-Ligne - Inscription locale (24h)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            is com.excell44.educam.domain.model.ConnectionState.Syncing -> {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp))
+            }
+            else -> {} // Online - no banner
+        }
         // Center the form and constrain max width for large screens to keep layout readable
         BoxWithConstraints(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
             val isLargeScreen = maxWidth > 720.dp

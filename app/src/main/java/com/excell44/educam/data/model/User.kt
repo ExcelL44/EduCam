@@ -8,7 +8,7 @@ data class User(
     @PrimaryKey
     val id: String, // Firebase UID (empty for offline, filled after sync)
     val localId: String = java.util.UUID.randomUUID().toString(), // Local UUID (NEVER conflicts)
-    val email: String,
+    val pseudo: String, // Username/Pseudo (no email required - app for youth)
     val passwordHash: String, // En production, utiliser un hash sécurisé
     val name: String,
     val gradeLevel: String = "", // Niveau d'étude

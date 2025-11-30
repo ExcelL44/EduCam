@@ -53,7 +53,7 @@ jobs:
       - name: 📦 Download Test APK
         uses: actions/download-artifact@v4
         with:
-          name: Bac-X_237-Debug
+          name: app-debug
           path: .
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
@@ -71,7 +71,7 @@ jobs:
       - name: 📦 Download Test APK
         uses: actions/download-artifact@v4
         with:
-          name: Bac-X_237-Debug
+          name: app-debug
           path: .
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
@@ -345,21 +345,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [prepare-apk, performance-tests]
     timeout-minutes: 30
-    
-    steps:
-      - name: 📥 Checkout Code
-        uses: actions/checkout@v4
-
-      - name: 📦 Download APK
-        uses: actions/download-artifact@v4
-        with:
-          name: Bac-X_237-Debug
-          path: .
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ github.event.workflow_run.id }}
-
-      - name: 🔧 Setup Android Emulator
-        uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 29
           target: default
