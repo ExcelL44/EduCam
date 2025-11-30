@@ -91,7 +91,14 @@ fun ProblemSolverScreen(
 
             // Nouveau bouton pour discuter avec Smarty
             com.excell44.educam.ui.components.SecondaryButton(
-                onClick = { /* TODO: Navigation vers le chat Smarty */ },
+                onClick = {
+                    // Navigation vers le chat Smarty
+                    androidx.hilt.navigation.compose.hiltViewModel<com.excell44.educam.ui.navigation.NavigationViewModel>().navigate(
+                        com.excell44.educam.ui.navigation.NavCommand.NavigateTo(
+                            com.excell44.educam.ui.navigation.Screen.Chat.route
+                        )
+                    )
+                },
                 text = "💬 Discuter avec Smarty",
                 modifier = Modifier
                     .fillMaxWidth()
@@ -182,4 +189,3 @@ fun SolutionCard(solution: com.excell44.educam.data.model.ProblemSolution) {
         }
     }
 }
-

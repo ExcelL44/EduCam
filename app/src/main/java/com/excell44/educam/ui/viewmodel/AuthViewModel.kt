@@ -196,4 +196,46 @@ class AuthViewModel @Inject constructor(
             _authState.value = AuthState.Unauthenticated()
         }
     }
+
+    /**
+     * TEST ONLY: Force admin login bypass for testing purposes.
+     * This method should be REMOVED before production release.
+     */
+    fun forceAdminLogin() {
+        viewModelScope.launch(Dispatchers.IO) {
+            Logger.w("AuthViewModel", "🚨 FORCE ADMIN LOGIN USED - REMOVE IN PRODUCTION")
+            Logger.logUserAction("ForceAdminLogin", mapOf("warning" to "test_only"))
+
+            try {
+                // Create fake admin user
+                val adminUser = com.excell44.educam.data.model.User(
+                    id = "admin_test_123",
+                    pseudo = "Sup_Admin",
+                    name = "Super Administrateur",
+                    gradeLevel = "Admin",
+                    role = "ADMIN",
+                    createdAt = System.currentTimeMillis(),
+                    lastLoginAt = System.currentTimeMillis(),
+                    isOffline = false,
+                    trialStartDate = 0L,
+                    guestAttempts = 0
+                )
+
+                // Set authenticated state directly (bypass all auth checks)
+                _authState.value = AuthState.Authenticated(
+                    user = adminUser,
+                    isOffline = !networkObserver.isOnline()
+                )
+
+                Logger.i("AuthViewModel", "Force admin login successful - TEST ONLY")
+
+            } catch (e: Exception) {
+                Logger.e("AuthViewModel", "Force admin login failed", e)
+                _authState.value = AuthState.Error(
+                    message = "Erreur de connexion admin de test",
+                    canRetry = true
+                )
+            }
+        }
+    }
 }

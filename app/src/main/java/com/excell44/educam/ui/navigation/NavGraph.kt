@@ -23,6 +23,7 @@ sealed class Screen(val route: String) {
     object Quiz : Screen("quiz")
     object Subjects : Screen("subjects")
     object ProblemSolver : Screen("problem_solver")
+    object Chat : Screen("chat")
     object Profile : Screen("profile")
     object Bilan : Screen("bilan")
     object AdminMenu : Screen("admin_menu")
@@ -55,13 +56,14 @@ fun NavGraph(
     LaunchedEffect(isLoggedIn) {
         val currentRoute = navController.currentDestination?.route
         android.util.Log.d("NavGraph", "Auth changed: isLoggedIn=$isLoggedIn, currentRoute=$currentRoute")
-        
-        // Si user se connecte depuis Login/Register → Aller à Home
-        if (isLoggedIn && currentRoute in listOf(Screen.Login.route, Screen.Register.route)) {
+
+        // Si user se connecte depuis Login/Register/Splash → Aller à Home
+        if (isLoggedIn && currentRoute in listOf(Screen.Login.route, Screen.Register.route, Screen.Splash.route)) {
+            android.util.Log.d("NavGraph", "Navigating to Home after login")
             navigationViewModel.navigate(
                 NavCommand.NavigateTo(
                     route = Screen.Home.route,
-                    popUpTo = Screen.Login.route,
+                    popUpTo = Screen.Splash.route,
                     inclusive = true
                 )
             )
@@ -128,6 +130,13 @@ fun NavGraph(
         }
         composable(Screen.ProblemSolver.route) {
             ProblemSolverScreen(
+                onNavigateBack = {
+                    navigationViewModel.navigate(NavCommand.PopBack)
+                }
+            )
+        }
+        composable(Screen.Chat.route) {
+            com.excell44.educam.ui.screen.chat.ChatScreen(
                 onNavigateBack = {
                     navigationViewModel.navigate(NavCommand.PopBack)
                 }

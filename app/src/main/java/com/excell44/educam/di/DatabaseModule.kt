@@ -5,6 +5,8 @@ import androidx.room.Room
 import com.excell44.educam.data.local.AppDatabase
 import com.excell44.educam.data.local.dao.AnswerDao
 import com.excell44.educam.data.local.dao.BetaReferralDao
+import com.excell44.educam.data.local.dao.ChatMessageDao
+import com.excell44.educam.data.local.dao.LearningPatternDao
 import com.excell44.educam.data.local.dao.QuestionDao
 import com.excell44.educam.data.local.dao.QuizDao
 import com.excell44.educam.data.local.dao.QuizResultDao
@@ -58,6 +60,12 @@ object DatabaseModule {
 
     @Provides
     fun provideBetaReferralDao(db: AppDatabase): BetaReferralDao = db.betaReferralDao()
+
+    @Provides
+    fun provideChatMessageDao(db: AppDatabase): ChatMessageDao = db.chatMessageDao()
+
+    @Provides
+    fun provideLearningPatternDao(db: AppDatabase): LearningPatternDao = db.learningPatternDao()
 
     @Provides
     fun provideUserDao(db: AppDatabase): com.excell44.educam.data.dao.UserDao = db.userDao()

@@ -170,7 +170,7 @@ fun PulsingCircles() {
         initialValue = 0.8f,
         targetValue = 1.2f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = FastOutSlowInEasing),
+            animation = tween(600, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "scale"
@@ -181,7 +181,7 @@ fun PulsingCircles() {
         initialValue = 0.2f,
         targetValue = 0.5f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = FastOutSlowInEasing),
+            animation = tween(600, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "alpha"

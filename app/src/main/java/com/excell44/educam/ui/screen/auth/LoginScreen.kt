@@ -141,6 +141,27 @@ fun LoginScreen(
                 }) {
                     Text("Mot de passe oublié ? Contacter le support")
                 }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Bouton test Sup_Admin - À RETIRER APRÈS TESTS
+                OutlinedButton(
+                    onClick = {
+                        // Simuler authentification admin réussie
+                        viewModel.forceAdminLogin()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text(
+                        text = "🚨 Sup_Admin (Test Only)",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
         }
     }
