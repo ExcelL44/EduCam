@@ -33,7 +33,7 @@ class ChatViewModelTest {
     fun setUp() {
         MockitoAnnotations.openMocks(this)
         // Disable logging for tests
-        Logger.setLogLevel(Logger.Level.NONE)
+        Logger.enableReleaseMode()
 
         chatViewModel = ChatViewModel(chatDao, smartyAI, authStateManager)
     }
@@ -58,20 +58,9 @@ class ChatViewModelTest {
         chatViewModel.sendMessage(userMessage)
 
         // Then
-        verify(smartyAI).saveChatMessage(
-            userId = userId,
-            message = userMessage,
-            isFromUser = true,
-            confidence = 1.0f
-        )
+        verify(smartyAI).saveChatMessage(userId, userMessage, true, 1.0f)
         verify(smartyAI).generateResponse(userId, userMessage)
-        verify(smartyAI).saveChatMessage(
-            userId = userId,
-            message = aiResponse.message,
-            isFromUser = false,
-            confidence = aiResponse.confidence,
-            isLearned = aiResponse.isLearned
-        )
+        verify(smartyAI).saveChatMessage(userId, aiResponse.message, false, aiResponse.confidence, aiResponse.messageType, null, aiResponse.isLearned)
         verify(smartyAI).learnFromInteraction(
             userId = userId,
             userMessage = userMessage,
@@ -120,12 +109,7 @@ class ChatViewModelTest {
         chatViewModel.sendMessage(userMessage)
 
         // Then - vérifie que l'UI est mise à jour malgré l'erreur
-        verify(smartyAI).saveChatMessage(
-            userId = userId,
-            message = userMessage,
-            isFromUser = true,
-            confidence = 1.0f
-        )
+        verify(smartyAI).saveChatMessage(userId, userMessage, true, 1.0f)
         // L'erreur devrait être gérée silencieusement ou loggée
     }
 
