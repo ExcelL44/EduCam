@@ -2,6 +2,7 @@ package com.excell44.educam.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.excell44.educam.data.local.SecurePrefs
 import com.excell44.educam.domain.referral.model.ReferralStatus
 import com.excell44.educam.domain.referral.usecase.GetBetaReferralStatusUseCase
 import com.excell44.educam.domain.referral.usecase.RequestBetaPaymentUseCase
@@ -28,7 +29,7 @@ sealed class UiState<out T> {
 class BetaReferralViewModel @Inject constructor(
     private val getStatus: GetBetaReferralStatusUseCase,
     private val requestPayment: RequestBetaPaymentUseCase,
-    private val authStateManager: AuthStateManager
+    private val securePrefs: SecurePrefs
 ) : ViewModel() {
 
     private val _referralState = MutableStateFlow<UiState<ReferralStatus>>(UiState.Loading)
@@ -43,7 +44,7 @@ class BetaReferralViewModel @Inject constructor(
      */
     private fun loadReferralStatus() {
         viewModelScope.launch {
-            authStateManager.getUserId()?.let { userId ->
+            securePrefs.getUserId()?.let { userId ->
                 getStatus(userId)
                     .onStart { _referralState.value = UiState.Loading }
                     .catch { exception ->
@@ -73,7 +74,7 @@ class BetaReferralViewModel @Inject constructor(
                 _referralState.value = UiState.Loading
                 Logger.d("BetaReferralViewModel", "Processing gift button click")
 
-                authStateManager.getUserId()?.let { userId ->
+                securePrefs.getUserId()?.let { userId ->
                     when (val result = requestPayment(userId)) {
                         is Result.Success -> {
                             Logger.i("BetaReferralViewModel", "Payment request sent successfully for user $userId")

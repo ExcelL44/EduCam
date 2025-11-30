@@ -58,13 +58,6 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
 
-      - name: 📦 Extract APK from Archive
-        run: |
-          echo "📦 Extracting APK from Bac-X_237-Debug.zip..."
-          unzip -j Bac-X_237-Debug.zip "*.apk" -d .
-          ls -la *.apk
-          echo "✅ APK extracted successfully"
-
   performance-tests:
     name: ⚡ Phase 2 - Performance Measurements
     runs-on: ubuntu-latest
@@ -82,13 +75,6 @@ jobs:
           path: .
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
-
-      - name: 📦 Extract APK from Archive
-        run: |
-          echo "📦 Extracting APK from Bac-X_237-Debug.zip..."
-          unzip -j Bac-X_237-Debug.zip "*.apk" -d .
-          ls -la *.apk
-          echo "✅ APK extracted successfully"
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -371,13 +357,6 @@ jobs:
           path: .
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
-
-      - name: 📦 Extract APK from Archive
-        run: |
-          echo "📦 Extracting APK from Bac-X_237-Debug.zip..."
-          unzip -j Bac-X_237-Debug.zip "*.apk" -d .
-          ls -la *.apk
-          echo "✅ APK extracted successfully"
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
