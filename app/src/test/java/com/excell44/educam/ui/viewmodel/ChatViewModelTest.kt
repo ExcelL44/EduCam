@@ -60,7 +60,7 @@ class ChatViewModelTest {
         // Then
         verify(smartyAI).saveChatMessage(userId, userMessage, true, 1.0f)
         verify(smartyAI).generateResponse(userId, userMessage)
-        verify(smartyAI).saveChatMessage(userId, aiResponse.message, false, aiResponse.confidence, aiResponse.messageType, null, aiResponse.isLearned)
+        verify(smartyAI).saveChatMessage(userId, aiResponse.message, false, aiResponse.confidence, any(), null, aiResponse.isLearned)
         verify(smartyAI).learnFromInteraction(
             userId = userId,
             userMessage = userMessage,

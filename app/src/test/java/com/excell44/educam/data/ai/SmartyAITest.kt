@@ -38,8 +38,8 @@ class SmartyAITest {
         // Given
         val userId = "test_user"
         val message = "Bonjour"
-        whenever(patternDao.searchPatterns(userId, any<String>())).thenReturn(emptyList())
-        whenever(patternDao.getBestPatterns(userId, any<Int>())).thenReturn(emptyList())
+        given(patternDao.searchPatterns(userId, any<String>())).willReturn(emptyList())
+        given(patternDao.getBestPatterns(userId, any<Int>())).willReturn(emptyList())
 
         // When
         val response = smartyAI.generateResponse(userId, message)
@@ -64,8 +64,8 @@ class SmartyAITest {
             usageCount = 5
         )
 
-        whenever(patternDao.searchPatterns(userId, any<String>())).thenReturn(listOf(learnedPattern))
-        whenever(patternDao.getBestPatterns(userId, any<Int>())).thenReturn(listOf(learnedPattern))
+        given(patternDao.searchPatterns(userId, any<String>())).willReturn(listOf(learnedPattern))
+        given(patternDao.getBestPatterns(userId, any<Int>())).willReturn(listOf(learnedPattern))
 
         // When
         val response = smartyAI.generateResponse(userId, message)
@@ -84,8 +84,8 @@ class SmartyAITest {
 
         // When - test via generateResponse qui utilise preprocessMessage
         val userId = "test_user"
-        whenever(patternDao.searchPatterns(userId, any<String>())).thenReturn(emptyList())
-        whenever(patternDao.getBestPatterns(userId, any<Int>())).thenReturn(emptyList())
+        given(patternDao.searchPatterns(userId, any<String>())).willReturn(emptyList())
+        given(patternDao.getBestPatterns(userId, any<Int>())).willReturn(emptyList())
 
         val response = smartyAI.generateResponse(userId, testMessage)
 
@@ -102,7 +102,7 @@ class SmartyAITest {
         val aiResponse = "La dérivée mesure le taux de variation"
         val subject = "Math"
 
-        whenever(patternDao.searchPatterns(userId, any<String>())).thenReturn(emptyList())
+        given(patternDao.searchPatterns(userId, any<String>())).willReturn(emptyList())
 
         // When
         smartyAI.learnFromInteraction(userId, userMessage, aiResponse, subject)
@@ -127,7 +127,7 @@ class SmartyAITest {
             usageCount = 3
         )
 
-        whenever(patternDao.searchPatterns(userId, any<String>())).thenReturn(listOf(existingPattern))
+        given(patternDao.searchPatterns(userId, any<String>())).willReturn(listOf(existingPattern))
 
         // When
         smartyAI.learnFromInteraction(userId, userMessage, aiResponse, "Math", 0.9f)
@@ -146,7 +146,7 @@ class SmartyAITest {
         val isFromUser = true
         val confidence = 1.0f
 
-        whenever(chatDao.getMessageCount(userId)).thenReturn(5)
+        given(chatDao.getMessageCount(userId)).willReturn(5)
 
         // When
         smartyAI.saveChatMessage(userId, message, isFromUser, confidence)
@@ -164,7 +164,7 @@ class SmartyAITest {
         val message = "Test message"
         val isFromUser = true
 
-        whenever(chatDao.getMessageCount(userId)).thenReturn(105) // Above limit
+        given(chatDao.getMessageCount(userId)).willReturn(105) // Above limit
 
         // When
         smartyAI.saveChatMessage(userId, message, isFromUser)
@@ -181,8 +181,8 @@ class SmartyAITest {
         val userId = "test_user"
         val message = "test"
 
-        whenever(patternDao.searchPatterns(userId, any<String>())).thenReturn(emptyList())
-        whenever(patternDao.getBestPatterns(userId, any<Int>())).thenReturn(emptyList())
+        given(patternDao.searchPatterns(userId, any<String>())).willReturn(emptyList())
+        given(patternDao.getBestPatterns(userId, any<Int>())).willReturn(emptyList())
 
         val response = smartyAI.generateResponse(userId, message)
 
@@ -195,8 +195,8 @@ class SmartyAITest {
         val userId = "test_user"
         val mathMessage = "résoudre équation linéaire"
 
-        whenever(patternDao.searchPatterns(userId, any<String>())).thenReturn(emptyList())
-        whenever(patternDao.getBestPatterns(userId, any<Int>())).thenReturn(emptyList())
+        given(patternDao.searchPatterns(userId, any<String>())).willReturn(emptyList())
+        given(patternDao.getBestPatterns(userId, any<Int>())).willReturn(emptyList())
 
         val response = smartyAI.generateResponse(userId, mathMessage)
 
@@ -210,7 +210,7 @@ class SmartyAITest {
         // Given
         val userId = "test_user"
         val message = "test"
-        whenever(patternDao.searchPatterns(userId, any<String>())).thenThrow(RuntimeException("Database error"))
+        given(patternDao.searchPatterns(userId, any<String>())).willThrow(RuntimeException("Database error"))
 
         // When
         val response = smartyAI.generateResponse(userId, message)
