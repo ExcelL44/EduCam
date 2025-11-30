@@ -39,7 +39,7 @@ import kotlinx.coroutines.flow.collectLatest
 @Composable
 fun <S : UiState, A : UiAction> NavigationCommandHandler(
     viewModel: BaseViewModel<S, A>,
-    navigationViewModel: NavigationViewModel = hiltViewModel()
+    navigationViewModel: NavigationViewModel  // ✅ REMOVED default value - MUST be passed from parent
 ) {
     LaunchedEffect(viewModel) {
         viewModel.navigationCommands.collectLatest { command ->

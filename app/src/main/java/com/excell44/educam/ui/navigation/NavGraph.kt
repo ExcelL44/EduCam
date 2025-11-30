@@ -120,7 +120,9 @@ fun NavGraph(
             )
         }
         composable(Screen.Home.route) {
-            com.excell44.educam.ui.screen.home.HomeScreen()
+            com.excell44.educam.ui.screen.home.HomeScreen(
+                navigationViewModel = navigationViewModel  // ✅ Pass shared instance
+            )
         }
         composable(Screen.Quiz.route) {
             com.excell44.educam.ui.screen.quiz.QuizFlow(

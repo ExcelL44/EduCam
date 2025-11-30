@@ -44,10 +44,11 @@ sealed class HomeAction : UiAction {
 @Composable
 fun HomeScreen(
     homeViewModel: HomeViewModel = hiltViewModel(),
-    authViewModel: AuthViewModel = hiltViewModel()
+    authViewModel: AuthViewModel = hiltViewModel(),
+    navigationViewModel: com.excell44.educam.ui.navigation.NavigationViewModel = hiltViewModel()  // ✅ Added parameter
  ) {
     // Gestionnaire de commandes de navigation
-    NavigationCommandHandler(homeViewModel)
+    NavigationCommandHandler(homeViewModel, navigationViewModel)  // ✅ Pass navigationViewModel
 
     val homeState by homeViewModel.uiState.collectAsState()
     val authState by authViewModel.authState.collectAsState()
