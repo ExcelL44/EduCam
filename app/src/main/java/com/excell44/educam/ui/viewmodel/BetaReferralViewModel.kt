@@ -75,18 +75,16 @@ class BetaReferralViewModel @Inject constructor(
                 Logger.d("BetaReferralViewModel", "Processing gift button click")
 
                 securePrefs.getUserId()?.let { userId ->
-                    when (val result = requestPayment(userId)) {
-                        is Result.Success -> {
-                            Logger.i("BetaReferralViewModel", "Payment request sent successfully for user $userId")
-                            // Recharger le statut après envoi réussi
-                            loadReferralStatus()
-                        }
-                        is Result.Failure -> {
-                            Logger.w("BetaReferralViewModel", "Payment request failed: ${result.exception.message}")
-                            _referralState.value = UiState.Error(
-                                result.exception.message ?: "Erreur lors de l'envoi de la demande"
-                            )
-                        }
+                    val result = requestPayment(userId)
+                    if (result.isSuccess) {
+                        Logger.i("BetaReferralViewModel", "Payment request sent successfully for user $userId")
+                        // Recharger le statut après envoi réussi
+                        loadReferralStatus()
+                    } else {
+                        Logger.w("BetaReferralViewModel", "Payment request failed: ${result.exceptionOrNull()?.message}")
+                        _referralState.value = UiState.Error(
+                            result.exceptionOrNull()?.message ?: "Erreur lors de l'envoi de la demande"
+                        )
                     }
                 } ?: run {
                     _referralState.value = UiState.Error("Utilisateur non identifié")
