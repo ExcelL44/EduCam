@@ -83,24 +83,49 @@ class AuthRepository @Inject constructor(
             android.util.Log.d("🔴 DEBUG_AUTH", "   Stored hash: '${user.passwordHash}'")
             android.util.Log.d("🔴 DEBUG_AUTH", "   Stored salt: '${user.salt}'")
 
-            // ⚠️ DEBUG BYPASS: Always return true
-            val isPasswordValid = true 
-            android.util.Log.w("🔴 DEBUG_AUTH", "⚠️ PASSWORD CHECK DISABLED - ALLOWING LOGIN")
-
-            /* 
-            // ORIGINAL VALIDATION LOGIC (COMMENTED OUT FOR DEBUG)
+            // ✅ REAL PASSWORD VALIDATION
             val isPasswordValid = if (user.passwordHash.isEmpty()) {
-                // ... (original logic)
+                // Legacy accounts without password (if any) - should not happen with new registration
+                android.util.Log.w("🔴 DEBUG_AUTH", "⚠️ Empty password hash - rejecting login")
+                false
             } else {
-                // ...
+                // Validate using PBKDF2
+                try {
+                    val spec = javax.crypto.spec.PBEKeySpec(
+                        password.toCharArray(), 
+                        user.salt.toByteArray(), 
+                        10000, 
+                        256
+                    )
+                    val factory = javax.crypto.SecretKeyFactory.getInstance(getPBKDF2Algorithm())
+                    val computedHash = factory.generateSecret(spec).encoded.joinToString("") { "%02x".format(it) }
+                    
+                    val isValid = computedHash == user.passwordHash
+                    android.util.Log.d("🔴 DEBUG_AUTH", "Password validation result: $isValid")
+                    isValid
+                } catch (e: Exception) {
+                    android.util.Log.e("🔴 DEBUG_AUTH", "Password validation error: ${e.message}")
+                    false
+                }
             }
-            */
 
             if (isPasswordValid) {
                 // ✅ CRITICAL: Save user session after successful login
                 securePrefs.saveUserId(user.id)
-                android.util.Log.d("🔴 DEBUG_AUTH", "✅ Login SUCCESS - Session saved for ID: ${user.id}")
-                Logger.i("AuthRepository", "Login successful: ${user.id} ($pseudo)")
+                
+                // ✅ NEW: Save credentials for offline re-login
+                securePrefs.saveOfflineCredentials(user.pseudo, user.passwordHash)
+                
+                // ✅ NEW: Save auth mode (OFFLINE if offline account, ONLINE otherwise)
+                val authMode = if (user.isOfflineAccount) {
+                    SecurePrefs.AuthMode.OFFLINE
+                } else {
+                    SecurePrefs.AuthMode.ONLINE
+                }
+                securePrefs.saveAuthMode(authMode)
+                
+                android.util.Log.d("🔴 DEBUG_AUTH", "✅ Login SUCCESS - Session saved for ID: ${user.id} (Mode: $authMode)")
+                Logger.i("AuthRepository", "Login successful: ${user.id} ($pseudo) [Mode: $authMode]")
                 Result.success(user)
             } else {
                 android.util.Log.e("🔴 DEBUG_AUTH", "❌ Login FAILED - Invalid password")
@@ -145,7 +170,9 @@ class AuthRepository @Inject constructor(
             userDao.insertUser(user)
             // ✅ CRITICAL: Save user session after successful registration
             securePrefs.saveUserId(user.id)
-            Logger.i("AuthRepository", "Registration successful: ${user.id} ($pseudo) - ACTIVE")
+            securePrefs.saveOfflineCredentials(user.pseudo, user.passwordHash)
+            securePrefs.saveAuthMode(SecurePrefs.AuthMode.ONLINE)
+            Logger.i("AuthRepository", "Registration successful: ${user.id} ($pseudo) - ACTIVE [ONLINE]")
             Result.success(user)
         } catch (e: Exception) {
             Logger.e("AuthRepository", "Registration error for $pseudo", e)
@@ -245,7 +272,9 @@ class AuthRepository @Inject constructor(
             userDao.insertUser(user)
             // ✅ CRITICAL: Save user session after successful offline registration
             securePrefs.saveUserId(user.id)
-            Logger.i("AuthRepository", "Offline registration successful: ${user.id} ($pseudo) - 24h trial")
+            securePrefs.saveOfflineCredentials(user.pseudo, user.passwordHash)
+            securePrefs.saveAuthMode(SecurePrefs.AuthMode.OFFLINE)
+            Logger.i("AuthRepository", "Offline registration successful: ${user.id} ($pseudo) - 7d trial [OFFLINE]")
             Result.success(user)
         } catch (e: Exception) {
             Logger.e("AuthRepository", "Offline registration error", e)
@@ -423,6 +452,67 @@ class AuthRepository @Inject constructor(
         } catch (e: Exception) {
             Logger.e("AuthRepository", "Error cleaning expired accounts", e)
             0
+        }
+    }
+    
+    /**
+     * Check if user has valid access (OFFLINE or ONLINE).
+     * This is the unified access check that should be used instead of just checking token.
+     */
+    suspend fun isUserAllowedAccess(): Boolean {
+        return try {
+            // Check if we have a saved user session
+            val userId = securePrefs.getUserId()
+            if (userId == null) {
+                Logger.d("AuthRepository", "No access: No saved user ID")
+                return false
+            }
+            
+            // Check auth mode
+            val authMode = securePrefs.getAuthMode()
+            Logger.d("AuthRepository", "Checking access for user: $userId (Mode: $authMode)")
+            
+            when (authMode) {
+                SecurePrefs.AuthMode.OFFLINE -> {
+                    // For offline mode, check if user still exists in DB
+                    val user = userDao.getUserById(userId).first()
+                    if (user == null) {
+                        Logger.w("AuthRepository", "Offline user not found in DB")
+                        securePrefs.clearAllAuthData()
+                        return false
+                    }
+                    
+                    // Check if trial expired (for offline accounts)
+                    if (user.isOfflineAccount && user.trialExpiresAt != null && user.trialExpiresAt < System.currentTimeMillis()) {
+                        Logger.w("AuthRepository", "Offline trial expired for user: ${user.pseudo}")
+                        return false
+                    }
+                    
+                    Logger.i("AuthRepository", "Access granted (OFFLINE): ${user.pseudo}")
+                    true
+                }
+                SecurePrefs.AuthMode.ONLINE -> {
+                    // For online mode, user should have synced account
+                    val user = userDao.getUserById(userId).first()
+                    if (user == null) {
+                        Logger.w("AuthRepository", "Online user not found in DB")
+                        securePrefs.clearAllAuthData()
+                        return false
+                    }
+                    
+                    Logger.i("AuthRepository", "Access granted (ONLINE): ${user.pseudo}")
+                    true
+                }
+                null -> {
+                    // No auth mode saved, clear session
+                    Logger.w("AuthRepository", "No auth mode found, clearing session")
+                    securePrefs.clearAllAuthData()
+                    false
+                }
+            }
+        } catch (e: Exception) {
+            Logger.e("AuthRepository", "Error checking user access", e)
+            false
         }
     }
 }

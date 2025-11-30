@@ -176,9 +176,9 @@ class AuthViewModel @Inject constructor(
             try {
                 Logger.i("AuthViewModel", "Logout initiated")
                 
-                // ✅ CRITICAL: Clear secure session
-                securePrefs.clearUserId()
-                Logger.d("AuthViewModel", "SecurePrefs cleared")
+                // ✅ CRITICAL: Clear ALL secure session data (credentials + auth mode)
+                securePrefs.clearAllAuthData()
+                Logger.d("AuthViewModel", "SecurePrefs cleared (all auth data)")
                 
                 // Set state to unauthenticated
                 _authState.value = AuthState.Unauthenticated(reason = "Déconnexion utilisateur")
