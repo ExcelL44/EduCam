@@ -17,7 +17,8 @@ import javax.inject.Inject
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val networkObserver: NetworkObserver
+    private val networkObserver: NetworkObserver,
+    private val securePrefs: com.excell44.educam.data.local.SecurePrefs
 ) : ViewModel() {
     
     private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
@@ -192,8 +193,23 @@ class AuthViewModel @Inject constructor(
     
     fun logout() {
         viewModelScope.launch(Dispatchers.IO) {
-            // TODO: Implement proper logout in Repository (clear prefs, firebase signOut)
-            _authState.value = AuthState.Unauthenticated()
+            try {
+                Logger.i("AuthViewModel", "Logout initiated")
+                
+                // ✅ CRITICAL: Clear secure session
+                securePrefs.clearUserId()
+                Logger.d("AuthViewModel", "SecurePrefs cleared")
+                
+                // Set state to unauthenticated
+                _authState.value = AuthState.Unauthenticated(reason = "Déconnexion utilisateur")
+                
+                Logger.i("AuthViewModel", "Logout completed successfully")
+                
+            } catch (e: Exception) {
+                Logger.e("AuthViewModel", "Error during logout", e)
+                // Even on error, logout (security measure)
+                _authState.value = AuthState.Unauthenticated(reason = "Déconnexion (avec erreur)")
+            }
         }
     }
 
