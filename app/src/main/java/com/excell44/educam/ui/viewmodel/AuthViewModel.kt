@@ -225,8 +225,8 @@ class AuthViewModel @Inject constructor(
                 try {
                     authRepository.registerOffline(
                         pseudo = adminUser.pseudo,
-                        code = "0000", // Dummy code
-                        name = adminUser.name,
+                        password = "0000", // Dummy code
+                        fullName = adminUser.name,
                         gradeLevel = adminUser.gradeLevel
                     ).onSuccess { createdUser ->
                         // Update with ADMIN role
