@@ -51,4 +51,20 @@ interface ChatMessageDao {
 
     @Query("SELECT AVG(confidence) FROM chat_messages WHERE userId = :userId AND isFromUser = 0")
     suspend fun getAverageConfidence(userId: String): Float?
+
+    // Gestion du feedback utilisateur (nouveau)
+    @Query("UPDATE chat_messages SET userFeedback = :feedback, feedbackTimestamp = :timestamp WHERE id = :messageId")
+    suspend fun updateUserFeedback(messageId: Long, feedback: Float, timestamp: Long = System.currentTimeMillis()): Int
+
+    @Query("SELECT COUNT(*) FROM chat_messages WHERE userId = :userId AND isFromUser = 0 AND userFeedback IS NOT NULL")
+    suspend fun getFeedbackCount(userId: String): Int
+
+    @Query("SELECT AVG(userFeedback) FROM chat_messages WHERE userId = :userId AND isFromUser = 0 AND userFeedback IS NOT NULL")
+    suspend fun getAverageUserFeedback(userId: String): Float?
+
+    @Query("SELECT COUNT(*) FROM chat_messages WHERE userId = :userId AND isFromUser = 0 AND userFeedback >= 0.5")
+    suspend fun getPositiveFeedbackCount(userId: String): Int
+
+    @Query("SELECT * FROM chat_messages WHERE userId = :userId AND isFromUser = 0 AND userFeedback IS NULL ORDER BY timestamp DESC LIMIT :limit")
+    suspend fun getMessagesWithoutFeedback(userId: String, limit: Int = 10): List<ChatMessageEntity>
 }

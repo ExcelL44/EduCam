@@ -16,6 +16,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.ThumbDown
+import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -68,7 +70,12 @@ fun ChatScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(messages) { message ->
-                    MessageBubble(message = message)
+                    MessageBubble(
+                        message = message,
+                        onFeedbackSubmit = { messageId, isPositive ->
+                            viewModel.submitUserFeedback(messageId, isPositive)
+                        }
+                    )
                 }
 
                 // Indicateur de frappe
@@ -103,7 +110,10 @@ fun ChatScreen(
  * Bulle de message
  */
 @Composable
-fun MessageBubble(message: com.excell44.educam.ui.viewmodel.ChatMessage) {
+fun MessageBubble(
+    message: com.excell44.educam.ui.viewmodel.ChatMessage,
+    onFeedbackSubmit: (Long, Boolean) -> Unit = {} // Nouveau paramètre pour le feedback
+) {
     val isUser = message.isFromUser
     val backgroundColor = if (isUser) {
         MaterialTheme.colorScheme.primary
@@ -116,9 +126,9 @@ fun MessageBubble(message: com.excell44.educam.ui.viewmodel.ChatMessage) {
         MaterialTheme.colorScheme.onSurfaceVariant
     }
 
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
+        horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
     ) {
         Card(
             modifier = Modifier.widthIn(max = 280.dp),
@@ -137,6 +147,61 @@ fun MessageBubble(message: com.excell44.educam.ui.viewmodel.ChatMessage) {
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
+            }
+        }
+
+        // Boutons de feedback pour les messages IA (non utilisateur)
+        if (!isUser && message.userFeedback == null) {
+            Row(
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                IconButton(
+                    onClick = { onFeedbackSubmit(message.id, true) },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.ThumbUp,
+                        contentDescription = "J'aime cette réponse",
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                IconButton(
+                    onClick = { onFeedbackSubmit(message.id, false) },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.ThumbDown,
+                        contentDescription = "Je n'aime pas cette réponse",
+                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+
+        // Indicateur de feedback déjà donné
+        if (!isUser && message.userFeedback != null) {
+            val feedbackIcon = if (message.userFeedback == 1.0f) Icons.Filled.ThumbUp else Icons.Filled.ThumbDown
+            val feedbackColor = if (message.userFeedback == 1.0f) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+
+            Row(
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    feedbackIcon,
+                    contentDescription = if (message.userFeedback == 1.0f) "Feedback positif" else "Feedback négatif",
+                    tint = feedbackColor,
+                    modifier = Modifier.size(12.dp)
+                )
+                Text(
+                    text = if (message.userFeedback == 1.0f) "Utile" else "Pas utile",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = feedbackColor.copy(alpha = 0.7f)
+                )
             }
         }
     }

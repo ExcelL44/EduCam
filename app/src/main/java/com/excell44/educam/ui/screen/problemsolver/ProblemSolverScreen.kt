@@ -21,6 +21,7 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 @Composable
 fun ProblemSolverScreen(
     onNavigateBack: () -> Unit,
+    navigationViewModel: com.excell44.educam.ui.navigation.NavigationViewModel,
     viewModel: ProblemSolverViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -92,9 +93,7 @@ fun ProblemSolverScreen(
             // Nouveau bouton pour discuter avec Smarty
             com.excell44.educam.ui.components.SecondaryButton(
                 onClick = {
-                    // Navigation vers le chat Smarty - sera géré par le ViewModel parent
-                    // Pour l'instant, on utilise une approche simplifiée
-                    android.util.Log.d("ProblemSolver", "Chat button clicked - navigation will be handled by parent")
+                    navigationViewModel.navigate(com.excell44.educam.ui.navigation.NavCommand.NavigateTo(com.excell44.educam.ui.navigation.Screen.Chat.route))
                 },
                 text = "💬 Discuter avec Smarty",
                 modifier = Modifier

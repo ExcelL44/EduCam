@@ -149,7 +149,8 @@ fun NavGraph(
             ProblemSolverScreen(
                 onNavigateBack = {
                     navigationViewModel.navigate(NavCommand.PopBack)
-                }
+                },
+                navigationViewModel = navigationViewModel
             )
         }
         composable(Screen.Chat.route) {

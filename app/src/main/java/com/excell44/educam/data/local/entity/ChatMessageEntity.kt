@@ -18,7 +18,11 @@ data class ChatMessageEntity(
     val messageType: MessageType = MessageType.TEXT,
     val confidence: Float = 1.0f, // Confiance de la réponse IA (0.0-1.0)
     val contextTags: String? = null, // Tags JSON pour contexte (matière, difficulté, etc.)
-    val isLearned: Boolean = false // Si ce message vient de l'apprentissage
+    val isLearned: Boolean = false, // Si ce message vient de l'apprentissage
+
+    // Feedback utilisateur explicite (nouveau)
+    val userFeedback: Float? = null, // 1.0 = positif, 0.0 = négatif, null = pas de feedback
+    val feedbackTimestamp: Long? = null // Quand le feedback a été donné
 )
 
 /**

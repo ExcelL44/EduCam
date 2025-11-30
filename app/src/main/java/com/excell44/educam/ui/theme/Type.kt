@@ -19,38 +19,38 @@ val BacXBrandFont = FontFamily(
     )
 )
 
-// Police principale optimale pour le contenu éducatif : Inter
-// Inter est spécialement conçue pour la lisibilité sur écrans numériques
+// Police principale : Exo 2 (futuriste, moderne, professionnel)
+// Utilisée pour tout le contenu principal de l'application
 val BacXFontFamily = FontFamily(
-    // Police variable Inter - Normal
+    // Police variable Exo 2 - Normal
     Font(
-        resId = R.font.inter_variablefont_opsz_wght,
+        resId = R.font.exo2_variablefont_wght,
         weight = FontWeight.Normal,
         style = FontStyle.Normal
     ),
     Font(
-        resId = R.font.inter_variablefont_opsz_wght,
+        resId = R.font.exo2_variablefont_wght,
         weight = FontWeight.Medium,
         style = FontStyle.Normal
     ),
     Font(
-        resId = R.font.inter_variablefont_opsz_wght,
+        resId = R.font.exo2_variablefont_wght,
         weight = FontWeight.SemiBold,
         style = FontStyle.Normal
     ),
     Font(
-        resId = R.font.inter_variablefont_opsz_wght,
+        resId = R.font.exo2_variablefont_wght,
         weight = FontWeight.Bold,
         style = FontStyle.Normal
     ),
-    // Police variable Inter - Italic
+    // Police variable Exo 2 - Italic
     Font(
-        resId = R.font.inter_italic_variablefont_opsz_wght,
+        resId = R.font.exo2_italic_variablefont_wght,
         weight = FontWeight.Normal,
         style = FontStyle.Italic
     ),
     Font(
-        resId = R.font.inter_italic_variablefont_opsz_wght,
+        resId = R.font.exo2_italic_variablefont_wght,
         weight = FontWeight.Medium,
         style = FontStyle.Italic
     )

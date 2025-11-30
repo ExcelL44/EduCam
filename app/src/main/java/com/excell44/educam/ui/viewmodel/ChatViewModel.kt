@@ -25,7 +25,8 @@ data class ChatMessage(
     val timestamp: Long,
     val confidence: Float,
     val isLearned: Boolean,
-    val messageType: com.excell44.educam.data.local.entity.MessageType
+    val messageType: com.excell44.educam.data.local.entity.MessageType,
+    val userFeedback: Float? = null // Feedback utilisateur (null = pas de feedback, 1.0 = positif, 0.0 = négatif)
 )
 
 @HiltViewModel
@@ -66,7 +67,8 @@ class ChatViewModel @Inject constructor(
                                     timestamp = entity.timestamp,
                                     confidence = entity.confidence,
                                     isLearned = entity.isLearned,
-                                    messageType = entity.messageType
+                                    messageType = entity.messageType,
+                                    userFeedback = entity.userFeedback
                                 )
                             }
                             _messages.value = messages
@@ -176,6 +178,47 @@ class ChatViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     isTyping = false,
                     errorMessage = "Erreur lors de l'envoi du message"
+                )
+            }
+        }
+    }
+
+    /**
+     * Soumet le feedback utilisateur pour un message IA.
+     */
+    fun submitUserFeedback(messageId: Long, isPositive: Boolean) {
+        val userId = authStateManager.getUserId()
+        if (userId == null) {
+            Logger.w(TAG, "Cannot submit feedback: user not authenticated")
+            return
+        }
+
+        val feedback = if (isPositive) 1.0f else 0.0f
+
+        viewModelScope.launch {
+            try {
+                val updatedRows = chatDao.updateUserFeedback(messageId, feedback)
+                if (updatedRows > 0) {
+                    Logger.d(TAG, "Feedback submitted for message $messageId: ${if (isPositive) "positive" else "negative"}")
+
+                    // Mettre à jour l'UI pour refléter le feedback
+                    _messages.value = _messages.value.map { message ->
+                        if (message.id == messageId && !message.isFromUser) {
+                            message.copy(userFeedback = feedback)
+                        } else {
+                            message
+                        }
+                    }
+
+                    // Utiliser le feedback pour améliorer l'apprentissage
+                    // TODO: Intégrer avec SmartyAI pour apprentissage par renforcement
+                } else {
+                    Logger.w(TAG, "Failed to update feedback for message $messageId")
+                }
+            } catch (e: Exception) {
+                Logger.e(TAG, "Error submitting feedback", e)
+                _uiState.value = _uiState.value.copy(
+                    errorMessage = "Erreur lors de l'envoi du feedback"
                 )
             }
         }
