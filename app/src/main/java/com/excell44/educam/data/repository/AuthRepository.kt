@@ -82,8 +82,34 @@ class AuthRepository @Inject constructor(
                 // Offline account without password - should not be allowed to login this way
                 Logger.w("AuthRepository", "Login blocked: Offline account without password ($pseudo)")
                 false
+            } else if (user.salt.isEmpty()) {
+                // Legacy user without salt (pre-PBKDF2) - use fallback validation
+                Logger.w("AuthRepository", "Legacy user detected without salt ($pseudo) - using SHA-256 fallback")
+                // For backward compatibility, try SHA-256 (old method)
+                try {
+                    val md = java.security.MessageDigest.getInstance("SHA-256")
+                    val hash = md.digest(password.toByteArray()).joinToString("") { "%02x".format(it) }
+                    val isValid = user.passwordHash == hash
+                    if (isValid) {
+                        // Migrate to PBKDF2: generate salt and rehash password
+                        Logger.i("AuthRepository", "Migrating legacy user to PBKDF2 ($pseudo)")
+                        val newSalt = generateSalt()
+                        val spec = javax.crypto.spec.PBEKeySpec(password.toCharArray(), newSalt.toByteArray(), 10000, 256)
+                        val factory = javax.crypto.SecretKeyFactory.getInstance(getPBKDF2Algorithm())
+                        val newHash = factory.generateSecret(spec).encoded.joinToString("") { "%02x".format(it) }
+
+                        // Update user with new salt and hash
+                        val updatedUser = user.copy(salt = newSalt, passwordHash = newHash)
+                        userDao.insertUser(updatedUser)
+                        Logger.i("AuthRepository", "Legacy user migrated to PBKDF2 ($pseudo)")
+                    }
+                    isValid
+                } catch (e: Exception) {
+                    Logger.e("AuthRepository", "Legacy password validation failed ($pseudo)", e)
+                    false
+                }
             } else {
-                // Use PBKDF2 with stored salt
+                // Modern PBKDF2 validation with salt
                 val spec = javax.crypto.spec.PBEKeySpec(password.toCharArray(), user.salt.toByteArray(), 10000, 256)
                 val factory = javax.crypto.SecretKeyFactory.getInstance(getPBKDF2Algorithm())
                 val hash = factory.generateSecret(spec).encoded.joinToString("") { "%02x".format(it) }

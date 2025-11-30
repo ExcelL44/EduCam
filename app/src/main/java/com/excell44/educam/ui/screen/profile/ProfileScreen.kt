@@ -18,8 +18,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material3.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.excell44.educam.data.model.UserMode
+import com.excell44.educam.ui.components.BetaReferralWidget
 import com.excell44.educam.ui.components.UserModeIndicator
 import com.excell44.educam.ui.viewmodel.AuthViewModel
+import com.excell44.educam.ui.viewmodel.BetaReferralViewModel
+import com.excell44.educam.ui.viewmodel.UiState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Assessment
@@ -30,10 +33,12 @@ import androidx.compose.material.icons.filled.Check
 fun ProfileScreen(
     onNavigateToBilan: () -> Unit,
     onNavigateBack: () -> Unit,
-    viewModel: AuthViewModel = hiltViewModel()
+    viewModel: AuthViewModel = hiltViewModel(),
+    betaReferralViewModel: BetaReferralViewModel = hiltViewModel()
 ) {
     val authState by viewModel.authState.collectAsState()
     val user = (authState as? com.excell44.educam.domain.model.AuthState.Authenticated)?.user
+    val referralState by betaReferralViewModel.referralState.collectAsState()
     
     var pseudo by remember { mutableStateOf("") }
     var userMode by remember { mutableStateOf<UserMode?>(null) }
@@ -192,6 +197,40 @@ fun ProfileScreen(
             if (isAnimating) {
                 kotlinx.coroutines.delay(500)
                 isAnimating = false
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Beta Referral Widget (NOUVEAU)
+        when (val state = referralState) {
+            is UiState.Loading -> {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+            }
+            is UiState.Error -> {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Erreur: ${state.message}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            }
+            is UiState.Success -> {
+                BetaReferralWidget(
+                    status = state.data,
+                    onGiftClick = betaReferralViewModel::onGiftButtonClicked
+                )
             }
         }
 

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.excell44.educam.data.local.AppDatabase
 import com.excell44.educam.data.local.dao.AnswerDao
+import com.excell44.educam.data.local.dao.BetaReferralDao
 import com.excell44.educam.data.local.dao.QuestionDao
 import com.excell44.educam.data.local.dao.QuizDao
 import com.excell44.educam.data.local.dao.QuizResultDao
@@ -29,7 +30,8 @@ object DatabaseModule {
         .addMigrations(
             AppDatabase.MIGRATION_1_2,
             AppDatabase.MIGRATION_2_3,
-            AppDatabase.MIGRATION_3_4
+            AppDatabase.MIGRATION_3_4,
+            AppDatabase.MIGRATION_4_5
         ) // Add migrations for new fields
         .build()
     
@@ -53,6 +55,9 @@ object DatabaseModule {
 
     @Provides
     fun provideQuizSessionDao(db: AppDatabase): com.excell44.educam.data.dao.QuizSessionDao = db.quizSessionDao()
+
+    @Provides
+    fun provideBetaReferralDao(db: AppDatabase): BetaReferralDao = db.betaReferralDao()
 
     @Provides
     fun provideUserDao(db: AppDatabase): com.excell44.educam.data.dao.UserDao = db.userDao()

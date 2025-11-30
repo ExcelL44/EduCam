@@ -6,10 +6,12 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.excell44.educam.data.local.dao.AnswerDao
+import com.excell44.educam.data.local.dao.BetaReferralDao
 import com.excell44.educam.data.local.dao.QuestionDao
 import com.excell44.educam.data.local.dao.QuizDao
 import com.excell44.educam.data.local.dao.QuizResultDao
 import com.excell44.educam.data.local.entity.AnswerEntity
+import com.excell44.educam.data.local.entity.BetaReferralEntity
 import com.excell44.educam.data.local.entity.QuestionEntity
 import com.excell44.educam.data.local.entity.QuizEntity
 import com.excell44.educam.data.local.entity.QuizResultEntity
@@ -30,13 +32,14 @@ import com.excell44.educam.data.model.ProblemSolution
         QuestionEntity::class,
         AnswerEntity::class,
         QuizResultEntity::class,
+        BetaReferralEntity::class,
         Subject::class,
         QuizQuestion::class,
         QuizSession::class,
         User::class,
         ProblemSolution::class
     ],
-    version = 4, // Incremented for salt field and pseudo migration
+    version = 5, // Incremented for beta referral system
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -45,6 +48,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun questionDao(): QuestionDao
     abstract fun answerDao(): AnswerDao
     abstract fun resultDao(): QuizResultDao
+    abstract fun betaReferralDao(): BetaReferralDao
     abstract fun subjectDao(): SubjectDao
     abstract fun quizQuestionDao(): QuizQuestionDao
     abstract fun quizSessionDao(): QuizSessionDao
@@ -94,6 +98,27 @@ abstract class AppDatabase : RoomDatabase() {
                 database.execSQL("ALTER TABLE users RENAME COLUMN email TO pseudo")
                 // Add salt column for password hashing
                 database.execSQL("ALTER TABLE users ADD COLUMN salt TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        /**
+         * Migration from version 4 to 5: Add beta_referral table for referral system.
+         */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Create beta_referral table
+                database.execSQL("""
+                    CREATE TABLE beta_referral (
+                        userId TEXT PRIMARY KEY NOT NULL,
+                        referralToken TEXT NOT NULL,
+                        currentCount INTEGER NOT NULL DEFAULT 0,
+                        quota INTEGER NOT NULL DEFAULT 5,
+                        level INTEGER NOT NULL DEFAULT 1,
+                        whatsappRequestSent INTEGER NOT NULL DEFAULT 0,
+                        isActive INTEGER NOT NULL DEFAULT 1,
+                        lastUpdated INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
             }
         }
     }
