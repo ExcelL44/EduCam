@@ -59,6 +59,9 @@ fun NavGraph(
     android.util.Log.d("🟢 NAV_GRAPH", "📊 Auth state updated: isLoggedIn=$isLoggedIn, userMode=$userMode, userRole=${user?.role}")
     
     LaunchedEffect(isLoggedIn) {
+        // ✅ FIX: Small delay to ensure NavController is in stable state
+        delay(50)
+        
         val currentRoute = navController.currentDestination?.route
         android.util.Log.d("NavGraph", "🔥 Auth changed: isLoggedIn=$isLoggedIn, currentRoute=$currentRoute")
 

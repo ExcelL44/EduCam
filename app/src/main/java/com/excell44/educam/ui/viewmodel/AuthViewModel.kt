@@ -109,14 +109,20 @@ class AuthViewModel @Inject constructor(
             authRepository.login(pseudo, code)
                 .onSuccess { user ->
                     Logger.i("AuthViewModel", "Login success: ${user.id}")
-                    _authState.value = AuthState.Authenticated(user, !networkObserver.isOnline())
+                    // ✅ FIX: Update AuthState on Main thread to trigger immediate recomposition
+                    withContext(Dispatchers.Main) {
+                        _authState.value = AuthState.Authenticated(user, !networkObserver.isOnline())
+                        android.util.Log.d("🔴 DEBUG_AUTH", "✅ AuthState updated to Authenticated on MAIN thread")
+                    }
                 }
                 .onFailure { e ->
                     Logger.w("AuthViewModel", "Login failed: ${e.message}")
-                    _authState.value = AuthState.Error(
-                        message = e.message ?: "Échec de connexion",
-                        canRetry = true
-                    )
+                    withContext(Dispatchers.Main) {
+                        _authState.value = AuthState.Error(
+                            message = e.message ?: "Échec de connexion",
+                            canRetry = true
+                        )
+                    }
                 }
         }
     }
@@ -130,14 +136,19 @@ class AuthViewModel @Inject constructor(
             authRepository.register(pseudo, code, name, gradeLevel)
                 .onSuccess { user ->
                     Logger.i("AuthViewModel", "Registration success: ${user.id}")
-                    _authState.value = AuthState.Authenticated(user, !networkObserver.isOnline())
+                    // ✅ FIX: Update on Main thread
+                    withContext(Dispatchers.Main) {
+                        _authState.value = AuthState.Authenticated(user, !networkObserver.isOnline())
+                    }
                 }
                 .onFailure { e ->
                     Logger.w("AuthViewModel", "Registration failed: ${e.message}")
-                    _authState.value = AuthState.Error(
-                        message = e.message ?: "Échec d'inscription",
-                        canRetry = true
-                    )
+                    withContext(Dispatchers.Main) {
+                        _authState.value = AuthState.Error(
+                            message = e.message ?: "Échec d'inscription",
+                            canRetry = true
+                        )
+                    }
                 }
         }
     }
@@ -155,14 +166,19 @@ class AuthViewModel @Inject constructor(
             authRepository.registerOffline(pseudo, code, name, gradeLevel)
                 .onSuccess { user ->
                     Logger.i("AuthViewModel", "Offline registration success: ${user.id}")
-                    _authState.value = AuthState.Authenticated(user, isOffline = true)
+                    // ✅ FIX: Update on Main thread
+                    withContext(Dispatchers.Main) {
+                        _authState.value = AuthState.Authenticated(user, isOffline = true)
+                    }
                 }
                 .onFailure { e ->
                     Logger.w("AuthViewModel", "Offline registration failed: ${e.message}")
-                    _authState.value = AuthState.Error(
-                        message = e.message ?: "Échec d'inscription hors ligne",
-                        canRetry = true
-                    )
+                    withContext(Dispatchers.Main) {
+                        _authState.value = AuthState.Error(
+                            message = e.message ?: "Échec d'inscription hors ligne",
+                            canRetry = true
+                        )
+                    }
                 }
         }
     }
