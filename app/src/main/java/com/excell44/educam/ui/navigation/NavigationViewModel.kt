@@ -80,7 +80,9 @@ class NavigationViewModel @Inject constructor() : ViewModel() {
      * Attacher le NavController (OBLIGATOIRE avant navigation)
      */
     fun setNavController(controller: NavController) {
+        android.util.Log.d("🟠 NAVIGATION_VM", "🔗 setNavController() called - Attaching NavController")
         navController = controller
+        android.util.Log.d("🟠 NAVIGATION_VM", "✅ NavController attached successfully")
         Log.d(TAG, "NavController attached")
     }
 
@@ -90,17 +92,23 @@ class NavigationViewModel @Inject constructor() : ViewModel() {
      * @return true si acceptée, false si rejetée
      */
     fun navigate(command: NavCommand): Boolean {
+        android.util.Log.d("🟠 NAVIGATION_VM", "🧭 navigate() called with command: $command")
+
         // ✅ BARRIÈRE 1 : Vérification état
         if (_navigationState.value != NavigationState.IDLE) {
+            android.util.Log.w("🟠 NAVIGATION_VM", "⚠️ Navigation rejetée (état=${_navigationState.value}): $command")
             Log.w(TAG, "⚠️ Navigation rejetée (état=${_navigationState.value}): $command")
             return false
         }
 
         // ✅ BARRIÈRE 2 : Vérification NavController
         if (navController == null) {
+            android.util.Log.e("🟠 NAVIGATION_VM", "❌ Navigation rejetée (NavController null): $command")
             Log.e(TAG, "❌ Navigation rejetée (NavController null): $command")
             return false
         }
+
+        android.util.Log.d("🟠 NAVIGATION_VM", "✅ Navigation autorisée - NavController OK, état IDLE")
 
         // ✅ Enregistrement dans l'historique
         recordNavigation(command)
@@ -108,11 +116,14 @@ class NavigationViewModel @Inject constructor() : ViewModel() {
         // ✅ Envoi dans le canal (DROP_OLDEST si plein)
         val result = _navCommandChannel.trySend(command)
         if (result.isSuccess) {
+            android.util.Log.d("🟠 NAVIGATION_VM", "📨 Commande acceptée et envoyée dans le canal: $command")
             Log.d(TAG, "📨 Commande acceptée: $command")
         } else {
+            android.util.Log.w("🟠 NAVIGATION_VM", "⏭️ Commande remplacée (spam détecté): $command")
             Log.w(TAG, "⏭️ Commande remplacée (spam): $command")
         }
-        
+
+        android.util.Log.d("🟠 NAVIGATION_VM", "🧭 navigate() returning: ${result.isSuccess}")
         return result.isSuccess
     }
 

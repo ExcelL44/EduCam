@@ -49,28 +49,29 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun appContent() {
+    android.util.Log.d("🔴 MAIN_ACTIVITY", "🚀 appContent() STARTED - Initializing app components")
+
     val authViewModel: AuthViewModel = hiltViewModel()
     val authState by authViewModel.authState.collectAsState()
     val navController = rememberNavController()
-    
-    // Inject NetworkObserver (normally would be provided by Hilt to a ViewModel, but here we need it for UI)
-    // For simplicity in this refactor, we can get it from EntryPoint or pass it down.
-    // Ideally, MainViewModel should expose isOnline state.
-    // Let's use a quick Hilt EntryPoint workaround or better: inject into MainViewModel.
-    
+
+    android.util.Log.d("🔴 MAIN_ACTIVITY", "📱 NavController created, AuthViewModel injected")
+
     val mainViewModel: com.excell44.educam.ui.viewmodel.MainViewModel = hiltViewModel()
-    // We need to update MainViewModel to expose NetworkObserver or isOnline
-    
+    android.util.Log.d("🔴 MAIN_ACTIVITY", "📊 MainViewModel injected")
+
     // Determine start destination based on AuthState
     val startDestination = when (val state = authState) {
         is com.excell44.educam.domain.model.AuthState.Authenticated -> Screen.Home.route
         else -> Screen.Login.route
     }
-    
+
+    android.util.Log.d("🔴 MAIN_ACTIVITY", "🎯 Initial start destination calculated: $startDestination (AuthState: $authState)")
+
     // Always show splash first, then navigate based on auth state
-    
+
     LaunchedEffect(startDestination) {
-        android.util.Log.d("MainActivity", "Start Destination: $startDestination (State: $authState)")
+        android.util.Log.d("🔴 MAIN_ACTIVITY", "🔄 LaunchedEffect triggered - Start Destination: $startDestination (State: $authState)")
     }
 
     androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize()) {

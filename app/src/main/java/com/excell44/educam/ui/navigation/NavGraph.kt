@@ -42,7 +42,9 @@ fun NavGraph(
 ) {
     // Attach NavController to NavigationViewModel
     LaunchedEffect(navController) {
+        android.util.Log.d("🟢 NAV_GRAPH", "🔗 Attaching NavController to NavigationViewModel")
         navigationViewModel.setNavController(navController)
+        android.util.Log.d("🟢 NAV_GRAPH", "✅ NavController attached successfully to NavigationViewModel")
     }
 
     // Observe navigation state (optional, for debugging)
@@ -56,11 +58,11 @@ fun NavGraph(
     
     LaunchedEffect(isLoggedIn) {
         val currentRoute = navController.currentDestination?.route
-        android.util.Log.d("NavGraph", "Auth changed: isLoggedIn=$isLoggedIn, currentRoute=$currentRoute")
+        android.util.Log.d("NavGraph", "🔥 Auth changed: isLoggedIn=$isLoggedIn, currentRoute=$currentRoute")
 
         // Si user se connecte depuis n'importe quel écran d'auth → Aller à Home
         if (isLoggedIn && currentRoute in listOf(Screen.Login.route, Screen.Register.route, Screen.Splash.route)) {
-            android.util.Log.d("NavGraph", "Navigating to Home after login")
+            android.util.Log.d("NavGraph", "✅ Navigating to Home after normal login")
             navigationViewModel.navigate(
                 NavCommand.NavigateTo(
                     route = Screen.Home.route,
@@ -71,7 +73,7 @@ fun NavGraph(
         }
         // Si user se connecte depuis LoginScreen (cas Sup_Admin) → Forcer navigation vers Home
         else if (isLoggedIn && currentRoute == Screen.Login.route) {
-            android.util.Log.d("NavGraph", "Force navigating to Home after admin login")
+            android.util.Log.d("NavGraph", "🚨 FORCE NAVIGATING to Home after admin login from LoginScreen")
             navigationViewModel.navigate(
                 NavCommand.NavigateTo(
                     route = Screen.Home.route,
@@ -82,9 +84,12 @@ fun NavGraph(
         }
         // Si user se déconnecte depuis n'importe quel écran → Aller à Login
         else if (!isLoggedIn && currentRoute !in listOf(Screen.Login.route, Screen.Splash.route)) {
+            android.util.Log.d("NavGraph", "🔄 Navigating back to Login after logout")
             navigationViewModel.navigate(
                 NavCommand.NavigateAndClear(Screen.Login.route)
             )
+        } else {
+            android.util.Log.d("NavGraph", "⏭️ No navigation action needed: isLoggedIn=$isLoggedIn, route=$currentRoute")
         }
     }
 

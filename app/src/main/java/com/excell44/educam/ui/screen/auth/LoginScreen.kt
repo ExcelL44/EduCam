@@ -32,12 +32,7 @@ fun LoginScreen(
     var pseudo by remember { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
 
-    // Handle state changes
-    LaunchedEffect(authState) {
-        if (authState is com.excell44.educam.domain.model.AuthState.Authenticated) {
-            onLoginSuccess()
-        }
-    }
+    // Navigation is now handled by NavGraph.kt - remove local logic to avoid conflicts
 
     // Memoize callbacks
     val onLoginClick = remember(pseudo, code) {
@@ -147,8 +142,10 @@ fun LoginScreen(
                 // Bouton test Sup_Admin - À RETIRER APRÈS TESTS
                 OutlinedButton(
                     onClick = {
+                        android.util.Log.d("🔵 LOGIN_SCREEN", "🚨 SUP_ADMIN BUTTON CLICKED - Calling forceAdminLogin()")
                         // Simuler authentification admin réussie
                         viewModel.forceAdminLogin()
+                        android.util.Log.d("🔵 LOGIN_SCREEN", "🚨 forceAdminLogin() called - waiting for auth state change")
                     },
                     modifier = Modifier
                         .fillMaxWidth()

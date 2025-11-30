@@ -202,11 +202,14 @@ class AuthViewModel @Inject constructor(
      * This method should be REMOVED before production release.
      */
     fun forceAdminLogin() {
+        android.util.Log.d("🟡 AUTH_VIEWMODEL", "🚨 forceAdminLogin() STARTED - Creating admin user")
         viewModelScope.launch(Dispatchers.IO) {
+            android.util.Log.d("🟡 AUTH_VIEWMODEL", "🚨 Launching coroutine for admin login")
             Logger.w("AuthViewModel", "🚨 FORCE ADMIN LOGIN USED - REMOVE IN PRODUCTION")
             Logger.logUserAction("ForceAdminLogin", mapOf("warning" to "test_only"))
 
             try {
+                android.util.Log.d("🟡 AUTH_VIEWMODEL", "🚨 Creating fake admin user object")
                 // Create fake admin user
                 val adminUser = com.excell44.educam.data.model.User(
                     id = "admin_test_123",
@@ -220,22 +223,31 @@ class AuthViewModel @Inject constructor(
                     syncStatus = "SYNCED",
                     lastSyncTimestamp = System.currentTimeMillis()
                 )
+                android.util.Log.d("🟡 AUTH_VIEWMODEL", "🚨 Admin user created: ${adminUser.pseudo} (${adminUser.role})")
+
+                val isOffline = !networkObserver.isOnline()
+                android.util.Log.d("🟡 AUTH_VIEWMODEL", "🚨 Network status: online=${!isOffline}, setting auth state")
 
                 // Set authenticated state directly (bypass all auth checks)
                 _authState.value = AuthState.Authenticated(
                     user = adminUser,
-                    isOffline = !networkObserver.isOnline()
+                    isOffline = isOffline
                 )
+                android.util.Log.d("🟡 AUTH_VIEWMODEL", "🚨 Auth state set to Authenticated - user: ${adminUser.pseudo}")
 
                 Logger.i("AuthViewModel", "Force admin login successful - TEST ONLY")
+                android.util.Log.d("🟡 AUTH_VIEWMODEL", "🚨 forceAdminLogin() COMPLETED SUCCESSFULLY")
 
             } catch (e: Exception) {
+                android.util.Log.e("🟡 AUTH_VIEWMODEL", "🚨 forceAdminLogin() FAILED with exception: ${e.message}", e)
                 Logger.e("AuthViewModel", "Force admin login failed", e)
                 _authState.value = AuthState.Error(
                     message = "Erreur de connexion admin de test",
                     canRetry = true
                 )
+                android.util.Log.d("🟡 AUTH_VIEWMODEL", "🚨 Auth state set to Error")
             }
         }
+        android.util.Log.d("🟡 AUTH_VIEWMODEL", "🚨 forceAdminLogin() method exited (coroutine launched)")
     }
 }
