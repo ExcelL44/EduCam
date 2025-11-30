@@ -12,7 +12,10 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 
 data class QuizUiState(
@@ -82,41 +85,34 @@ class QuizViewModel @Inject constructor(
     fun startQuiz(perQuestionTimerSeconds: Int = 30, totalDurationSeconds: Int = 180) {
         val state = _uiState.value
         
-        // Check Guest mode restrictions
-        if (authStateManager.getAccountType() == "GUEST") {
-            val remaining = authStateManager.getGuestAttemptsRemaining()
-            if (remaining <= 0) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Mode Invité: Vous avez épuisé vos 3 essais. Créez un compte pour continuer."
-                )
-                return
-            }
-        }
-        
-        // Check Passive mode (Trial) restrictions
-        if (authStateManager.getAccountType() == "TRIAL") {
-            if (authStateManager.isTrialExpired()) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Mode Passif: Votre période d'essai de 7 jours a expiré. Activez votre compte."
-                )
-                return
-            }
-        }
-        
-        // determine effective user id (allow guest mode)
-        val effectiveUserId: String? = authStateManager.getUserId() ?: run {
-            if (authStateManager.getAccountType() == "GUEST") {
-                authStateManager.setGuestMode()
-                authStateManager.getUserId()
-            } else null
-        }
+        // ✅ TRIAL users: Limited to 3 quizzes per day (freemium strategy)
+        val accountType = authStateManager.getAccountType()
+        val effectiveUserId: String? = authStateManager.getUserId()
         if (effectiveUserId == null) return
-        val subject = state.selectedSubject ?: return
-        val mode = state.selectedMode ?: QuizMode.FAST
-
+        
         viewModelScope.launch {
+            // Check TRIAL limits before starting quiz
+            if (accountType == "PASSIVE") {
+                try {
+                    val quizzesToday = getQuizCountToday(effectiveUserId)
+                    if (quizzesToday >= 3) {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            errorMessage = "Limite de 3 quiz atteinte aujourd'hui. Passez Premium pour un accès illimité ! 🚀"
+                        )
+                        Logger.w("QuizViewModel", "TRIAL user hit daily quiz limit: $effectiveUserId ($quizzesToday/3)")
+                        return@launch
+                    }
+                    Logger.d("QuizViewModel", "TRIAL user: $quizzesToday/3 quizzes today")
+                } catch (e: Exception) {
+                    Logger.e("QuizViewModel", "Error checking quiz limit", e)
+                    // En cas d'erreur, autoriser (graceful degradation)
+                }
+            }
+            
+            val subject = state.selectedSubject ?: return@launch
+            val mode = state.selectedMode ?: QuizMode.FAST
+
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
                 // Créer une session
@@ -231,9 +227,8 @@ class QuizViewModel @Inject constructor(
                 }
             }
 
-            if (authStateManager.getAccountType() == "GUEST") {
-                authStateManager.decrementGuestAttempts()
-            }
+            // ✅ REMOVED: No more attempt counting for any user type
+            // All users (ADMIN, BETA_T, ACTIVE, TRIAL) have unlimited access
         } else {
             val nextIndex = currentIndex + 1
             _uiState.value = _uiState.value.copy(
@@ -262,19 +257,41 @@ class QuizViewModel @Inject constructor(
         )
     }
 
-    fun guestAttemptsRemaining(): Int {
-        return authStateManager.getGuestAttemptsRemaining()
-    }
-
-    fun isGuestMode(): Boolean = authStateManager.getAccountType() == "GUEST"
+    // ✅ REMOVED: All GUEST-related functions (guestAttemptsRemaining, isGuestMode, hint limits)
+    // All users now have unlimited access and hints
 
     fun canShowHint(): Boolean {
-        return if (isGuestMode()) hintsUsed < guestHintLimit else true
+        // ✅ SIMPLIFIED: All users have unlimited hints
+        return true
     }
 
     fun recordHintUsed() {
-        hintsUsed++
+        // ✅ REMOVED: No more hint counting for any user type
+        // hintsUsed++ // No longer needed
     }
+
+    /**
+     * Get quiz count for today (TRIAL limit enforcement)
+     */
+    private suspend fun getQuizCountToday(userId: String): Int {
+        return withContext(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val today = java.time.LocalDate.now()
+                val startOfDay = today.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+                
+                val sessions = quizRepository.getSessionsByUser(userId).first()
+                val completedToday = sessions.count { session ->
+                    session.startTime >= startOfDay && session.isCompleted
+                }
+                
+                completedToday
+            } catch (e: Exception) {
+                Logger.e("QuizViewModel", "Error counting quizzes for today", e)
+                0 // En cas d'erreur, autoriser (graceful degradation)
+            }
+        }
+    }
+
 
     /**
      * Pause the current quiz: persist partial progress into session.detailsJson

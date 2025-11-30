@@ -54,25 +54,24 @@ fun ProfileScreen(
             // Derive pseudo from pseudo field (contains email format)
             pseudo = user.pseudo.substringBefore("@")
         } else {
-            userMode = UserMode.GUEST
-            pseudo = "Invité"
+            userMode = UserMode.TRIAL  // Default fallback since GUEST is removed
+            pseudo = "Utilisateur"
         }
     }
 
-    val isReadOnly = userMode == UserMode.GUEST
+    val isTrial = userMode == UserMode.TRIAL
+    val isReadOnly = isTrial // Trial users have limited access
     val context = LocalContext.current
 
     // Fetch trial and guest info from AuthStateManager
     val authStateManager = remember { com.excell44.educam.util.AuthStateManager(context) }
-    val guestAttemptsRemaining = remember { mutableStateOf(authStateManager.getGuestAttemptsRemaining()) }
-    val trialStartDate = remember { mutableStateOf(authStateManager.getTrialStartDate()) }
 
-    // Calculate days remaining for trial
-    val daysRemaining = if (trialStartDate.value > 0L) {
-        val elapsed = System.currentTimeMillis() - trialStartDate.value
-        val daysElapsed = elapsed / (24 * 60 * 60 * 1000L)
-        (7 - daysElapsed).coerceAtLeast(0)
-    } else 7L
+    // Calculate days remaining for trial from User.trialExpiresAt
+    val daysRemaining = user?.trialExpiresAt?.let { expiresAt ->
+        val remaining = expiresAt - System.currentTimeMillis()
+        val daysLeft = (remaining / (24 * 60 * 60 * 1000L)).coerceAtLeast(0)
+        daysLeft
+    } ?: 0L
 
     Scaffold(
         topBar = {
@@ -293,14 +292,6 @@ fun ProfileScreen(
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                     )
                 }
-            }
-            UserMode.GUEST -> {
-                // Display attempts remaining
-                Text(
-                    text = "Essais restants: ${guestAttemptsRemaining.value}/3",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (guestAttemptsRemaining.value == 0) Color(0xFFFF6B6B) else MaterialTheme.colorScheme.onSurface
-                )
             }
             UserMode.ADMIN -> {
                 // Admin capabilities

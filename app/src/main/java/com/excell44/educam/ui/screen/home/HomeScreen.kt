@@ -52,8 +52,13 @@ fun HomeScreen(
     val homeState by homeViewModel.uiState.collectAsState()
     val authState by authViewModel.authState.collectAsState()
     val user = (authState as? com.excell44.educam.domain.model.AuthState.Authenticated)?.user
-    val isGuest = user?.role == "GUEST" || user == null
+
+    // ✅ UPDATED: Profile-based access control
+    val userMode = user?.getUserMode()
     val isAdmin = user?.role == "ADMIN"
+    val isTrial = userMode == com.excell44.educam.data.model.UserMode.TRIAL
+    val isActive = userMode == com.excell44.educam.data.model.UserMode.ACTIVE
+    val isBetaT = userMode == com.excell44.educam.data.model.UserMode.BETA_T
     var showLockedDialog by remember { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
 
@@ -136,27 +141,27 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Subjects Card
+        // Subjects Card - DISABLED for TRIAL users
         FeatureCard(
             title = "Banque de Sujets",
             description = "Accédez à une collection de sujets corrigés",
             icon = Icons.Outlined.MenuBook,
             onClick = { homeViewModel.submitAction(HomeAction.NavigateToSubjects) },
             modifier = Modifier.fillMaxWidth(),
-            enabled = !isGuest,
+            enabled = !isTrial, // TRIAL users cannot access
             onLockedClick = { showLockedDialog = true }
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Problem Solver Card (Smarty)
+        // Problem Solver Card (Smarty) - DISABLED for TRIAL users
         FeatureCard(
             title = "Smarty IA",
             description = "Résout vos exercices avec l'IA en un clin d'œil",
             icon = Icons.Default.CameraAlt,
             onClick = { homeViewModel.submitAction(HomeAction.NavigateToProblemSolver) },
             modifier = Modifier.fillMaxWidth(),
-            enabled = !isGuest,
+            enabled = !isTrial, // TRIAL users cannot access
             onLockedClick = { showLockedDialog = true }
         )
 
@@ -208,18 +213,43 @@ fun HomeScreen(
     if (showLockedDialog) {
         AlertDialog(
             onDismissRequest = { showLockedDialog = false },
-            title = { Text("Fonctionnalité réservée") },
-            text = { Text("Cette fonctionnalité est réservée aux utilisateurs inscrits. Voulez-vous créer un compte ?") },
+            title = { Text("Fonctionnalité Premium 🌟") },
+            text = {
+                Text(
+                    if (isTrial) {
+                        "Cette fonctionnalité n'est disponible que pour les utilisateurs Premium.\n\n" +
+                        "💎 Passez Premium pour seulement 2500 FCFA/mois et débloquez :\n" +
+                        "• Smarty IA - Résolution d'exercices\n" +
+                        "• Banque de sujets corrigés\n" +
+                        "• Quiz illimités\n" +
+                        "• Support prioritaire"
+                    } else {
+                        "Cette fonctionnalité est réservée aux utilisateurs premium. Voulez-vous passer à un abonnement ?"
+                    }
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     showLockedDialog = false
-                    // navigate to register
-                    // using nav from params isn't available here, so call onNavigateToProfile as a conservative path
+                    // ✅ Track conversion attempt
+                    com.excell44.educam.util.Logger.i(
+                        "HomeScreen", 
+                        "User clicked upgrade button (TRIAL -> Premium conversion attempt)"
+                    )
+                    // Navigate to profile for upgrade options
                     homeViewModel.submitAction(HomeAction.NavigateToProfile)
-                }) { Text("S'inscrire") }
+                }) {
+                    Text(if (isTrial) "Passer Premium (2500 FCFA/mois)" else "Voir les options")
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showLockedDialog = false }) { Text("Fermer") }
+                TextButton(onClick = { 
+                    showLockedDialog = false
+                    // ✅ Track dismissal
+                    com.excell44.educam.util.Logger.d("HomeScreen", "User dismissed premium upgrade dialog")
+                }) { 
+                    Text("Plus tard") 
+                }
             }
         )
     }

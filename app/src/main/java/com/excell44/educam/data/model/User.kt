@@ -21,26 +21,20 @@ data class User(
     val lastSyncTimestamp: Long = 0L // Track when user was last synced to server
 ) {
     /**
-     * Get the current user mode based on role and sync status.
+     * Get the current user mode based on role.
+     * Hierarchy: ADMIN → BETA_T → ACTIVE → TRIAL
+     * - ADMIN: Full admin privileges
+     * - BETA_T: Beta tester privileges (activated via network by admin)
      * - ACTIVE: Fully registered, synced account (online or cached)
-     * - PASSIVE: Trial/unsynced account (24h limit)
-     * - ADMIN: Admin account with special privileges
+     * - TRIAL: Trial/unsynced account (PASSIVE role)
      */
     fun getUserMode(): UserMode {
         return when {
             role == "ADMIN" -> UserMode.ADMIN
+            role == "BETA_T" -> UserMode.BETA_T
             role == "ACTIVE" -> UserMode.ACTIVE
-            role == "PASSIVE" -> {
-                // Check if 24h trial has expired
-                val now = System.currentTimeMillis()
-                if (trialExpiresAt != null && now < trialExpiresAt) {
-                    UserMode.TRIAL
-                } else {
-                    // Trial expired - need sync or payment
-                    UserMode.GUEST
-                }
-            }
-            else -> UserMode.GUEST
+            role == "PASSIVE" -> UserMode.TRIAL
+            else -> UserMode.TRIAL // Default fallback
         }
     }
     

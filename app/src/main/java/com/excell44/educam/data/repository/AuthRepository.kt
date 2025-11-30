@@ -245,8 +245,9 @@ class AuthRepository @Inject constructor(
             val factory = javax.crypto.SecretKeyFactory.getInstance(getPBKDF2Algorithm())
             val passwordHash = factory.generateSecret(spec).encoded.joinToString("") { "%02x".format(it) }
 
-            // Create offline user with 24-hour trial (PASSIVE role)
-            val trialDuration = 24L * 60 * 60 * 1000 // 24 hours in millis
+            // Create offline user with 7-day trial (PASSIVE role)
+            val TRIAL_DURATION_MILLIS = 7L * 24 * 60 * 60 * 1000 // 7 days in millis
+            val trialDuration = TRIAL_DURATION_MILLIS
             val user = User(
                 id = UUID.randomUUID().toString(),
                 pseudo = pseudo,

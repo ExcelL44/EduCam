@@ -37,41 +37,12 @@ class AuthStateManager @Inject constructor(
         getUserId() != null
     }
 
-    // Account type: ACTIVE, PASSIVE, GUEST, BETA
+    // Account type: ACTIVE, PASSIVE, BETA_T, ADMIN
     fun saveAccountType(type: String) {
         prefs.edit().putString("account_type", type).apply()
     }
 
-    fun getAccountType(): String = prefs.getString("account_type", "GUEST") ?: "GUEST"
-
-    // Guest attempts (3 by default)
-    fun getGuestAttemptsRemaining(): Int {
-        return prefs.getInt("guest_attempts_remaining", 3)
-    }
-
-    fun resetGuestAttempts() {
-        prefs.edit().putInt("guest_attempts_remaining", 3).apply()
-    }
-
-    fun decrementGuestAttempts(): Int {
-        val remain = getGuestAttemptsRemaining()
-        val next = if (remain > 0) remain - 1 else 0
-        prefs.edit().putInt("guest_attempts_remaining", next).apply()
-        return next
-    }
-
-    fun setGuestMode() {
-        saveAccountType("GUEST")
-        // generate a temporary guest id
-        val guestId = prefs.getString("user_id", null) ?: "guest_${System.currentTimeMillis()}"
-        saveUserId(guestId)
-    }
-
-    fun clearGuestMode() {
-        clearUserId()
-        saveAccountType("GUEST")
-        resetGuestAttempts()
-    }
+    fun getAccountType(): String = prefs.getString("account_type", "PASSIVE") ?: "PASSIVE"
 
     // Phone -> account count (to limit 3 accounts per phone)
     fun incAccountsForPhone(phone: String) {
@@ -108,5 +79,3 @@ class AuthStateManager @Inject constructor(
         return (System.currentTimeMillis() - start) > sevenDaysMillis
     }
 }
-
-

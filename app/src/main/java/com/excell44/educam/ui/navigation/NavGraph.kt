@@ -53,8 +53,12 @@ fun NavGraph(
     // ✅ PHASE 2.3: SINGLE SOURCE OF TRUTH - Navigation Auth Centralisée
     // ✅ PHASE 2.3: SINGLE SOURCE OF TRUTH - Navigation Auth Centralisée
     val authState by authViewModel.authState.collectAsState()
-    
+
     val isLoggedIn = authState is com.excell44.educam.domain.model.AuthState.Authenticated
+    val user = (authState as? com.excell44.educam.domain.model.AuthState.Authenticated)?.user
+    val userMode = user?.getUserMode()
+    val isTrial = userMode == com.excell44.educam.data.model.UserMode.TRIAL
+    val isAdmin = user?.role == "ADMIN"
     
     LaunchedEffect(isLoggedIn) {
         val currentRoute = navController.currentDestination?.route
