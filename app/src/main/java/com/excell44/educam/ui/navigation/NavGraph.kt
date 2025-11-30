@@ -58,13 +58,24 @@ fun NavGraph(
         val currentRoute = navController.currentDestination?.route
         android.util.Log.d("NavGraph", "Auth changed: isLoggedIn=$isLoggedIn, currentRoute=$currentRoute")
 
-        // Si user se connecte depuis Login/Register/Splash → Aller à Home
+        // Si user se connecte depuis n'importe quel écran d'auth → Aller à Home
         if (isLoggedIn && currentRoute in listOf(Screen.Login.route, Screen.Register.route, Screen.Splash.route)) {
             android.util.Log.d("NavGraph", "Navigating to Home after login")
             navigationViewModel.navigate(
                 NavCommand.NavigateTo(
                     route = Screen.Home.route,
                     popUpTo = Screen.Splash.route,
+                    inclusive = true
+                )
+            )
+        }
+        // Si user se connecte depuis LoginScreen (cas Sup_Admin) → Forcer navigation vers Home
+        else if (isLoggedIn && currentRoute == Screen.Login.route) {
+            android.util.Log.d("NavGraph", "Force navigating to Home after admin login")
+            navigationViewModel.navigate(
+                NavCommand.NavigateTo(
+                    route = Screen.Home.route,
+                    popUpTo = Screen.Login.route,
                     inclusive = true
                 )
             )
