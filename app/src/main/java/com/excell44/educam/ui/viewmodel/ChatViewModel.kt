@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.excell44.educam.data.ai.SmartyAI
 import com.excell44.educam.data.local.dao.ChatMessageDao
-import com.excell44.educam.ui.screen.chat.ChatMessage
 import com.excell44.educam.util.AuthStateManager
 import com.excell44.educam.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,6 +15,17 @@ import javax.inject.Inject
 data class ChatUiState(
     val isTyping: Boolean = false,
     val errorMessage: String? = null
+)
+
+// UI model for chat messages
+data class ChatMessage(
+    val id: Long,
+    val content: String,
+    val isFromUser: Boolean,
+    val timestamp: Long,
+    val confidence: Float,
+    val isLearned: Boolean,
+    val messageType: com.excell44.educam.data.local.entity.MessageType
 )
 
 @HiltViewModel

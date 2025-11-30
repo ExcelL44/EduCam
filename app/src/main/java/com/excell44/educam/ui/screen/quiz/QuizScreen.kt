@@ -55,7 +55,7 @@ fun QuizScreen(
             },
             text = {
                 Text(
-                    text = "Votre progression sera sauvegardée. Voulez-vous vraiment quitter ce quiz ?",
+                    text = "Votre progression sera perdue. Êtes-vous sûr de vouloir annuler ce quiz ?",
                     style = MaterialTheme.typography.bodyLarge
                 )
             },
