@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.excell44.educam.ui.components.PrimaryButton
+import com.excell44.educam.ui.util.screenPadding
 
 // --- Data Models ---
 
@@ -119,6 +120,7 @@ fun SubjectsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .screenPadding()  // ✅ Évite les barres système (status + navigation + clavier)
                 .padding(16.dp)
         ) {
             val isWideScreen = maxWidth > 600.dp

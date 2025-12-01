@@ -13,6 +13,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.excell44.educam.ui.viewmodel.LocalDatabaseViewModel
+import com.excell44.educam.ui.util.screenPadding
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,6 +39,7 @@ fun LocalDatabaseScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .screenPadding()  // ✅ Évite les barres système (status + navigation + clavier)
                 .padding(24.dp)
         ) {
             Text(

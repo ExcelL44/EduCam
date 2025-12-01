@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.excell44.educam.data.local.entity.MessageType
 import com.excell44.educam.util.Logger
+import com.excell44.educam.ui.util.screenPadding
 import kotlinx.coroutines.launch
 
 /**

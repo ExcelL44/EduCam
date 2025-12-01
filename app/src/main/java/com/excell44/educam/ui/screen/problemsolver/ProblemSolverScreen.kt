@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.excell44.educam.ui.util.screenPadding
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 
 @Composable
@@ -48,6 +49,7 @@ fun ProblemSolverScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .screenPadding()  // ✅ Évite les barres système (status + navigation + clavier)
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)

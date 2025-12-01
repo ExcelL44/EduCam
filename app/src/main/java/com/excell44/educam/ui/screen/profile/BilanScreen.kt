@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import com.excell44.educam.ui.util.screenPadding
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -21,6 +22,7 @@ fun BilanScreen(onNavigateBack: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .screenPadding()  // ✅ Évite les barres système (status + navigation + clavier)
             .verticalScroll(androidx.compose.foundation.rememberScrollState())
             .padding(24.dp)
     ) {

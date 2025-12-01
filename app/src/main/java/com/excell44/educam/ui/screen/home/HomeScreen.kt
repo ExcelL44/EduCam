@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.excell44.educam.ui.viewmodel.AuthViewModel
 import com.excell44.educam.ui.viewmodel.AuthAction
+import com.excell44.educam.ui.util.screenPadding
 
 import com.excell44.educam.ui.base.UiAction
 import com.excell44.educam.ui.base.UiState
@@ -66,6 +67,7 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .screenPadding()  // ✅ Évite les barres système (status + navigation + clavier)
             .verticalScroll(rememberScrollState())
             .padding(24.dp)
     ) {

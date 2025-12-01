@@ -59,26 +59,32 @@ fun NavGraph(
 
     android.util.Log.d("🟢 NAV_GRAPH", "📊 Auth state updated: isLoggedIn=$isLoggedIn, userMode=$userMode, userRole=${user?.role}")
     
+    // ✅ NAVIGATION IMMEDIATE sur changement d'état d'authentification
     LaunchedEffect(isLoggedIn) {
-        // ✅ FIX: Small delay to ensure NavController is in stable state
-        delay(50L)
-        
         val currentRoute = navController.currentDestination?.route
-        android.util.Log.d("NavGraph", "🔥 Auth changed: isLoggedIn=$isLoggedIn, currentRoute=$currentRoute")
+        android.util.Log.d("NavGraph", "🔥 Auth state changed: isLoggedIn=$isLoggedIn, currentRoute=$currentRoute, authState=${authState::class.simpleName}")
+
+        // ⚠️ CRITICAL: Attendre que NavController soit prêt avant de naviguer
+        // Mais pas de delay arbitraire - vérifier l'état réel
+        if (navController.currentBackStackEntry == null) {
+            android.util.Log.w("NavGraph", "⚠️ NavController not ready yet - waiting for next auth state change")
+            return@LaunchedEffect
+        }
 
         // Si user se connecte depuis n'importe quel écran d'auth → Aller à Home
         if (isLoggedIn && currentRoute in listOf(Screen.Login.route, Screen.Register.route, Screen.Splash.route)) {
-            android.util.Log.d("NavGraph", "✅ Navigating to Home after login")
+            android.util.Log.d("NavGraph", "✅ Navigating to Home after login (immediate)")
             navigationViewModel.navigate(
                 NavCommand.NavigateTo(
                     route = Screen.Home.route,
-                    popUpTo = Screen.Splash.route,
-                    inclusive = true
+                    popUpTo = Screen.Login.route, // ✅ FIX: Pop jusqu'au Login au lieu de Splash
+                    inclusive = true,
+                    singleTop = true // ✅ FIX: Empêcher de multiples instances de Home
                 )
             )
         }
         // Si user se déconnecte depuis n'importe quel écran → Aller à Login
-        else if (!isLoggedIn && currentRoute !in listOf(Screen.Login.route, Screen.Splash.route)) {
+        else if (!isLoggedIn && currentRoute !in listOf(Screen.Login.route, Screen.Register.route, Screen.Splash.route)) {
             android.util.Log.d("NavGraph", "🔄 Navigating back to Login after logout")
             navigationViewModel.navigate(
                 NavCommand.NavigateAndClear(Screen.Login.route)

@@ -36,9 +36,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.Icon
+import com.excell44.educam.ui.util.screenPadding
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -125,7 +125,7 @@ fun RegisterScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .imePadding()
+            .screenPadding()  // ✅ Évite les barres système (status + navigation + clavier)
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
