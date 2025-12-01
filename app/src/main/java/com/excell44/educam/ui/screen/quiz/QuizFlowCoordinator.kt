@@ -2,8 +2,20 @@ package com.excell44.educam.ui.screen.quiz
 
 import androidx.compose.runtime.*
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import com.excell44.educam.data.model.QuizMode
 import java.util.UUID
+
+enum class QuizStep {
+    MENU,
+    CONFIGURATION,
+    EXECUTION,
+    EVALUATION,
+    RESULTS
+}
 
 /**
  * Coordinateur principal du flux Quiz
