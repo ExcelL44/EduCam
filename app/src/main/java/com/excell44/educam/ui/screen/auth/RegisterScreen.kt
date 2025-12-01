@@ -178,9 +178,9 @@ fun RegisterScreen(
                 if (isLargeScreen) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         StepIndicator(number = 1, label = "Infos perso", active = step == 1)
-                        Divider(modifier = Modifier.weight(1f).align(Alignment.CenterVertically).padding(horizontal = 8.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                        HorizontalDivider(modifier = Modifier.weight(1f).align(Alignment.CenterVertically).padding(horizontal = 8.dp), color = MaterialTheme.colorScheme.surfaceVariant)
                         StepIndicator(number = 2, label = "Parent/Tutor", active = step == 2)
-                        Divider(modifier = Modifier.weight(1f).align(Alignment.CenterVertically).padding(horizontal = 8.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                        HorizontalDivider(modifier = Modifier.weight(1f).align(Alignment.CenterVertically).padding(horizontal = 8.dp), color = MaterialTheme.colorScheme.surfaceVariant)
                         StepIndicator(number = 3, label = "Revue & Paiement", active = step == 3)
                     }
                 } else {
@@ -243,7 +243,7 @@ fun RegisterScreen(
                                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = classExpanded) },
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .menuAnchor()
+                                        .menuAnchor(type = MenuAnchorType.Primary, enabled = true)
                                         .clickable { classExpanded = !classExpanded },
                                     colors = OutlinedTextFieldDefaults.colors(
                                         unfocusedBorderColor = getFieldColor(classTouched, isClassValid)
@@ -414,7 +414,7 @@ fun RegisterScreen(
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = classExpanded) },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .menuAnchor()
+                                    .menuAnchor(type = MenuAnchorType.Primary, enabled = true)
                                     .clickable { classExpanded = !classExpanded },
                                 colors = OutlinedTextFieldDefaults.colors(
                                     unfocusedBorderColor = getFieldColor(classTouched, isClassValid)
@@ -575,7 +575,7 @@ fun RegisterScreen(
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = relationExpanded) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor()
+                                .menuAnchor(type = MenuAnchorType.Primary, enabled = true)
                                 .clickable { relationExpanded = !relationExpanded }
                         )
                         ExposedDropdownMenu(

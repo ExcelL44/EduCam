@@ -2,10 +2,12 @@ package com.excell44.educam.ui.screen.quiz
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.excell44.educam.data.dao.QuizQuestionDao
+import com.excell44.educam.data.dao.QuizSessionDao
 import com.excell44.educam.data.model.Difficulty
 import com.excell44.educam.data.model.QuizMode
 import com.excell44.educam.data.model.QuizQuestion
-import com.excell44.educam.data.repository.QuizRepository
+import com.excell44.educam.data.model.QuizSession
 import com.excell44.educam.util.AuthStateManager
 import com.excell44.educam.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -69,7 +71,8 @@ data class AnswerDetail(
 
 @HiltViewModel
 class QuizViewModel @Inject constructor(
-    private val quizRepository: QuizRepository,
+    private val quizQuestionDao: QuizQuestionDao,
+    private val quizSessionDao: QuizSessionDao,
     private val authStateManager: AuthStateManager
 ) : ViewModel() {
 
@@ -128,7 +131,13 @@ class QuizViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
                 // Créer une session
-                val session = quizRepository.createSession(effectiveUserId, mode, subject)
+                val session = QuizSession(
+                    id = java.util.UUID.randomUUID().toString(),
+                    userId = effectiveUserId,
+                    mode = mode,
+                    subject = subject
+                )
+                quizSessionDao.insertSession(session)
                 currentSession = session
                 // reset per-quiz accumulators
                 answerDetails.clear()
@@ -136,11 +145,7 @@ class QuizViewModel @Inject constructor(
 
                 // Charger les questions (adaptatif selon le mode)
                 val questionCount = if (mode == QuizMode.FAST) 10 else 20
-                val questions = quizRepository.getQuestions(
-                    subject = subject,
-                    gradeLevel = "Terminale", // À récupérer depuis le profil utilisateur
-                    count = questionCount
-                )
+                val questions = quizQuestionDao.getRandomQuestions(subject, "Terminale", questionCount)
 
                 if (questions.isNotEmpty()) {
                     _uiState.value = _uiState.value.copy(
@@ -233,7 +238,7 @@ class QuizViewModel @Inject constructor(
                             isCompleted = true,
                             detailsJson = arr.toString()
                         )
-                        quizRepository.updateSession(updated)
+                    quizSessionDao.updateSession(updated)
                     }
                 } catch (_: Exception) {
                 }
@@ -290,12 +295,12 @@ class QuizViewModel @Inject constructor(
             try {
                 val today = java.time.LocalDate.now()
                 val startOfDay = today.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
-                
-                val sessions = quizRepository.getSessionsByUser(userId).first()
+
+                val sessions = quizSessionDao.getSessionsByUser(userId).first()
                 val completedToday = sessions.count { session ->
                     session.startTime >= startOfDay && session.isCompleted
                 }
-                
+
                 completedToday
             } catch (e: Exception) {
                 Logger.e("QuizViewModel", "Error counting quizzes for today", e)
@@ -332,7 +337,7 @@ class QuizViewModel @Inject constructor(
                         detailsJson = wrapper.toString(),
                         isCompleted = false
                     )
-                    quizRepository.updateSession(updated)
+                    quizSessionDao.updateSession(updated)
                     // update UI state
                     _uiState.value = _uiState.value.copy(isQuizStarted = false, isPaused = true, isLoading = false)
                 }
@@ -347,7 +352,7 @@ class QuizViewModel @Inject constructor(
     fun resumeSession(sessionId: String) {
         viewModelScope.launch {
             try {
-                val sess = quizRepository.getSessionById(sessionId) ?: return@launch
+                val sess = quizSessionDao.getSessionById(sessionId) ?: return@launch
                 currentSession = sess
                 // attempt to parse details
                 val details = sess.detailsJson
@@ -380,10 +385,10 @@ class QuizViewModel @Inject constructor(
 
                 // reload questions for the session
                 val questionCount = if (sess.mode == com.excell44.educam.data.model.QuizMode.FAST) 10 else 20
-                val questions = quizRepository.getQuestions(
-                    subject = sess.subject ?: "",
-                    gradeLevel = "Terminale",
-                    count = questionCount
+                val questions = quizQuestionDao.getRandomQuestions(
+                    sess.subject ?: "",
+                    "Terminale",
+                    questionCount
                 )
                 if (questions.isNotEmpty()) {
                     val idx = resumeIndex.coerceIn(0, questions.size - 1)
@@ -442,7 +447,7 @@ class QuizViewModel @Inject constructor(
                         endTime = System.currentTimeMillis(),
                         score = state.score
                     )
-                    quizRepository.updateSession(updated)
+                    quizSessionDao.updateSession(updated)
 
                     Logger.i("QuizViewModel", "Quiz cancelled - session ${session.id} saved with partial progress")
                 }
@@ -486,7 +491,7 @@ class QuizViewModel @Inject constructor(
                         isCompleted = true,
                         detailsJson = arr.toString()
                     )
-                    quizRepository.updateSession(updated)
+                    quizSessionDao.updateSession(updated)
                     Logger.i("QuizViewModel", "Quiz results submitted successfully: $score/$totalQuestions")
                 }
             } catch (e: Exception) {

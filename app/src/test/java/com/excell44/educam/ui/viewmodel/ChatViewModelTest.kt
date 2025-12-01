@@ -6,6 +6,7 @@ import com.excell44.educam.data.local.entity.MessageType
 import com.excell44.educam.util.AuthStateManager
 import com.excell44.educam.util.Logger
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
@@ -22,6 +23,7 @@ import org.junit.After
  * Tests d'intégration pour ChatViewModel
  * Teste l'interaction entre l'UI et la logique IA
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModelTest {
 
     @Mock
@@ -64,20 +66,20 @@ class ChatViewModelTest {
         )
 
         whenever(authStateManager.getUserId()).thenReturn(userId)
-        whenever(smartyAI.generateResponse(userId, userMessage)).thenReturn(aiResponse)
+        whenever(smartyAI.generateResponse(eq(userId), eq(userMessage))).thenReturn(aiResponse)
 
         // When
         chatViewModel.sendMessage(userMessage)
 
         // Then
-        verify(smartyAI).saveChatMessage(userId, userMessage, true, 1.0f)
-        verify(smartyAI).generateResponse(userId, userMessage)
-        verify(smartyAI).saveChatMessage(userId, aiResponse.message, false, aiResponse.confidence, any<MessageType>(), null, aiResponse.isLearned)
+        verify(smartyAI).saveChatMessage(eq(userId), eq(userMessage), eq(true), eq(1.0f))
+        verify(smartyAI).generateResponse(eq(userId), eq(userMessage))
+        verify(smartyAI).saveChatMessage(eq(userId), eq(aiResponse.message), eq(false), eq(aiResponse.confidence), any<MessageType>(), eq(null), eq(aiResponse.isLearned))
         verify(smartyAI).learnFromInteraction(
-            userId = userId,
-            userMessage = userMessage,
-            aiResponse = aiResponse.message,
-            subject = aiResponse.subject
+            userId = eq(userId),
+            userMessage = eq(userMessage),
+            aiResponse = eq(aiResponse.message),
+            subject = eq(aiResponse.subject)
         )
     }
 
@@ -114,14 +116,14 @@ class ChatViewModelTest {
         val userId = "test_user"
         val userMessage = "Test message"
         whenever(authStateManager.getUserId()).thenReturn(userId)
-        whenever(smartyAI.generateResponse(userId, userMessage))
+        whenever(smartyAI.generateResponse(eq(userId), eq(userMessage)))
             .thenThrow(RuntimeException("AI Error"))
 
         // When
         chatViewModel.sendMessage(userMessage)
 
         // Then - vérifie que l'UI est mise à jour malgré l'erreur
-        verify(smartyAI).saveChatMessage(userId, userMessage, true, 1.0f)
+        verify(smartyAI).saveChatMessage(eq(userId), eq(userMessage), eq(true), eq(1.0f))
         // L'erreur devrait être gérée silencieusement ou loggée
     }
 

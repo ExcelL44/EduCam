@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.outlined.Quiz
 import androidx.compose.material.icons.outlined.MenuBook
@@ -111,7 +111,7 @@ fun HomeScreen(
                     homeViewModel.submitAction(HomeAction.Logout)
                 }) {
                     Icon(
-                        imageVector = Icons.Default.Logout,
+                        imageVector = Icons.AutoMirrored.Filled.Logout,
                         contentDescription = "Déconnexion",
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(28.dp)

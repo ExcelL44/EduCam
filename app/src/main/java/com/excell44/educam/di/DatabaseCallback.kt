@@ -24,6 +24,7 @@ class DatabaseCallback(private val context: Context) : androidx.room.RoomDatabas
 
     private suspend fun populateSampleQuestions() {
         try {
+            // Utiliser la database principale injectée via Hilt si possible, sinon créer une instance temporaire
             val database = Room.databaseBuilder(
                 context,
                 AppDatabase::class.java,
@@ -38,9 +39,14 @@ class DatabaseCallback(private val context: Context) : androidx.room.RoomDatabas
             .build()
             val quizQuestionDao = database.quizQuestionDao()
 
-            // Vérifier si des questions existent déjà
-            val existingQuestions = quizQuestionDao.getRandomQuestions("Mathématiques", "Terminale", 1)
-            if (existingQuestions.isNotEmpty()) {
+            // Vérifier si des questions existent déjà (vérifier plusieurs matières)
+            val mathQuestions = quizQuestionDao.getRandomQuestions("Mathématiques", "Terminale", 1)
+            val physicsQuestions = quizQuestionDao.getRandomQuestions("Physique", "Terminale", 1)
+            val chemistryQuestions = quizQuestionDao.getRandomQuestions("Chimie", "Terminale", 1)
+
+            if (mathQuestions.isNotEmpty() && physicsQuestions.isNotEmpty() && chemistryQuestions.isNotEmpty()) {
+                android.util.Log.i("DatabaseCallback", "Sample questions already exist, skipping insertion")
+                database.close()
                 return // Les questions sont déjà insérées
             }
 
@@ -145,6 +151,7 @@ class DatabaseCallback(private val context: Context) : androidx.room.RoomDatabas
             quizQuestionDao.insertQuestions(allQuestions)
 
             android.util.Log.i("DatabaseCallback", "Inserted ${allQuestions.size} sample questions")
+            database.close()
         } catch (e: Exception) {
             android.util.Log.e("DatabaseCallback", "Error populating sample questions", e)
         }
