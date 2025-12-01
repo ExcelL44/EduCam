@@ -10,7 +10,7 @@ import com.excell44.educam.data.local.dao.LearningPatternDao
 import com.excell44.educam.data.local.dao.QuestionDao
 import com.excell44.educam.data.local.dao.QuizDao
 import com.excell44.educam.data.local.dao.QuizResultDao
-import com.excell44.educam.data.local.dao.SubjectDao
+import com.excell44.educam.data.dao.SubjectDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
