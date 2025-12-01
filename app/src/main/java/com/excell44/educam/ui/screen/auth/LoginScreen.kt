@@ -35,11 +35,19 @@ fun LoginScreen(
     // Navigation is now handled by NavGraph.kt - remove local logic to avoid conflicts
 
     // Memoize callbacks
-    val onLoginClick = remember(pseudo, code) {
-        { 
-            android.util.Log.d("🔴 DEBUG_AUTH", "👆 Login button clicked. Pseudo: '$pseudo', Code: '$code'")
-            viewModel.login(pseudo, code)
+    // 🔥 LAUNCH EFFECT POUR LA NAVIGATION
+    LaunchedEffect(authState) {
+        android.util.Log.d("🔴 DEBUG_AUTH", "📊 AuthState changed: $authState")
+        if (authState is com.excell44.educam.domain.model.AuthState.Authenticated) {
+            android.util.Log.d("🔴 DEBUG_AUTH", "✅ Navigation triggered!")
+            onLoginSuccess()
         }
+    }
+
+    // Callback simple
+    val onLoginClick = {
+        android.util.Log.d("🔴 DEBUG_AUTH", "👆 Login button clicked. Pseudo: '$pseudo', Code: '$code'")
+        viewModel.login(pseudo, code)
     }
     
 

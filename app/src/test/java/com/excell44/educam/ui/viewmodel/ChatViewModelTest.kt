@@ -2,6 +2,7 @@ package com.excell44.educam.ui.viewmodel
 
 import com.excell44.educam.data.ai.SmartyAI
 import com.excell44.educam.data.local.dao.ChatMessageDao
+import com.excell44.educam.data.local.entity.MessageType
 import com.excell44.educam.util.AuthStateManager
 import com.excell44.educam.util.Logger
 import kotlinx.coroutines.test.runTest

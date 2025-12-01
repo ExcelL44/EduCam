@@ -74,7 +74,7 @@ val sampleQuestions = listOf(
 @Composable
 fun QuizFlow(
     questions: List<QuizQuestion> = sampleQuestions,
-    onQuizComplete: () -> Unit = {},
+    onQuizComplete: (List<Int>) -> Unit = {},
     onCancelQuiz: () -> Unit = {},
     viewModel: QuizViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
@@ -95,7 +95,7 @@ fun QuizFlow(
                 if (currentQuestionIndex < questions.size - 1) {
                     currentQuestionIndex++
                 } else {
-                    onQuizComplete()
+                    onQuizComplete(userAnswers)
                 }
             },
             onCancelQuiz = {

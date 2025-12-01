@@ -135,11 +135,8 @@ fun NavGraph(
             )
         }
         composable(Screen.Quiz.route) {
-            com.excell44.educam.ui.screen.quiz.QuizFlow(
-                onQuizComplete = {
-                    navigationViewModel.navigate(NavCommand.PopBack)
-                },
-                onCancelQuiz = {
+            com.excell44.educam.ui.screen.quiz.QuizFlowCoordinator(
+                onNavigateBack = {
                     navigationViewModel.navigate(NavCommand.PopBack)
                 }
             )

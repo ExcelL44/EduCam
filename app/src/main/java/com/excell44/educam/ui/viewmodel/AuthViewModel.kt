@@ -110,6 +110,11 @@ class AuthViewModel @Inject constructor(
             authRepository.login(pseudo, code)
                 .onSuccess { user ->
                     Logger.i("AuthViewModel", "Login success: ${user.id}")
+                    
+                    // 🔍 VERIFICATION: Check if token is persisted
+                    val savedId = securePrefs.getUserId()
+                    android.util.Log.d("🔴 DEBUG_AUTH", "💾 Persistence check: Saved ID = $savedId")
+
                     // ✅ FIX: Update AuthState on Main thread to trigger immediate recomposition
                     withContext(Dispatchers.Main) {
                         _authState.value = AuthState.Authenticated(user, !networkObserver.isOnline())

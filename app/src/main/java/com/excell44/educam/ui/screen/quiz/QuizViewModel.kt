@@ -445,4 +445,37 @@ class QuizViewModel @Inject constructor(
             }
         }
     }
+    /**
+     * Soumet les résultats finaux du quiz (pour le mode découplé QuizFlowCoordinator)
+     */
+    fun submitFinalResults(score: Int, totalQuestions: Int, answers: List<AnswerDetail>) {
+        viewModelScope.launch {
+            try {
+                currentSession?.let { sess ->
+                    // build details JSON
+                    val arr = org.json.JSONArray()
+                    for (d in answers) {
+                        val obj = org.json.JSONObject()
+                        obj.put("questionId", d.questionId)
+                        obj.put("selectedAnswer", d.selectedAnswer)
+                        obj.put("isCorrect", d.isCorrect)
+                        obj.put("timeRemaining", d.timeRemaining)
+                        arr.put(obj)
+                    }
+                    
+                    val updated = sess.copy(
+                        score = score,
+                        totalQuestions = totalQuestions,
+                        endTime = System.currentTimeMillis(),
+                        isCompleted = true,
+                        detailsJson = arr.toString()
+                    )
+                    quizRepository.updateSession(updated)
+                    Logger.i("QuizViewModel", "Quiz results submitted successfully: $score/$totalQuestions")
+                }
+            } catch (e: Exception) {
+                Logger.e("QuizViewModel", "Error submitting quiz results", e)
+            }
+        }
+    }
 }
