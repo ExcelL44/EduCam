@@ -61,9 +61,10 @@ class BacXApplication : Application() {
         try {
             // ✅ Enable Firestore Offline Persistence
             // This allows the app to work offline and sync when online
-            Firebase.firestore.settings = com.google.firebase.firestore.FirebaseFirestoreSettings.Builder()
+            val settings = com.google.firebase.firestore.FirebaseFirestoreSettings.Builder()
                 .setPersistenceEnabled(true)
                 .build()
+            Firebase.firestore.firestoreSettings = settings
             Log.i(TAG, "✅ Firebase Firestore Offline Persistence ENABLED")
 
             // Crashlytics is already initialized by the plugin, but we can force enable/disable

@@ -40,11 +40,11 @@ class DatabaseCallback(private val context: Context) : androidx.room.RoomDatabas
             val quizQuestionDao = database.quizQuestionDao()
 
             // Vérifier si des questions existent déjà (vérifier plusieurs matières)
-            val mathQuestions = quizQuestionDao.getRandomQuestions("Mathématiques", "Terminale", 1)
-            val physicsQuestions = quizQuestionDao.getRandomQuestions("Physique", "Terminale", 1)
-            val chemistryQuestions = quizQuestionDao.getRandomQuestions("Chimie", "Terminale", 1)
+            val existingMathQuestions = quizQuestionDao.getRandomQuestions("Mathématiques", "Terminale", 1)
+            val existingPhysicsQuestions = quizQuestionDao.getRandomQuestions("Physique", "Terminale", 1)
+            val existingChemistryQuestions = quizQuestionDao.getRandomQuestions("Chimie", "Terminale", 1)
 
-            if (mathQuestions.isNotEmpty() && physicsQuestions.isNotEmpty() && chemistryQuestions.isNotEmpty()) {
+            if (existingMathQuestions.isNotEmpty() && existingPhysicsQuestions.isNotEmpty() && existingChemistryQuestions.isNotEmpty()) {
                 android.util.Log.i("DatabaseCallback", "Sample questions already exist, skipping insertion")
                 database.close()
                 return // Les questions sont déjà insérées
