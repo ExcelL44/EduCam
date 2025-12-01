@@ -85,16 +85,11 @@ fun appContent() {
         android.util.Log.d("🔴 MAIN_ACTIVITY", "🔄 LaunchedEffect triggered - Start Destination: $startDestination (State: $authState)")
     }
 
-    androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize()) {
-        // Offline Indicator at the top
-        com.excell44.educam.ui.components.OfflineIndicator(networkObserver = mainViewModel.networkObserver)
-        
-        // Start with splash, then the splash composable will navigate to startDestination
-        NavGraph(
-            navController = navController, 
-            startDestination = com.excell44.educam.ui.navigation.Screen.Splash.route, 
-            postSplashDestination = startDestination,
-            navigationViewModel = navigationViewModel // ✅ Pass the instance with attached controller
-        )
-    }
+    // Start with splash, then the splash composable will navigate to startDestination
+    NavGraph(
+        navController = navController,
+        startDestination = com.excell44.educam.ui.navigation.Screen.Splash.route,
+        postSplashDestination = startDestination,
+        navigationViewModel = navigationViewModel // ✅ Pass the instance with attached controller
+    )
 }

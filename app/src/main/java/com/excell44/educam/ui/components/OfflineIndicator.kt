@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,6 +35,7 @@ fun OfflineIndicator(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color(0xFFFFA000)) // Amber 700
+                .statusBarsPadding() // ✅ Fix: Avoid status bar overlap
                 .padding(4.dp),
             contentAlignment = Alignment.Center
         ) {

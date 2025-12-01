@@ -21,7 +21,7 @@ import com.excell44.educam.ui.util.screenPadding
 @Composable
 fun QuizConfigScreen(
     mode: QuizModeType,
-    availableSubjects: List<String>,
+    availableSubjects: List<com.excell44.educam.ui.screen.quiz.SubjectInfo>,
     onStartQuiz: (subject: String, timePerQuestion: Int) -> Unit,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
@@ -92,11 +92,15 @@ fun QuizConfigScreen(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(availableSubjects) { subject ->
+                items(availableSubjects) { subjectInfo ->
                     SubjectSelectionCard(
-                        subject = subject,
-                        isSelected = selectedSubject == subject,
-                        onClick = { selectedSubject = subject }
+                        subjectInfo = subjectInfo,
+                        isSelected = selectedSubject == subjectInfo.name,
+                        onClick = {
+                            if (subjectInfo.isAvailable) {
+                                selectedSubject = subjectInfo.name
+                            }
+                        }
                     )
                 }
             }
@@ -165,7 +169,7 @@ fun QuizConfigScreen(
  */
 @Composable
 private fun SubjectSelectionCard(
-    subject: String,
+    subjectInfo: com.excell44.educam.ui.screen.quiz.SubjectInfo,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
@@ -173,12 +177,13 @@ private fun SubjectSelectionCard(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) 
-                MaterialTheme.colorScheme.primaryContainer 
-            else 
-                MaterialTheme.colorScheme.surface
+            containerColor = when {
+                !subjectInfo.isAvailable -> MaterialTheme.colorScheme.surfaceVariant
+                isSelected -> MaterialTheme.colorScheme.primaryContainer
+                else -> MaterialTheme.colorScheme.surface
+            }
         ),
-        border = if (isSelected) 
+        border = if (isSelected)
             androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
         else null
     ) {
@@ -189,20 +194,35 @@ private fun SubjectSelectionCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                text = getSubjectEmoji(subject) + " " + subject,
-                style = MaterialTheme.typography.titleMedium,
-                color = if (isSelected) 
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                else 
-                    MaterialTheme.colorScheme.onSurface
-            )
-            
-            if (isSelected) {
-                Icon(
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = subjectInfo.displayName,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = when {
+                        !subjectInfo.isAvailable -> MaterialTheme.colorScheme.onSurfaceVariant
+                        isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
+                        else -> MaterialTheme.colorScheme.onSurface
+                    }
+                )
+                if (!subjectInfo.isAvailable) {
+                    Text(
+                        text = "Bientôt disponible",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            when {
+                isSelected -> Icon(
                     imageVector = androidx.compose.material.icons.Icons.Default.PlayArrow,
                     contentDescription = "Sélectionné",
                     tint = MaterialTheme.colorScheme.primary
+                )
+                !subjectInfo.isAvailable -> Icon(
+                    imageVector = androidx.compose.material.icons.Icons.Default.Lock,
+                    contentDescription = "Verrouillé",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

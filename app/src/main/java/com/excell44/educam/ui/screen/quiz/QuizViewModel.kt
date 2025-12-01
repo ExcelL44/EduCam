@@ -21,7 +21,17 @@ import javax.inject.Inject
 data class QuizUiState(
     val selectedMode: QuizMode? = null,
     val selectedSubject: String? = null,
-    val availableSubjects: List<String> = listOf("Math", "Physics", "Chemistry"),
+    val availableSubjects: List<SubjectInfo> = listOf(
+        SubjectInfo("Mathématiques", "📐 Mathématiques", true),
+        SubjectInfo("Physique", "⚛️ Physique", true),
+        SubjectInfo("Chimie", "🧪 Chimie", true),
+        SubjectInfo("Biologie", "🧬 Biologie", false),
+        SubjectInfo("Histoire", "📚 Histoire", false),
+        SubjectInfo("Géographie", "🌍 Géographie", false),
+        SubjectInfo("Français", "✍️ Français", false),
+        SubjectInfo("Anglais", "🇬🇧 Anglais", false),
+        SubjectInfo("Philosophie", "🤔 Philosophie", false)
+    ),
     val isQuizStarted: Boolean = false,
     val questions: List<QuizQuestion> = emptyList(),
     val currentQuestionIndex: Int = 0,
@@ -42,6 +52,12 @@ data class QuizUiState(
     val totalQuestions: Int get() = questions.size
     val isLastQuestion: Boolean get() = currentQuestionIndex == totalQuestions - 1
 }
+
+data class SubjectInfo(
+    val name: String,
+    val displayName: String,
+    val isAvailable: Boolean
+)
 
 data class AnswerDetail(
     val questionId: String,

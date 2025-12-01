@@ -46,7 +46,8 @@ sealed class HomeAction : UiAction {
 fun HomeScreen(
     homeViewModel: HomeViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel(),
-    navigationViewModel: com.excell44.educam.ui.navigation.NavigationViewModel = hiltViewModel()  // ✅ Added parameter
+    navigationViewModel: com.excell44.educam.ui.navigation.NavigationViewModel = hiltViewModel(),  // ✅ Added parameter
+    mainViewModel: com.excell44.educam.ui.viewmodel.MainViewModel = hiltViewModel()  // ✅ Added for network observer
  ) {
     // Gestionnaire de commandes de navigation
     NavigationCommandHandler(homeViewModel, navigationViewModel)  // ✅ Pass navigationViewModel
@@ -68,11 +69,12 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .screenPadding()  // ✅ Évite les barres système (status + navigation + clavier)
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp)
     ) {
+        // 📌 FIXED HEADER (Ne scrolle pas)
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 24.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -118,7 +120,21 @@ fun HomeScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(48.dp))
+        // 📡 OFFLINE INDICATOR (Fixed - doesn't scroll)
+        com.excell44.educam.ui.components.OfflineIndicator(
+            networkObserver = mainViewModel.networkObserver
+        )
+
+        // 📜 SCROLLABLE CONTENT
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 24.dp)
+        ) {
+            Spacer(modifier = Modifier.height(24.dp))
 
         // Accueil: message amélioré
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -129,7 +145,7 @@ fun HomeScreen(
             )
             Spacer(modifier = Modifier.height(16.dp))
         }
-        
+
         Spacer(modifier = Modifier.height(24.dp))
 
         // Quiz Card
@@ -212,6 +228,7 @@ fun HomeScreen(
             }
         }
     }
+    }
 
     if (showLockedDialog) {
         AlertDialog(
@@ -220,14 +237,13 @@ fun HomeScreen(
             text = {
                 Text(
                     if (isTrial) {
-                        "Cette fonctionnalité n'est disponible que pour les utilisateurs Premium.\n\n" +
-                        "💎 Passez Premium pour seulement 2500 FCFA/mois et débloquez :\n" +
+                        "Cette fonctionnalité n'est disponible que pour les utilisateurs inscrits.\n\n" +
+                        "💎 Offre un café (1000 FCFA/an) à l'équipe de produciton et débloque :\n" +
                         "• Smarty IA - Résolution d'exercices\n" +
                         "• Banque de sujets corrigés\n" +
-                        "• Quiz illimités\n" +
-                        "• Support prioritaire"
+                        "• Quiz illimités et + encore\n"
                     } else {
-                        "Cette fonctionnalité est réservée aux utilisateurs premium. Voulez-vous passer à un abonnement ?"
+                        "Cette fonctionnalité est réservée aux utilisateurs Inscrits. Voulez-vous vous inscrire ?"
                     }
                 )
             },
@@ -236,22 +252,22 @@ fun HomeScreen(
                     showLockedDialog = false
                     // ✅ Track conversion attempt
                     com.excell44.educam.util.Logger.i(
-                        "HomeScreen", 
+                        "HomeScreen",
                         "User clicked upgrade button (TRIAL -> Premium conversion attempt)"
                     )
                     // Navigate to profile for upgrade options
                     homeViewModel.submitAction(HomeAction.NavigateToProfile)
                 }) {
-                    Text(if (isTrial) "Passer Premium (2500 FCFA/mois)" else "Voir les options")
+                    Text(if (isTrial) "inscris-toi (1000 FCFA/an)" else "Connecte-toi")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { 
+                TextButton(onClick = {
                     showLockedDialog = false
                     // ✅ Track dismissal
                     com.excell44.educam.util.Logger.d("HomeScreen", "User dismissed premium upgrade dialog")
-                }) { 
-                    Text("Plus tard") 
+                }) {
+                    Text("Plus tard")
                 }
             }
         )
