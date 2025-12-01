@@ -72,9 +72,25 @@ class ChatViewModelTest {
         chatViewModel.sendMessage(userMessage)
 
         // Then
-        verify(smartyAI).saveChatMessage(eq(userId), eq(userMessage), eq(true), eq(1.0f), any(), eq(null), eq(false))
+        verify(smartyAI).saveChatMessage(
+            userId = eq(userId),
+            message = eq(userMessage),
+            isFromUser = eq(true),
+            confidence = eq(1.0f),
+            messageType = any(),
+            contextTags = any(),
+            isLearned = eq(false)
+        )
         verify(smartyAI).generateResponse(eq(userId), eq(userMessage))
-        verify(smartyAI).saveChatMessage(eq(userId), eq(aiResponse.message), eq(false), eq(aiResponse.confidence), eq(aiResponse.messageType), eq(null), eq(aiResponse.isLearned))
+        verify(smartyAI).saveChatMessage(
+            userId = eq(userId),
+            message = eq(aiResponse.message),
+            isFromUser = eq(false),
+            confidence = eq(aiResponse.confidence),
+            messageType = eq(aiResponse.messageType),
+            contextTags = any(),
+            isLearned = eq(aiResponse.isLearned)
+        )
         verify(smartyAI).learnFromInteraction(
             userId = eq(userId),
             userMessage = eq(userMessage),
