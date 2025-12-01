@@ -1,8 +1,8 @@
 package com.excell44.educam.util
 
 import android.util.Log
-import com.google.firebase.ktx.Firebase
 import com.google.firebase.crashlytics.ktx.crashlytics
+import com.google.firebase.ktx.Firebase
 
 /**
  * Système de logging structuré avec niveaux.
@@ -41,58 +41,82 @@ object Logger {
      */
     fun v(tag: String, message: String, throwable: Throwable? = null) {
         if (Level.VERBOSE in enabledLevels) {
-            Log.v("$TAG_PREFIX:$tag", message, throwable)
+            try {
+                Log.v("$TAG_PREFIX:$tag", message, throwable)
+            } catch (e: Exception) {
+                // Ignore logging errors in test environments
+            }
         }
     }
-    
+
     /**
      * Log debug (informations de développement).
      */
     fun d(tag: String, message: String, throwable: Throwable? = null) {
         if (Level.DEBUG in enabledLevels) {
-            Log.d("$TAG_PREFIX:$tag", message, throwable)
+            try {
+                Log.d("$TAG_PREFIX:$tag", message, throwable)
+            } catch (e: Exception) {
+                // Ignore logging errors in test environments
+            }
         }
     }
-    
+
     /**
      * Log info (informations générales).
      */
     fun i(tag: String, message: String, throwable: Throwable? = null) {
         if (Level.INFO in enabledLevels) {
-            Log.i("$TAG_PREFIX:$tag", message, throwable)
+            try {
+                Log.i("$TAG_PREFIX:$tag", message, throwable)
+            } catch (e: Exception) {
+                // Ignore logging errors in test environments
+            }
         }
     }
-    
+
     /**
      * Log warning (avertissements non-bloquants).
      */
     fun w(tag: String, message: String, throwable: Throwable? = null) {
         if (Level.WARNING in enabledLevels) {
-            Log.w("$TAG_PREFIX:$tag", message, throwable)
+            try {
+                Log.w("$TAG_PREFIX:$tag", message, throwable)
+            } catch (e: Exception) {
+                // Ignore logging errors in test environments
+            }
         }
     }
-    
+
     /**
      * Log error (erreurs gérées).
      */
     fun e(tag: String, message: String, throwable: Throwable? = null) {
         if (Level.ERROR in enabledLevels) {
-            Log.e("$TAG_PREFIX:$tag", message, throwable)
-            throwable?.let { Firebase.crashlytics.recordException(it) }
-                ?: Firebase.crashlytics.log("Error logged without exception: $message")
-            // FirebaseCrashlytics.getInstance().recordException(throwable)
+            try {
+                Log.e("$TAG_PREFIX:$tag", message, throwable)
+                throwable?.let { Firebase.crashlytics.recordException(it) }
+                    ?: Firebase.crashlytics.log("Error logged without exception: $message")
+                // FirebaseCrashlytics.getInstance().recordException(throwable)
+            } catch (e: Exception) {
+                // Ignore logging errors in test environments
+            }
         }
     }
-    
+
     /**
      * Log critique (erreurs critiques).
      */
     fun wtf(tag: String, message: String, throwable: Throwable? = null) {
         if (Level.CRITICAL in enabledLevels) {
-            Log.wtf("$TAG_PREFIX:$tag", message, throwable)
-            Firebase.crashlytics.log("Priority: HIGH - ${throwable?.message ?: message}")
-            throwable?.let { Firebase.crashlytics.recordException(it) }
-                ?: Firebase.crashlytics.recordException(Exception("WTF: $message"))
+            try {
+                Log.wtf("$TAG_PREFIX:$tag", message, throwable)
+                Firebase.crashlytics.log("Priority: HIGH - ${throwable?.message ?: message}")
+                throwable?.let { Firebase.crashlytics.recordException(it) }
+                    ?: Firebase.crashlytics.recordException(Exception("WTF: $message"))
+            } catch (e: Exception) {
+                // Ignore logging errors in test environments
+            }
         }
     }
     

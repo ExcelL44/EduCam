@@ -72,9 +72,9 @@ class ChatViewModelTest {
         chatViewModel.sendMessage(userMessage)
 
         // Then
-        verify(smartyAI).saveChatMessage(eq(userId), eq(userMessage), eq(true), eq(1.0f))
+        verify(smartyAI).saveChatMessage(eq(userId), eq(userMessage), eq(true), eq(1.0f), any(), eq(null), eq(false))
         verify(smartyAI).generateResponse(eq(userId), eq(userMessage))
-        verify(smartyAI).saveChatMessage(eq(userId), eq(aiResponse.message), eq(false), eq(aiResponse.confidence), any<MessageType>(), eq(null), eq(aiResponse.isLearned))
+        verify(smartyAI).saveChatMessage(eq(userId), eq(aiResponse.message), eq(false), eq(aiResponse.confidence), eq(aiResponse.messageType), eq(null), eq(aiResponse.isLearned))
         verify(smartyAI).learnFromInteraction(
             userId = eq(userId),
             userMessage = eq(userMessage),
@@ -123,7 +123,7 @@ class ChatViewModelTest {
         chatViewModel.sendMessage(userMessage)
 
         // Then - vérifie que l'UI est mise à jour malgré l'erreur
-        verify(smartyAI).saveChatMessage(eq(userId), eq(userMessage), eq(true), eq(1.0f))
+        verify(smartyAI).saveChatMessage(eq(userId), eq(userMessage), eq(true), eq(1.0f), any(), eq(null), eq(false))
         // L'erreur devrait être gérée silencieusement ou loggée
     }
 

@@ -146,7 +146,9 @@ abstract class AppDatabase : RoomDatabase() {
                         messageType TEXT NOT NULL DEFAULT 'TEXT',
                         confidence REAL NOT NULL DEFAULT 1.0,
                         contextTags TEXT,
-                        isLearned INTEGER NOT NULL DEFAULT 0
+                        isLearned INTEGER NOT NULL DEFAULT 0,
+                        userFeedback REAL,
+                        feedbackTimestamp INTEGER
                     )
                 """)
 

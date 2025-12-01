@@ -53,8 +53,8 @@ interface ChatMessageDao {
     suspend fun getAverageConfidence(userId: String): Float?
 
     // Gestion du feedback utilisateur (nouveau)
-    @Query("UPDATE chat_messages SET userFeedback = :feedback, feedbackTimestamp = :timestamp WHERE id = :messageId")
-    suspend fun updateUserFeedback(messageId: Long, feedback: Float, timestamp: Long = System.currentTimeMillis()): Int
+    @Query("UPDATE chat_messages SET userFeedback = :feedback WHERE id = :messageId")
+    suspend fun updateUserFeedback(messageId: Long, feedback: Float): Int
 
     @Query("SELECT COUNT(*) FROM chat_messages WHERE userId = :userId AND isFromUser = 0 AND userFeedback IS NOT NULL")
     suspend fun getFeedbackCount(userId: String): Int

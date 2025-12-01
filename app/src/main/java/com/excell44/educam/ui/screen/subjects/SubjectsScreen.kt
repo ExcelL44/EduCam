@@ -28,13 +28,13 @@ import com.excell44.educam.ui.util.screenPadding
 
 // --- Data Models ---
 
-enum class SubjectType(val label: String, val icon: ImageVector) {
-    MATH("Mathématiques", Icons.Default.Calculate),
-    PHYSICS("Physique", Icons.Default.Bolt),
-    CHEMISTRY("Chimie", Icons.Default.Science),
-    SVT("SVT", Icons.Default.Biotech),
-    ENGLISH("Anglais", Icons.Default.Language),
-    FRENCH("Français", Icons.Default.Book)
+enum class SubjectType(val label: String, val icon: ImageVector, val isActive: Boolean = false) {
+    MATH("Mathématiques", Icons.Default.Calculate, true),
+    PHYSICS("Physique", Icons.Default.Bolt, true),
+    CHEMISTRY("Chimie", Icons.Default.Science, true),
+    SVT("SVT", Icons.Default.Biotech, false),
+    ENGLISH("Anglais", Icons.Default.Language, false),
+    FRENCH("Français", Icons.Default.Book, false)
 }
 
 enum class CategoryType(val label: String, val icon: ImageVector) {
@@ -56,14 +56,14 @@ fun getCategories(): List<CategoryType> = CategoryType.values().toList()
 
 fun getItemsForCategory(category: CategoryType): List<BankItem> {
     return when (category) {
-        CategoryType.EVALUATION -> (1..5).map { 
-            BankItem("eval_$it", "Évaluation N°$it") 
+        CategoryType.EVALUATION -> (1..5).map {
+            BankItem("eval_$it", "Évaluation N°$it")
         }
-        CategoryType.EXAM_BLANC -> (2024 downTo 2019).map { 
-            BankItem("blanc_$it", "Année $it/${it+1}") 
+        CategoryType.EXAM_BLANC -> (2024 downTo 2019).map {
+            BankItem("blanc_$it", "Année $it/${it+1}")
         }
-        CategoryType.EXAM_OFFICIEL -> (2024 downTo 2015).map { 
-            BankItem("officiel_$it", "Session $it") 
+        CategoryType.EXAM_OFFICIEL -> (2019..2025).map { year ->
+            BankItem("officiel_mai_$year", "Session de Mai $year")
         }
     }
 }
@@ -137,6 +137,7 @@ fun SubjectsScreen(
                                 BankCard(
                                     title = subject.label,
                                     icon = subject.icon,
+                                    isActive = subject.isActive,
                                     onClick = {
                                         viewModel.navigateToCategories(subject)
                                     }
@@ -149,6 +150,7 @@ fun SubjectsScreen(
                                 BankCard(
                                     title = subject.label,
                                     icon = subject.icon,
+                                    isActive = subject.isActive,
                                     onClick = {
                                         viewModel.navigateToCategories(subject)
                                     }
@@ -285,20 +287,34 @@ fun SubjectsScreen(
 fun BankCard(
     title: String,
     icon: ImageVector,
+    isActive: Boolean = true,
     onClick: () -> Unit
 ) {
+    val actualOnClick = if (isActive) onClick else { {} }
+
     // Utilisation du style PrimaryButton pour la cohérence, mais adapté en Card
     Card(
-        onClick = onClick,
+        onClick = actualOnClick,
         modifier = Modifier
             .fillMaxWidth()
             .height(80.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = if (isActive)
+                MaterialTheme.colorScheme.surface
+            else
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isActive) 2.dp else 0.dp
+        ),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (isActive)
+                MaterialTheme.colorScheme.outlineVariant
+            else
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+        )
     ) {
         Row(
             modifier = Modifier
@@ -308,7 +324,10 @@ fun BankCard(
         ) {
             // Icon container
             Surface(
-                color = MaterialTheme.colorScheme.primaryContainer,
+                color = if (isActive)
+                    MaterialTheme.colorScheme.primaryContainer
+                else
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.size(48.dp)
             ) {
@@ -316,27 +335,43 @@ fun BankCard(
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        tint = if (isActive)
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.width(16.dp))
-            
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            
-            Spacer(modifier = Modifier.weight(1f))
-            
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (isActive)
+                        MaterialTheme.colorScheme.onSurface
+                    else
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+
+                if (!isActive) {
+                    Text(
+                        text = "Bientôt disponible",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                }
+            }
+
+            if (isActive) {
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

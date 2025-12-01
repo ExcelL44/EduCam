@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextAlign
 import com.excell44.educam.data.model.QuizMode
 import java.util.UUID
 
@@ -113,52 +115,82 @@ fun QuizFlowCoordinator(
         }
         
         QuizStep.EXECUTION -> {
-            if (uiQuestions.isNotEmpty()) {
-                QuizFlow(
-                    questions = uiQuestions,
-                    onQuizComplete = { answers ->
-                        // Sauvegarder les données pour l'évaluation
-                        completedQuestions = uiQuestions
-                        userAnswers = answers
-                        
-                        // Calculer le temps passé par question (simulé pour l'instant)
-                        timeSpentPerQuestion = List(uiQuestions.size) { timePerQuestion }
-                        
-                        // Enregistrer les résultats en base de données
-                        val answerDetails = uiQuestions.mapIndexed { index, question ->
-                            val selectedIndex = answers.getOrNull(index) ?: -1
-                            val selectedText = if (selectedIndex >= 0 && selectedIndex < question.answers.size) 
-                                question.answers[selectedIndex].text 
-                            else null
-                            val isCorrect = selectedIndex == question.correctAnswerIndex
+            when {
+                uiState.isQuizStarted && uiQuestions.isNotEmpty() -> {
+                    QuizFlow(
+                        questions = uiQuestions,
+                        onQuizComplete = { answers ->
+                            // Sauvegarder les données pour l'évaluation
+                            completedQuestions = uiQuestions
+                            userAnswers = answers
                             
-                            AnswerDetail(
-                                questionId = question.id,
-                                selectedAnswer = selectedText,
-                                isCorrect = isCorrect,
-                                timeRemaining = 0 // Non suivi dans ce flux simplifié
-                            )
-                        }
-                        
-                        val correctCount = answerDetails.count { it.isCorrect }
-                        viewModel.submitFinalResults(correctCount, uiQuestions.size, answerDetails)
-                        
-                        currentStep = QuizStep.EVALUATION
-                    },
-                    onCancelQuiz = {
-                        viewModel.cancelQuiz()
-                        onNavigateBack()
-                    },
-                    viewModel = viewModel
-                )
-            } else if (uiState.isLoading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                    CircularProgressIndicator()
+                            // Calculer le temps passé par question (simulé pour l'instant)
+                            timeSpentPerQuestion = List(uiQuestions.size) { timePerQuestion }
+                            
+                            // Enregistrer les résultats en base de données
+                            val answerDetails = uiQuestions.mapIndexed { index, question ->
+                                val selectedIndex = answers.getOrNull(index) ?: -1
+                                val selectedText = if (selectedIndex >= 0 && selectedIndex < question.answers.size) 
+                                    question.answers[selectedIndex].text 
+                                else null
+                                val isCorrect = selectedIndex == question.correctAnswerIndex
+                                
+                                AnswerDetail(
+                                    questionId = question.id,
+                                    selectedAnswer = selectedText,
+                                    isCorrect = isCorrect,
+                                    timeRemaining = 0 // Non suivi dans ce flux simplifié
+                                )
+                            }
+                            
+                            val correctCount = answerDetails.count { it.isCorrect }
+                            viewModel.submitFinalResults(correctCount, uiQuestions.size, answerDetails)
+                            
+                            currentStep = QuizStep.EVALUATION
+                        },
+                        onCancelQuiz = {
+                            viewModel.cancelQuiz()
+                            onNavigateBack()
+                        },
+                        viewModel = viewModel
+                    )
                 }
-            } else {
-                // Erreur ou pas de questions
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                    Text("Chargement des questions...")
+                uiState.isLoading -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator()
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text("Chargement des questions...")
+                        }
+                    }
+                }
+                uiState.errorMessage != null -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(32.dp)
+                        ) {
+                            Text(
+                                text = uiState.errorMessage ?: "Erreur",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.error,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(onClick = { currentStep = QuizStep.MENU }) {
+                                Text("Retour au menu")
+                            }
+                        }
+                    }
+                }
+                else -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator()
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text("Initialisation...")
+                        }
+                    }
                 }
             }
         }
