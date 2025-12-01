@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.*
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -244,7 +245,7 @@ fun RegisterScreen(
                                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = classExpanded) },
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .menuAnchor(type = MenuAnchorType.Primary, enabled = true)
+                                        .menuAnchor()
                                         .clickable { classExpanded = !classExpanded },
                                     colors = OutlinedTextFieldDefaults.colors(
                                         unfocusedBorderColor = getFieldColor(classTouched, isClassValid)
@@ -415,7 +416,7 @@ fun RegisterScreen(
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = classExpanded) },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .menuAnchor(type = MenuAnchorType.Primary, enabled = true)
+                                    .menuAnchor()
                                     .clickable { classExpanded = !classExpanded },
                                 colors = OutlinedTextFieldDefaults.colors(
                                     unfocusedBorderColor = getFieldColor(classTouched, isClassValid)
@@ -576,7 +577,7 @@ fun RegisterScreen(
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = relationExpanded) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor(type = MenuAnchorType.Primary, enabled = true)
+                                .menuAnchor()
                                 .clickable { relationExpanded = !relationExpanded }
                         )
                         ExposedDropdownMenu(
@@ -742,7 +743,7 @@ fun RegisterScreen(
                     // Mention de paiement symbolique
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "💳 L'inscription nécessite un paiement symbolique de 1000 Fcfa (OM/MoMo). Réduction appliquée si le code promo correctement saisi.",
+                        text = "💳 Finalise ton inscription en offrant du ☕ café (1000 Fcfa/an) à l'équipe de production (OM/MoMo). ☕ Café bon marché = code promo correctement saisi.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
