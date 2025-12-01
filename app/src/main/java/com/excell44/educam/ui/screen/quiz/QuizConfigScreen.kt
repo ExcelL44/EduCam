@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -220,7 +221,7 @@ private fun SubjectSelectionCard(
                     tint = MaterialTheme.colorScheme.primary
                 )
                 !subjectInfo.isAvailable -> Icon(
-                    imageVector = androidx.compose.material.icons.Icons.Default.Lock,
+                    imageVector = Icons.Filled.Lock,
                     contentDescription = "Verrouillé",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )

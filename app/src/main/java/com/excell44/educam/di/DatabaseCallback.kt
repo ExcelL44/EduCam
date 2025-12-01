@@ -1,7 +1,9 @@
 package com.excell44.educam.di
 
 import android.content.Context
+import androidx.room.Room
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.excell44.educam.data.local.AppDatabase
 import com.excell44.educam.data.model.Difficulty
 import com.excell44.educam.data.model.QuizQuestion
 import com.excell44.educam.data.model.QuestionType
@@ -22,7 +24,18 @@ class DatabaseCallback(private val context: Context) : androidx.room.RoomDatabas
 
     private suspend fun populateSampleQuestions() {
         try {
-            val database = provideDatabase(context)
+            val database = Room.databaseBuilder(
+                context,
+                AppDatabase::class.java,
+                "quiz_database"
+            )
+            .addMigrations(
+                AppDatabase.MIGRATION_1_2,
+                AppDatabase.MIGRATION_2_3,
+                AppDatabase.MIGRATION_3_4,
+                AppDatabase.MIGRATION_4_5
+            )
+            .build()
             val quizQuestionDao = database.quizQuestionDao()
 
             // Vérifier si des questions existent déjà
