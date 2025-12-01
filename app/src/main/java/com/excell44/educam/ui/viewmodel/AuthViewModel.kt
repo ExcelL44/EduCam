@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.excell44.educam.core.network.NetworkObserver
 import com.excell44.educam.data.repository.AuthRepository
 import com.excell44.educam.domain.model.AuthState
+import com.excell44.educam.util.AuthStateManager
 import com.excell44.educam.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -19,7 +20,8 @@ import javax.inject.Inject
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val networkObserver: NetworkObserver,
-    private val securePrefs: com.excell44.educam.data.local.SecurePrefs
+    private val securePrefs: com.excell44.educam.data.local.SecurePrefs,
+    private val authStateManager: AuthStateManager
 ) : ViewModel() {
     
     private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
@@ -236,6 +238,8 @@ class AuthViewModel @Inject constructor(
                     android.util.Log.d("🟡 AUTH_VIEWMODEL", "✅ Admin user already exists: ${existingAdmin.id}")
                     // Just log in the existing admin user
                     securePrefs.saveUserId(existingAdmin.id)
+                    // ✅ Ensure admin account type is set
+                    authStateManager.saveAccountType("ADMIN")
 
                     val isOffline = !networkObserver.isOnline()
 
@@ -278,6 +282,8 @@ class AuthViewModel @Inject constructor(
                         val adminUserWithId = createdUser.copy(role = "ADMIN", syncStatus = "SYNCED")
                         // Save ID to prefs
                         securePrefs.saveUserId(adminUserWithId.id)
+                        // ✅ Ensure admin account type is set
+                        authStateManager.saveAccountType("ADMIN")
 
                         android.util.Log.d("🟡 AUTH_VIEWMODEL", "✅ Admin user saved to DB and SecurePrefs")
 
