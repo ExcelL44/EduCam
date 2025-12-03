@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organigrammes du Processus de Login - EduCam</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .metadata {
+            background: #f8f9fa;
+            padding: 20px 40px;
+            border-bottom: 2px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .metadata-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .metadata-item strong {
+            color: #667eea;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .intro {
+            background: linear-gradient(135deg, #e0e7ff 0%, #f0e7ff 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 40px;
+            border-left: 5px solid #667eea;
+        }
+
+        .intro h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.8em;
+        }
+
+        .intro ul {
+            margin-left: 20px;
+            margin-top: 15px;
+        }
+
+        .intro li {
+            margin: 8px 0;
+        }
+
+        .diagram-section {
+            margin-bottom: 60px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .diagram-section:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .diagram-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .diagram-number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .diagram-header h3 {
+            font-size: 1.6em;
+            color: #333;
+            flex: 1;
+        }
+
+        .diagram-description {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .diagram-image {
+            width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+
+        .diagram-image:hover {
+            transform: scale(1.02);
+        }
+
+        .legend {
+            background: linear-gradient(135deg, #fff5e1 0%, #ffe4e1 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin-top: 40px;
+            border: 2px solid #ff9800;
+        }
+
+        .legend h3 {
+            color: #ff9800;
+            margin-bottom: 20px;
+            font-size: 1.6em;
+        }
+
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .legend-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .color-box {
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        footer {
+            background: #333;
+            color: white;
+            padding: 30px 40px;
+            text-align: center;
+        }
+
+        footer p {
+            margin: 5px 0;
+        }
+
+        .toc {
+            background: #e8eaf6;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 40px;
+        }
+
+        .toc h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .toc ol {
+            margin-left: 25px;
+        }
+
+        .toc li {
+            margin: 10px 0;
+            font-size: 1.1em;
+        }
+
+        .toc a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .toc a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+
+            .diagram-section {
+                page-break-inside: avoid;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8em;
+            }
+
+            .metadata {
+                flex-direction: column;
+            }
+
+            .content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🔐 Organigrammes du Processus de Login</h1>
+            <p>EduCam - Bac-X_237</p>
+        </header>
+
+        <div class="metadata">
+            <div class="metadata-item">
+                <strong>📅 Date:</strong>
+                <span>2025-12-03</span>
+            </div>
+            <div class="metadata-item">
+                <strong>📌 Version:</strong>
+                <span>1.0.0</span>
+            </div>
+            <div class="metadata-item">
+                <strong>🏗️ Architecture:</strong>
+                <span>Offline-First avec Synchronisation Différée</span>
+            </div>
+            <div class="metadata-item">
+                <strong>👨‍💻 Auteur:</strong>
+                <span>ExcelL44 Team</span>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="intro">
+                <h2>📖 Introduction</h2>
+                <p>Ce document présente les organigrammes visuels détaillant le processus complet d'authentification de
+                    l'application EduCam, depuis le démarrage de l'application jusqu'à l'affichage du menu principal.
+                </p>
+                <p><strong>Technologies clés utilisées :</strong></p>
+                <ul>
+                    <li>🎨 <strong>Jetpack Compose</strong> - Framework UI moderne et réactif</li>
+                    <li>🧠 <strong>Pattern MVI</strong> - Model-View-Intent pour la gestion d'état</li>
+                    <li>💾 <strong>Room Database</strong> - Persistance locale SQLite type-safe</li>
+                    <li>🔐 <strong>EncryptedSharedPreferences</strong> - Stockage sécurisé AES-256</li>
+                    <li>🔑 <strong>PBKDF2</strong> - Hashing de mots de passe avec 10,000 itérations</li>
+                    <li>⚡ <strong>Coroutines Kotlin</strong> - Gestion asynchrone thread-safe</li>
+                    <li>💉 <strong>Hilt</strong> - Injection de dépendances</li>
+                </ul>
+            </div>
+
+            <div class="toc">
+                <h3>📑 Table des Matières</h3>
+                <ol>
+                    <li><a href="#diagram1">Flux Complet - Du Démarrage au Menu Principal</a></li>
+                    <li><a href="#diagram2">Architecture en Couches</a></li>
+                    <li><a href="#diagram3">Séquence de Login Réussi</a></li>
+                    <li><a href="#diagram4">Machine à États d'Authentification</a></li>
+                    <li><a href="#diagram5">Processus de Validation PBKDF2</a></li>
+                    <li><a href="#diagram6">Architecture de Persistance des Données</a></li>
+                    <li><a href="#diagram7">Navigation Flow Complète</a></li>
+                </ol>
+            </div>
+
+            <!-- Diagramme 1 -->
+            <div class="diagram-section" id="diagram1">
+                <div class="diagram-header">
+                    <div class="diagram-number">1</div>
+                    <h3>Flux Complet - Du Démarrage au Menu Principal</h3>
+                </div>
+                <div class="diagram-description">
+                    <p>Ce diagramme montre le parcours complet d'un utilisateur depuis le lancement de l'application
+                        jusqu'à l'affichage du menu principal. Il inclut :</p>
+                    <ul>
+                        <li>✅ Initialisation de l'application (MainActivity.onCreate)</li>
+                        <li>🧹 Nettoyage automatique des comptes expirés (> 24h)</li>
+                        <li>🔍 Vérification de session existante (SecurePrefs)</li>
+                        <li>📱 Affichage du Splash Screen</li>
+                        <li>🔐 Processus de login avec validation PBKDF2</li>
+                        <li>💾 Création de session sécurisée</li>
+                        <li>🏠 Navigation vers le HomeScreen</li>
+                        <li>❌ Gestion des erreurs avec possibilité de retry</li>
+                    </ul>
+                </div>
+                <img src="login_flow_complete.png" alt="Flux complet du login" class="diagram-image">
+            </div>
+
+            <!-- Diagramme 2 -->
+            <div class="diagram-section" id="diagram2">
+                <div class="diagram-header">
+                    <div class="diagram-number">2</div>
+                    <h3>Architecture en Couches</h3>
+                </div>
+                <div class="diagram-description">
+                    <p>Cette architecture en 4 couches distinctes respecte les principes de Clean Architecture et de
+                        séparation des responsabilités :</p>
+                    <ul>
+                        <li>🎨 <strong>Couche UI (Presentation)</strong> : MainActivity, LoginScreen, NavGraph,
+                            AuthViewModel</li>
+                        <li>🧠 <strong>Couche Domain (Business Logic)</strong> : AuthState, AuthRepository</li>
+                        <li>💾 <strong>Couche Data (Persistence)</strong> : SecurePrefs (chiffré), UserDao, Room
+                            Database</li>
+                        <li>⚙️ <strong>Couche Infrastructure</strong> : NetworkObserver, Logger, Hilt DI</li>
+                    </ul>
+                </div>
+                <img src="architecture_layers.png" alt="Architecture en couches" class="diagram-image">
+            </div>
+
+            <!-- Diagramme 3 -->
+            <div class="diagram-section" id="diagram3">
+                <div class="diagram-header">
+                    <div class="diagram-number">3</div>
+                    <h3>Séquence de Login Réussi</h3>
+                </div>
+                <div class="diagram-description">
+                    <p>Ce diagramme de séquence UML illustre les interactions chronologiques entre tous les composants
+                        lors d'un login réussi :</p>
+                    <ul>
+                        <li>👤 Utilisateur entre pseudo + code</li>
+                        <li>📱 LoginScreen appelle AuthViewModel.login()</li>
+                        <li>⏳ État mis à jour : AuthState.Loading</li>
+                        <li>🔍 AuthRepository interroge la base de données</li>
+                        <li>🔐 Validation du password avec PBKDF2</li>
+                        <li>💾 SecurePrefs sauvegarde la session (chiffré)</li>
+                        <li>✅ État mis à jour : AuthState.Authenticated</li>
+                        <li>🌐 NavGraph navigue vers HomeScreen</li>
+                    </ul>
+                </div>
+                <img src="login_sequence_diagram.png" alt="Séquence de login" class="diagram-image">
+            </div>
+
+            <!-- Diagramme 4 -->
+            <div class="diagram-section" id="diagram4">
+                <div class="diagram-header">
+                    <div class="diagram-number">4</div>
+                    <h3>Machine à États d'Authentification</h3>
+                </div>
+                <div class="diagram-description">
+                    <p>Cette machine à états (State Machine) montre tous les états possibles de l'authentification et
+                        leurs transitions :</p>
+                    <ul>
+                        <li>🟡 <strong>Loading</strong> : Chargement initial ou action en cours</li>
+                        <li>🟢 <strong>Authenticated</strong> : Utilisateur connecté (état principal)</li>
+                        <li>🔴 <strong>Unauthenticated</strong> : Aucune session active</li>
+                        <li>🟠 <strong>Error</strong> : Erreur lors de l'authentification (peut retry)</li>
+                        <li>🔵 <strong>NeedsSync</strong> : Données locales à synchroniser</li>
+                        <li>🟣 <strong>OfflineTrial</strong> : Compte en période d'essai 24h</li>
+                        <li>⚫ <strong>Passive</strong> : Compte passif (accès limité)</li>
+                    </ul>
+                </div>
+                <img src="auth_state_machine.png" alt="Machine à états" class="diagram-image">
+            </div>
+
+            <!-- Diagramme 5 -->
+            <div class="diagram-section" id="diagram5">
+                <div class="diagram-header">
+                    <div class="diagram-number">5</div>
+                    <h3>Processus de Validation PBKDF2</h3>
+                </div>
+                <div class="diagram-description">
+                    <p>Ce diagramme détaille le processus cryptographique de hashing et de validation des mots de passe
+                        :</p>
+                    <ul>
+                        <li>📝 <strong>Inscription</strong> : Génération d'un salt aléatoire unique (16 bytes) → Hash
+                            PBKDF2 (10,000 iterations) → Stockage en DB</li>
+                        <li>🔑 <strong>Login</strong> : Récupération du salt stocké → Hash du password input avec même
+                            salt → Comparaison des hashes</li>
+                        <li>🔒 <strong>Algorithme</strong> : PBKDF2-HMAC-SHA256 (API ≥ 26) ou SHA1 (API < 26)</li>
+                        <li>⚡ <strong>Paramètres</strong> : 10,000 itérations, output 256 bits</li>
+                        <li>🛡️ <strong>Protection</strong> : Résistance aux rainbow tables et brute force</li>
+                    </ul>
+                </div>
+                <img src="pbkdf2_process.png" alt="Processus PBKDF2" class="diagram-image">
+            </div>
+
+            <!-- Diagramme 6 -->
+            <div class="diagram-section" id="diagram6">
+                <div class="diagram-header">
+                    <div class="diagram-number">6</div>
+                    <h3>Architecture de Persistance des Données</h3>
+                </div>
+                <div class="diagram-description">
+                    <p>Ce diagramme illustre comment les données sont stockées de manière sécurisée et organisée :</p>
+                    <ul>
+                        <li>🔐 <strong>SecurePrefs (Chiffré AES-256)</strong> : user_id, offline_pseudo, offline_hash,
+                            auth_mode</li>
+                        <li>💾 <strong>Room Database (SQLite)</strong> : User Entity complète (id, pseudo, passwordHash,
+                            salt, role, syncStatus, etc.)</li>
+                        <li>📝 <strong>SharedPreferences (Clair)</strong> : Métadonnées non sensibles (account_type,
+                            trial_start_date, phone_count)</li>
+                        <li>🔑 <strong>MasterKey</strong> : Stocké dans Android Keystore (hardware-backed si disponible)
+                        </li>
+                        <li>🛡️ <strong>Encryption Scheme</strong> : Keys (AES-256-SIV), Values (AES-256-GCM)</li>
+                    </ul>
+                </div>
+                <img src="data_persistence.png" alt="Architecture de persistance" class="diagram-image">
+            </div>
+
+            <!-- Diagramme 7 -->
+            <div class="diagram-section" id="diagram7">
+                <div class="diagram-header">
+                    <div class="diagram-number">7</div>
+                    <h3>Navigation Flow Complète</h3>
+                </div>
+                <div class="diagram-description">
+                    <p>Ce diagramme présente tous les écrans de l'application et leurs connexions de navigation :</p>
+                    <ul>
+                        <li>🟣 <strong>Splash Screen</strong> : Point d'entrée de l'application</li>
+                        <li>🔴 <strong>Login/Register</strong> : Écrans d'authentification</li>
+                        <li>🟢 <strong>Home Screen</strong> : Hub central avec accès à toutes les fonctionnalités</li>
+                        <li>🔵 <strong>Quiz, Matières, Chat (Smarty IA), Problem Solver</strong> : Fonctionnalités
+                            principales</li>
+                        <li>🟤 <strong>Profile, Bilan</strong> : Gestion du compte utilisateur</li>
+                        <li>⚙️ <strong>Admin Menu, Remote Dashboard, Local Database</strong> : Outils d'administration
+                            (role=ADMIN uniquement)</li>
+                    </ul>
+                </div>
+                <img src="navigation_flow.png" alt="Navigation flow" class="diagram-image">
+            </div>
+
+            <!-- Légende -->
+            <div class="legend">
+                <h3>🎨 Légende des Couleurs</h3>
+                <div class="legend-grid">
+                    <div class="legend-item">
+                        <div class="color-box" style="background: #4CAF50;"></div>
+                        <span><strong>Vert</strong> - États de succès, processus validés</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="color-box" style="background: #F44336;"></div>
+                        <span><strong>Rouge</strong> - Erreurs, états d'échec</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="color-box" style="background: #2196F3;"></div>
+                        <span><strong>Bleu</strong> - Navigation, destination finale</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="color-box" style="background: #FFC107;"></div>
+                        <span><strong>Jaune</strong> - États de chargement, avertissements</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="color-box" style="background: #9C27B0;"></div>
+                        <span><strong>Violet</strong> - Processus cryptographiques critiques</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="color-box" style="background: #FF9800;"></div>
+                        <span><strong>Orange</strong> - États intermédiaires importants</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p><strong>EduCam - Bac-X_237</strong></p>
+            <p>📅 Dernière mise à jour : 2025-12-03 | 📌 Version 1.0.0</p>
+            <p>👨‍💻 Développé par ExcelL44 Team</p>
+            <p style="margin-top: 15px; opacity: 0.8;">
+                🔐 Architecture Offline-First | 🛡️ Sécurité AES-256 & PBKDF2 | ⚡ Performance optimisée
+            </p>
+        </footer>
+    </div>
+</body>
+
+</html>

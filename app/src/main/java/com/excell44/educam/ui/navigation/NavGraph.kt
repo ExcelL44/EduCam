@@ -115,7 +115,17 @@ fun NavGraph(
         }
         composable(Screen.Login.route) {
             LoginScreen(
-                onLoginSuccess = {}, // ✅ No-op: Navigation gérée par LaunchedEffect ci-dessus
+                onLoginSuccess = {
+                    // ✅ FIX: Navigation explicite après login réussi
+                    navigationViewModel.navigate(
+                        NavCommand.NavigateTo(
+                            route = Screen.Home.route,
+                            popUpTo = Screen.Login.route,
+                            inclusive = true,
+                            singleTop = true
+                        )
+                    )
+                },
                 onNavigateToRegister = {
                     navigationViewModel.navigate(NavCommand.NavigateTo(Screen.Register.route))
                 }
@@ -123,7 +133,17 @@ fun NavGraph(
         }
         composable(Screen.Register.route) {
             RegisterScreen(
-                onRegisterSuccess = {}, // ✅ No-op: Navigation gérée par LaunchedEffect ci-dessus
+                onRegisterSuccess = {
+                    // ✅ FIX: Navigation explicite après inscription réussie
+                    navigationViewModel.navigate(
+                        NavCommand.NavigateTo(
+                            route = Screen.Home.route,
+                            popUpTo = Screen.Login.route,
+                            inclusive = true,
+                            singleTop = true
+                        )
+                    )
+                },
                 onNavigateToLogin = {
                     navigationViewModel.navigate(NavCommand.PopBack)
                 }
