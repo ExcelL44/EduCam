@@ -3,8 +3,8 @@ package com.excell44.educam.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.excell44.educam.data.ai.SmartyAI
+import com.excell44.educam.data.local.SecurePrefs
 import com.excell44.educam.data.local.dao.ChatMessageDao
-import com.excell44.educam.util.AuthStateManager
 import com.excell44.educam.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -33,7 +33,7 @@ data class ChatMessage(
 class ChatViewModel @Inject constructor(
     private val chatDao: ChatMessageDao,
     private val smartyAI: SmartyAI,
-    private val authStateManager: AuthStateManager
+    private val securePrefs: SecurePrefs
 ) : ViewModel() {
 
     private val TAG = "ChatViewModel"
@@ -55,7 +55,7 @@ class ChatViewModel @Inject constructor(
     private fun loadChatHistory() {
         viewModelScope.launch {
             try {
-                val userId = authStateManager.getUserId()
+                val userId = securePrefs.getUserId()
                 if (userId != null) {
                     chatDao.getRecentMessages(userId, 50)
                         .collect { entities ->
@@ -90,7 +90,7 @@ class ChatViewModel @Inject constructor(
     fun sendMessage(message: String) {
         if (message.isBlank()) return
 
-        val userId = authStateManager.getUserId()
+        val userId = securePrefs.getUserId()
         if (userId == null) {
             _uiState.value = _uiState.value.copy(
                 errorMessage = "Utilisateur non connecté"
@@ -187,7 +187,7 @@ class ChatViewModel @Inject constructor(
      * Soumet le feedback utilisateur pour un message IA.
      */
     fun submitUserFeedback(messageId: Long, isPositive: Boolean) {
-        val userId = authStateManager.getUserId()
+        val userId = securePrefs.getUserId()
         if (userId == null) {
             Logger.w(TAG, "Cannot submit feedback: user not authenticated")
             return
