@@ -61,14 +61,26 @@ fun ChatScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .consumeWindowInsets(padding)
+                .imePadding()
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Liste des messages
+            val listState = rememberLazyListState()
+            
+            LaunchedEffect(messages.size, uiState.isTyping) {
+                val count = messages.size + if (uiState.isTyping) 1 else 0
+                if (count > 0) {
+                    listState.animateScrollToItem(count - 1)
+                }
+            }
+
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                state = rememberLazyListState(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                state = listState,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(bottom = 8.dp)
             ) {
                 items(messages) { message ->
                     MessageBubble(
@@ -127,12 +139,19 @@ fun MessageBubble(
         MaterialTheme.colorScheme.onSurfaceVariant
     }
 
+    val bubbleShape = if (isUser) {
+        RoundedCornerShape(20.dp, 20.dp, 4.dp, 20.dp)
+    } else {
+        RoundedCornerShape(20.dp, 20.dp, 20.dp, 4.dp)
+    }
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
     ) {
         Card(
             modifier = Modifier.widthIn(max = 280.dp),
+            shape = bubbleShape,
             colors = CardDefaults.cardColors(containerColor = backgroundColor)
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
@@ -265,6 +284,7 @@ fun MessageInput(
             modifier = Modifier.weight(1f),
             placeholder = { Text("Tapez votre message...") },
             enabled = enabled,
+            shape = RoundedCornerShape(24.dp),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
             keyboardActions = KeyboardActions(
                 onSend = {
@@ -274,6 +294,10 @@ fun MessageInput(
                         focusManager.clearFocus()
                     }
                 }
+            ),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
             )
         )
 

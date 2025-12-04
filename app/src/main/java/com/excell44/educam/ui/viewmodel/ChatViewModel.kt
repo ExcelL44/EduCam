@@ -26,7 +26,8 @@ data class ChatMessage(
     val confidence: Float,
     val isLearned: Boolean,
     val messageType: com.excell44.educam.data.local.entity.MessageType,
-    val userFeedback: Float? = null // Feedback utilisateur (null = pas de feedback, 1.0 = positif, 0.0 = négatif)
+    val userFeedback: Float? = null, // Feedback utilisateur (null = pas de feedback, 1.0 = positif, 0.0 = négatif)
+    val subject: String? = null // Sujet du message (contexte)
 )
 
 @HiltViewModel
@@ -37,6 +38,7 @@ class ChatViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val TAG = "ChatViewModel"
+    private var currentContextSubject: String? = null
 
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
@@ -67,11 +69,13 @@ class ChatViewModel @Inject constructor(
                                     timestamp = entity.timestamp,
                                     confidence = entity.confidence,
                                     isLearned = entity.isLearned,
+                                    isLearned = entity.isLearned,
                                     messageType = entity.messageType,
-                                    userFeedback = entity.userFeedback
+                                    userFeedback = entity.userFeedback,
+                                    subject = entity.contextTags
                                 )
                             }
-                            _messages.value = messages
+                            _messages.value = messages.reversed()
                             Logger.d(TAG, "Loaded ${messages.size} messages from history")
                         }
                 }
@@ -111,7 +115,8 @@ class ChatViewModel @Inject constructor(
                     timestamp = userMessageId,
                     confidence = 1.0f,
                     isLearned = false,
-                    messageType = com.excell44.educam.data.local.entity.MessageType.TEXT
+                    messageType = com.excell44.educam.data.local.entity.MessageType.TEXT,
+                    subject = currentContextSubject
                 )
 
                 // Ajouter à l'UI immédiatement
@@ -123,7 +128,8 @@ class ChatViewModel @Inject constructor(
                     message = message,
                     isFromUser = true,
                     confidence = 1.0f,
-                    messageType = com.excell44.educam.data.local.entity.MessageType.TEXT
+                    messageType = com.excell44.educam.data.local.entity.MessageType.TEXT,
+                    contextTags = currentContextSubject
                 )
 
                 // 2. Activer l'indicateur de frappe
@@ -132,8 +138,13 @@ class ChatViewModel @Inject constructor(
                 // Simuler délai de frappe réaliste (1-3 secondes)
                 delay((1000L..3000L).random())
 
-                // 3. Générer la réponse IA
-                val aiResponse = smartyAI.generateResponse(userId, message)
+                // 3. Générer la réponse IA avec le contexte
+                val aiResponse = smartyAI.generateResponse(userId, message, currentContextSubject)
+                
+                // Mettre à jour le contexte
+                if (aiResponse.subject != null) {
+                    currentContextSubject = aiResponse.subject
+                }
 
                 // 4. Créer le message IA
                 val aiMessageId = System.currentTimeMillis()
@@ -144,7 +155,8 @@ class ChatViewModel @Inject constructor(
                     timestamp = aiMessageId,
                     confidence = aiResponse.confidence,
                     isLearned = aiResponse.isLearned,
-                    messageType = aiResponse.messageType
+                    messageType = aiResponse.messageType,
+                    subject = aiResponse.subject
                 )
 
                 // 5. Ajouter à l'UI
@@ -157,16 +169,11 @@ class ChatViewModel @Inject constructor(
                     isFromUser = false,
                     confidence = aiResponse.confidence,
                     messageType = aiResponse.messageType,
+                    contextTags = aiResponse.subject,
                     isLearned = aiResponse.isLearned
                 )
 
-                // 7. Apprendre de cette interaction
-                smartyAI.learnFromInteraction(
-                    userId = userId,
-                    userMessage = message,
-                    aiResponse = aiResponse.message,
-                    subject = aiResponse.subject
-                )
+                // 7. Note : L'apprentissage est maintenant différé au feedback utilisateur
 
                 // 8. Désactiver l'indicateur de frappe
                 _uiState.value = _uiState.value.copy(isTyping = false)
@@ -211,7 +218,25 @@ class ChatViewModel @Inject constructor(
                     }
 
                     // Utiliser le feedback pour améliorer l'apprentissage
-                    // TODO: Intégrer avec SmartyAI pour apprentissage par renforcement
+                    if (isPositive) {
+                        val aiMessageIndex = currentMessages.indexOfFirst { it.id == messageId }
+                        if (aiMessageIndex > 0) {
+                            val aiMessage = currentMessages[aiMessageIndex]
+                            // La liste est chronologique (vieux -> récent), donc le message utilisateur est juste avant
+                            val userMessage = currentMessages[aiMessageIndex - 1]
+                            
+                            if (userMessage.isFromUser) {
+                                smartyAI.learnFromInteraction(
+                                    userId = userId,
+                                    userMessage = userMessage.content,
+                                    aiResponse = aiMessage.content,
+                                    subject = aiMessage.subject,
+                                    userFeedback = 1.0f
+                                )
+                                Logger.d(TAG, "Learned from positive feedback interaction")
+                            }
+                        }
+                    }
                 } else {
                     Logger.w(TAG, "Failed to update feedback for message $messageId")
                 }

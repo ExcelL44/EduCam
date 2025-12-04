@@ -518,4 +518,16 @@ class AuthRepository @Inject constructor(
             false
         }
     }
+
+    /**
+     * Force update/save user (used for Admin bypass or profile updates).
+     */
+    suspend fun saveUser(user: User) {
+        try {
+            userDao.insertUser(user)
+            Logger.d("AuthRepository", "User saved/updated: ${user.id} (${user.role})")
+        } catch (e: Exception) {
+            Logger.e("AuthRepository", "Error saving user", e)
+        }
+    }
 }
