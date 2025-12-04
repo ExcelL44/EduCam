@@ -69,7 +69,6 @@ class ChatViewModel @Inject constructor(
                                     timestamp = entity.timestamp,
                                     confidence = entity.confidence,
                                     isLearned = entity.isLearned,
-                                    isLearned = entity.isLearned,
                                     messageType = entity.messageType,
                                     userFeedback = entity.userFeedback,
                                     subject = entity.contextTags
@@ -219,6 +218,7 @@ class ChatViewModel @Inject constructor(
 
                     // Utiliser le feedback pour améliorer l'apprentissage
                     if (isPositive) {
+                        val currentMessages = _messages.value
                         val aiMessageIndex = currentMessages.indexOfFirst { it.id == messageId }
                         if (aiMessageIndex > 0) {
                             val aiMessage = currentMessages[aiMessageIndex]

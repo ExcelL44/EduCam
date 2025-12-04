@@ -32,6 +32,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.excell44.educam.data.local.entity.MessageType
 import com.excell44.educam.util.Logger
 import com.excell44.educam.ui.util.screenPadding
+import com.excell44.educam.ui.components.LatexWebView
 import kotlinx.coroutines.launch
 
 /**
@@ -155,16 +156,32 @@ fun MessageBubble(
             colors = CardDefaults.cardColors(containerColor = backgroundColor)
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
-                Text(
-                    text = message.content,
-                    color = textColor,
-                    style = MaterialTheme.typography.bodyLarge
-                )
+                // Choix du rendu : Texte simple ou LaTeX/HTML
+                if (message.messageType == MessageType.EXPLANATION || 
+                    message.messageType == MessageType.MATH_EXPRESSION ||
+                    message.content.contains("$$") || message.content.contains("\\")) {
+                    
+                    LatexWebView(
+                        content = message.content,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 40.dp, max = 400.dp), // Hauteur adaptative
+                        isDarkTheme = false // À adapter selon le thème système si besoin
+                    )
+                } else {
+                    Text(
+                        text = message.content,
+                        color = textColor,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+
                 if (message.confidence < 1.0f) {
                     Text(
                         text = "Confiance: ${(message.confidence * 100).toInt()}%",
                         color = textColor.copy(alpha = 0.7f),
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
             }

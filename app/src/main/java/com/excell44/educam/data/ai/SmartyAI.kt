@@ -604,24 +604,24 @@ class SmartyAI @Inject constructor(
                     }
 
                     val delta = b * b - 4 * a * c
-                    val steps = StringBuilder("C'est une équation du second degré ($a x² + $b x + $c = 0).\n")
-                    steps.append("1. Calcul du discriminant Δ = b² - 4ac\n")
-                    steps.append("   Δ = $b² - 4*$a*$c = $delta\n")
+                    val steps = StringBuilder("C'est une équation du second degré : $$ $a x^2 + $b x + $c = 0 $$\n")
+                    steps.append("1. Calcul du discriminant $\\Delta = b^2 - 4ac$ :\n")
+                    steps.append("   $$ \\Delta = $b^2 - 4($a)($c) = $delta $$\n")
 
                     return if (delta > 0) {
                         val x1 = (-b - Math.sqrt(delta)) / (2 * a)
                         val x2 = (-b + Math.sqrt(delta)) / (2 * a)
-                        steps.append("2. Δ > 0, deux solutions réelles :\n")
-                        steps.append("   x1 = (-b - √Δ) / 2a = ${String.format("%.2f", x1)}\n")
-                        steps.append("   x2 = (-b + √Δ) / 2a = ${String.format("%.2f", x2)}")
+                        steps.append("2. $\\Delta > 0$, deux solutions réelles :\n")
+                        steps.append("   $$ x_1 = \\frac{-b - \\sqrt{\\Delta}}{2a} = \\frac{-($b) - \\sqrt{$delta}}{2($a)} = ${String.format("%.2f", x1)} $$\n")
+                        steps.append("   $$ x_2 = \\frac{-b + \\sqrt{\\Delta}}{2a} = \\frac{-($b) + \\sqrt{$delta}}{2($a)} = ${String.format("%.2f", x2)} $$")
                         steps.toString()
                     } else if (delta == 0.0) {
                         val x0 = -b / (2 * a)
-                        steps.append("2. Δ = 0, une solution double :\n")
-                        steps.append("   x0 = -b / 2a = ${String.format("%.2f", x0)}")
+                        steps.append("2. $\\Delta = 0$, une solution double :\n")
+                        steps.append("   $$ x_0 = \\frac{-b}{2a} = \\frac{-($b)}{2($a)} = ${String.format("%.2f", x0)} $$")
                         steps.toString()
                     } else {
-                        steps.append("2. Δ < 0, pas de solution réelle (solutions complexes uniquement).")
+                        steps.append("2. $\\Delta < 0$, pas de solution réelle (solutions complexes uniquement).")
                         steps.toString()
                     }
                 } catch (e: Exception) { return null }
@@ -636,11 +636,11 @@ class SmartyAI @Inject constructor(
                 val bVal = b.toDouble()
                 val resVal = res.toDouble()
                 
-                val steps = StringBuilder("Résolution de l'équation linéaire ${a}x + $b = $res :\n")
-                steps.append("1. Isoler x : ${a}x = $res - $b\n")
-                steps.append("2. ${a}x = ${resVal - bVal}\n")
-                steps.append("3. x = ${(resVal - bVal)} / $aVal\n")
-                steps.append("4. x = ${String.format("%.2f", (resVal - bVal) / aVal)}")
+                val steps = StringBuilder("Résolution de l'équation linéaire $$ ${a}x + $b = $res $$ :\n")
+                steps.append("1. Isoler $x$ : $$ ${a}x = $res - $b $$\n")
+                steps.append("2. $$ ${a}x = ${resVal - bVal} $$\n")
+                steps.append("3. $$ x = \\frac{${resVal - bVal}}{$aVal} $$\n")
+                steps.append("4. $$ x = ${String.format("%.2f", (resVal - bVal) / aVal)} $$")
                 return steps.toString()
             }
 
@@ -664,10 +664,10 @@ class SmartyAI @Inject constructor(
                 val f = getVar("f")
                 
                 if (m != null && a != null && f == null) {
-                    return "D'après la 2ème loi de Newton (F = m*a) :\nF = $m kg * $a m/s² = ${m * a} N"
+                    return "D'après la 2ème loi de Newton ($$ F = m \\cdot a $$) :\n$$ F = $m \\text{ kg} \\times $a \\text{ m/s}^2 = ${m * a} \\text{ N} $$"
                 }
                 if (f != null && m != null && a == null) {
-                    return "D'après F = m*a, on cherche l'accélération a = F/m :\na = $f N / $m kg = ${f / m} m/s²"
+                    return "D'après $$ F = m \\cdot a $$, on cherche l'accélération $$ a = \\frac{F}{m} $$ :\n$$ a = \\frac{$f \\text{ N}}{$m \\text{ kg}} = ${f / m} \\text{ m/s}^2 $$"
                 }
             }
 
@@ -676,7 +676,7 @@ class SmartyAI @Inject constructor(
                 val m = getVar("m")
                 val v = getVar("v")
                 if (m != null && v != null) {
-                    return "L'énergie cinétique se calcule par Ec = 1/2 * m * v² :\nEc = 0.5 * $m * $v² = ${0.5 * m * v * v} Joules"
+                    return "L'énergie cinétique se calcule par $$ E_c = \\frac{1}{2} m v^2 $$ :\n$$ E_c = 0.5 \\times $m \\times $v^2 = ${0.5 * m * v * v} \\text{ Joules} $$"
                 }
             }
             
@@ -686,9 +686,9 @@ class SmartyAI @Inject constructor(
                 val r = getVar("r")
                 val i = getVar("i")
                 
-                if (r != null && i != null) return "Loi d'Ohm (U = R*I) :\nU = $r Ω * $i A = ${r * i} V"
-                if (u != null && r != null) return "Loi d'Ohm (I = U/R) :\nI = $u V / $r Ω = ${u / r} A"
-                if (u != null && i != null) return "Loi d'Ohm (R = U/I) :\nR = $u V / $i A = ${u / i} Ω"
+                if (r != null && i != null) return "Loi d'Ohm ($$ U = R \\cdot I $$) :\n$$ U = $r \\Omega \\times $i \\text{ A} = ${r * i} \\text{ V} $$"
+                if (u != null && r != null) return "Loi d'Ohm ($$ I = \\frac{U}{R} $$) :\n$$ I = \\frac{$u \\text{ V}}{$r \\Omega} = ${u / r} \\text{ A} $$"
+                if (u != null && i != null) return "Loi d'Ohm ($$ R = \\frac{U}{I} $$) :\n$$ R = \\frac{$u \\text{ V}}{$i \\text{ A}} = ${u / i} \\Omega $$"
             }
 
             return null
@@ -709,8 +709,8 @@ class SmartyAI @Inject constructor(
                 val v = getVar("v")
                 val c = getVar("c")
                 
-                if (n != null && v != null) return "Concentration molaire (C = n/V) :\nC = $n mol / $v L = ${n / v} mol/L"
-                if (c != null && v != null) return "Quantité de matière (n = C*V) :\nn = $c mol/L * $v L = ${c * v} mol"
+                if (n != null && v != null) return "Concentration molaire ($$ C = \\frac{n}{V} $$) :\n$$ C = \\frac{$n \\text{ mol}}{$v \\text{ L}} = ${n / v} \\text{ mol/L} $$"
+                if (c != null && v != null) return "Quantité de matière ($$ n = C \\cdot V $$) :\n$$ n = $c \\text{ mol/L} \\times $v \\text{ L} = ${c * v} \\text{ mol} $$"
             }
 
             // Masse molaire simple (ex: H2O)
@@ -720,10 +720,10 @@ class SmartyAI @Inject constructor(
                 // Regex pour trouver une formule simple (ex: H2O, CO2)
                 // Pour l'instant, on répond juste avec les données atomiques si on détecte des atomes
                 if (lower.contains("h") && lower.contains("o")) {
-                    return "Pour H2O (Eau) : 2*H(1.0) + 1*O(16.0) = 18.0 g/mol"
+                    return "Pour \\ce{H2O} (Eau) :\n$$ 2 \\times H(1.0) + 1 \\times O(16.0) = 18.0 \\text{ g/mol} $$"
                 }
                 if (lower.contains("c") && lower.contains("o")) {
-                    return "Pour CO2 (Dioxyde de carbone) : 1*C(12.0) + 2*O(16.0) = 44.0 g/mol"
+                    return "Pour \\ce{CO2} (Dioxyde de carbone) :\n$$ 1 \\times C(12.0) + 2 \\times O(16.0) = 44.0 \\text{ g/mol} $$"
                 }
             }
 
