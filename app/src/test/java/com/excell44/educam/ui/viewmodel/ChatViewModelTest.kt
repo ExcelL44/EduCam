@@ -33,7 +33,7 @@ class ChatViewModelTest {
     private lateinit var smartyAI: SmartyAI
 
     @Mock
-    private lateinit var authStateManager: AuthStateManager
+    private lateinit var securePrefs: com.excell44.educam.data.local.SecurePrefs
 
     private lateinit var chatViewModel: ChatViewModel
 
@@ -44,7 +44,7 @@ class ChatViewModelTest {
         // Disable logging for tests
         Logger.enableReleaseMode()
 
-        chatViewModel = ChatViewModel(chatDao, smartyAI, authStateManager)
+        chatViewModel = ChatViewModel(chatDao, smartyAI, securePrefs)
     }
 
     @After
@@ -65,16 +65,17 @@ class ChatViewModelTest {
             messageType = com.excell44.educam.data.local.entity.MessageType.TEXT
         )
 
-        whenever(authStateManager.getUserId()).thenReturn(userId)
-        whenever(smartyAI.generateResponse(any(), any())).thenReturn(aiResponse)
+        whenever(securePrefs.getUserId()).thenReturn(userId)
+        whenever(smartyAI.generateResponse(any(), any(), anyOrNull())).thenReturn(aiResponse)
 
         // When
         chatViewModel.sendMessage(userMessage)
 
         // Then
         verify(smartyAI, times(2)).saveChatMessage(any(), any(), any(), any(), any(), any(), any())
-        verify(smartyAI).generateResponse(any(), any())
-        verify(smartyAI).learnFromInteraction(any(), any(), any(), any())
+        verify(smartyAI).generateResponse(any(), any(), anyOrNull())
+        // learnFromInteraction n'est plus appelé automatiquement dans sendMessage
+        // verify(smartyAI).learnFromInteraction(any(), any(), any(), any())
     }
 
     @Test
@@ -86,7 +87,7 @@ class ChatViewModelTest {
         chatViewModel.sendMessage(emptyMessage)
 
         // Then
-        verify(smartyAI, never()).generateResponse(any(), any())
+        verify(smartyAI, never()).generateResponse(any(), any(), anyOrNull())
         verify(smartyAI, never()).saveChatMessage(any(), any(), any(), any(), any(), any(), any())
     }
 
@@ -94,13 +95,13 @@ class ChatViewModelTest {
     fun `sendMessage should handle unauthenticated users gracefully`() = runTest {
         // Given
         val message = "Test message"
-        whenever(authStateManager.getUserId()).thenReturn(null)
+        whenever(securePrefs.getUserId()).thenReturn(null)
 
         // When
         chatViewModel.sendMessage(message)
 
         // Then
-        verify(smartyAI, never()).generateResponse(any(), any())
+        verify(smartyAI, never()).generateResponse(any(), any(), anyOrNull())
         verify(smartyAI, never()).saveChatMessage(any(), any(), any(), any(), any(), any(), any())
     }
 
@@ -109,8 +110,8 @@ class ChatViewModelTest {
         // Given
         val userId = "test_user"
         val userMessage = "Test message"
-        whenever(authStateManager.getUserId()).thenReturn(userId)
-        whenever(smartyAI.generateResponse(any(), any()))
+        whenever(securePrefs.getUserId()).thenReturn(userId)
+        whenever(smartyAI.generateResponse(any(), any(), anyOrNull()))
             .thenThrow(RuntimeException("AI Error"))
 
         // When
@@ -124,7 +125,7 @@ class ChatViewModelTest {
     @Test
     fun `clearError should reset error message`() = runTest {
         // Given - simuler un état d'erreur
-        val viewModel = ChatViewModel(chatDao, smartyAI, authStateManager)
+        val viewModel = ChatViewModel(chatDao, smartyAI, securePrefs)
 
         // When
         viewModel.clearError()

@@ -232,59 +232,66 @@ class AuthViewModel @Inject constructor(
                 val adminPseudo = "Sup_Admin"
                 android.util.Log.d("🟡 AUTH_VIEWMODEL", "🚨 Checking if admin user already exists: $adminPseudo")
 
-                // 1. Get or Create User
-                var targetUser = authRepository.getUserByPseudo(adminPseudo)
+                // Get existing or create new ADMIN user directly (not via registerOffline)
+                var adminUser = authRepository.getUserByPseudo(adminPseudo)
                 
-                if (targetUser == null) {
-                    android.util.Log.d("🟡 AUTH_VIEWMODEL", "🚨 Creating new admin user")
-                    // Create if not exists
-                    val result = authRepository.registerOffline(
+                if (adminUser == null) {
+                    android.util.Log.d("🟡 AUTH_VIEWMODEL", "🚨 Creating new ADMIN user directly")
+                    
+                    // ✅ FIX: Create ADMIN user directly with proper role from the start
+                    // Avoid using registerOffline() which creates PASSIVE users
+                    adminUser = com.excell44.educam.data.model.User(
+                        id = java.util.UUID.randomUUID().toString(),
                         pseudo = adminPseudo,
-                        password = "0000",
-                        fullName = "Super Administrateur",
-                        gradeLevel = "Admin"
+                        passwordHash = "", // No password needed for test admin
+                        salt = "",
+                        name = "Super Administrateur",
+                        gradeLevel = "Admin",
+                        role = "ADMIN", // ✅ CRITICAL: Set as ADMIN from the start
+                        syncStatus = "SYNCED",
+                        isOfflineAccount = false, // ✅ Treat as online/active account
+                        trialExpiresAt = null, // ✅ No trial limitation
+                        createdAt = System.currentTimeMillis()
                     )
-                    targetUser = result.getOrNull()
+                    
+                    // Save to DB
+                    authRepository.saveUser(adminUser)
+                    android.util.Log.d("🟡 AUTH_VIEWMODEL", "✅ New ADMIN user created: ${adminUser.id}")
+                    
                 } else {
-                    android.util.Log.d("🟡 AUTH_VIEWMODEL", "✅ Admin user found: ${targetUser.id}")
+                    android.util.Log.d("🟡 AUTH_VIEWMODEL", "✅ Admin user found: ${adminUser.id}")
+                    
+                    // ✅ Ensure existing user has proper ADMIN role
+                    if (adminUser.role != "ADMIN" || adminUser.isOfflineAccount) {
+                        android.util.Log.d("🟡 AUTH_VIEWMODEL", "🚨 Upgrading existing user to ADMIN")
+                        
+                        adminUser = adminUser.copy(
+                            role = "ADMIN",
+                            syncStatus = "SYNCED",
+                            isOfflineAccount = false,
+                            trialExpiresAt = null
+                        )
+                        
+                        authRepository.saveUser(adminUser)
+                        android.util.Log.d("🟡 AUTH_VIEWMODEL", "✅ User upgraded to ADMIN")
+                    }
                 }
 
-                // 2. Force Upgrade to ADMIN and Save
-                if (targetUser != null) {
-                    android.util.Log.d("🟡 AUTH_VIEWMODEL", "🚨 Upgrading user to ADMIN/ACTIVE")
-                    
-                    val upgradedUser = targetUser.copy(
-                        role = "ADMIN",
-                        syncStatus = "SYNCED",
-                        isOfflineAccount = false, // CRITICAL: Treat as Online/Active
-                        trialExpiresAt = null // Remove trial limit
+                // Save to Prefs
+                securePrefs.saveUserId(adminUser.id)
+                securePrefs.saveAuthMode(com.excell44.educam.data.local.SecurePrefs.AuthMode.ONLINE)
+                authStateManager.saveAccountType("ADMIN")
+                
+                // Update State on Main Thread
+                withContext(Dispatchers.Main) {
+                    _authState.value = AuthState.Authenticated(
+                        user = adminUser,
+                        isOffline = !networkObserver.isOnline()
                     )
-                    
-                    // Save to DB (Force Update)
-                    authRepository.saveUser(upgradedUser)
-                    android.util.Log.d("🟡 AUTH_VIEWMODEL", "✅ User updated in DB")
-                    
-                    // Save to Prefs
-                    securePrefs.saveUserId(upgradedUser.id)
-                    securePrefs.saveAuthMode(com.excell44.educam.data.local.SecurePrefs.AuthMode.ONLINE) // Treat as Online
-                    authStateManager.saveAccountType("ADMIN")
-                    
-                    // Update State on Main Thread
-                    withContext(Dispatchers.Main) {
-                        _authState.value = AuthState.Authenticated(
-                            user = upgradedUser,
-                            isOffline = !networkObserver.isOnline()
-                        )
-                        android.util.Log.d("🟡 AUTH_VIEWMODEL", "✅ AuthState updated to Authenticated (ADMIN)")
-                    }
-                    
-                    Logger.i("AuthViewModel", "Force admin login successful - User upgraded to ADMIN/ACTIVE")
-                } else {
-                    android.util.Log.e("🟡 AUTH_VIEWMODEL", "❌ Failed to create or retrieve admin user")
-                    withContext(Dispatchers.Main) {
-                        _authState.value = AuthState.Error("Impossible de créer le compte Admin", true)
-                    }
+                    android.util.Log.d("🟡 AUTH_VIEWMODEL", "✅ AuthState updated to Authenticated (ADMIN)")
                 }
+                
+                Logger.i("AuthViewModel", "Force admin login successful - ADMIN user authenticated")
 
             } catch (e: Exception) {
                 android.util.Log.e("🟡 AUTH_VIEWMODEL", "🚨 forceAdminLogin() FAILED with exception: ${e.message}", e)
