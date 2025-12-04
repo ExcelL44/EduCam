@@ -637,7 +637,7 @@ class SmartyAI @Inject constructor(
                 val resVal = res.toDouble()
                 
                 val steps = StringBuilder("Résolution de l'équation linéaire $$ ${a}x + $b = $res $$ :\n")
-                steps.append("1. Isoler $x$ : $$ ${a}x = $res - $b $$\n")
+                steps.append("1. Isoler x : $$ ${a}x = $res - $b $$\n")
                 steps.append("2. $$ ${a}x = ${resVal - bVal} $$\n")
                 steps.append("3. $$ x = \\frac{${resVal - bVal}}{$aVal} $$\n")
                 steps.append("4. $$ x = ${String.format("%.2f", (resVal - bVal) / aVal)} $$")
