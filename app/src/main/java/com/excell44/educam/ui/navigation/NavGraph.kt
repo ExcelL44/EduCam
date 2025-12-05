@@ -70,8 +70,11 @@ fun NavGraph(
     var showTrialExpiredDialog by remember { mutableStateOf(false) }
     
     LaunchedEffect(authState) {
-        if (authState is com.excell44.educam.domain.model.AuthState.Authenticated) {
-            val currentUser = authState.user
+        // Capturer la valeur pour permettre le smart cast
+        val currentAuthState = authState
+        
+        if (currentAuthState is com.excell44.educam.domain.model.AuthState.Authenticated) {
+            val currentUser = currentAuthState.user
             
             // Vérifier si user est PASSIVE avec trial expiré
             if (currentUser.role == "PASSIVE" && 
