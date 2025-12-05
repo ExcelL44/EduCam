@@ -84,6 +84,127 @@ class QuizViewModel @Inject constructor(
     // accumulate per-question details during the quiz
     private val answerDetails = mutableListOf<AnswerDetail>()
 
+    init {
+        // Vérifier et peupler la base de données si nécessaire (BUGFIX: quiz loading indefinitely)
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val mathCount = quizQuestionDao.getRandomQuestions("Mathématiques", "Terminale", 1).size
+                val physCount = quizQuestionDao.getRandomQuestions("Physique", "Terminale", 1).size
+                val chimCount = quizQuestionDao.getRandomQuestions("Chimie", "Terminale", 1).size
+                
+                if (mathCount == 0 || physCount == 0 || chimCount == 0) {
+                    Logger.w("QuizViewModel", "Database empty or incomplete! Seeding questions... (Math: $mathCount, Phys: $physCount, Chim: $chimCount)")
+                    seedDatabaseQuestions()
+                } else {
+                    Logger.i("QuizViewModel", "Database OK: Math=$mathCount, Phys=$physCount, Chim=$chimCount")
+                }
+            } catch (e: Exception) {
+                Logger.e("QuizViewModel", "Error checking database state", e)
+            }
+        }
+    }
+
+    private suspend fun seedDatabaseQuestions() {
+        try {
+            val questions = mutableListOf<com.excell44.educam.data.model.QuizQuestion>()
+            
+            // Questions Mathématiques
+            questions.add(com.excell44.educam.data.model.QuizQuestion(
+                id = "math_seed_001",
+                subject = "Mathématiques",
+                topic = "Équations du premier degré",
+                question = "Résoudre l'équation: 2x + 5 = 17",
+                questionType = com.excell44.educam.data.model.QuestionType.MULTIPLE_CHOICE,
+                options = listOf("x = 16", "x = 6", "x = 11", "x = 2"),
+                correctAnswer = "x = 6",
+                explanation = "Soustraire 5 des deux membres: 2x = 12, puis diviser par 2: x = 6",
+                difficulty = Difficulty.EASY,
+                gradeLevel = "Terminale"
+            ))
+            questions.add(com.excell44.educam.data.model.QuizQuestion(
+                id = "math_seed_002",
+                subject = "Mathématiques",
+                topic = "Théorème de Pythagore",
+                question = "Dans un triangle rectangle, si les cathètes mesurent 3 cm et 4 cm, l'hypoténuse mesure:",
+                questionType = com.excell44.educam.data.model.QuestionType.MULTIPLE_CHOICE,
+                options = listOf("5 cm", "7 cm", "1 cm", "12 cm"),
+                correctAnswer = "5 cm",
+                explanation = "a² + b² = c² donc 3² + 4² = c² => 9 + 16 = c² => c² = 25 => c = 5",
+                difficulty = Difficulty.EASY,
+                gradeLevel = "Terminale"
+            ))
+            questions.add(com.excell44.educam.data.model.QuizQuestion(
+                id = "math_seed_003",
+                subject = "Mathématiques",
+                topic = "Dérivation",
+                question = "La dérivée de f(x) = x² + 3x + 2 est:",
+                questionType = com.excell44.educam.data.model.QuestionType.MULTIPLE_CHOICE,
+                options = listOf("f'(x) = 2x + 3", "f'(x) = x² + 3", "f'(x) = 2x + 2", "f'(x) = x² + 3x"),
+                correctAnswer = "f'(x) = 2x + 3",
+                explanation = "Dérivée de x² = 2x, dérivée de 3x = 3, dérivée de 2 = 0",
+                difficulty = Difficulty.MEDIUM,
+                gradeLevel = "Terminale"
+            ))
+            
+            // Questions Physique
+            questions.add(com.excell44.educam.data.model.QuizQuestion(
+                id = "phys_seed_001",
+                subject = "Physique",
+                topic = "Électricité",
+                question = "Quelle est l'unité d'intensité électrique?",
+                questionType = com.excell44.educam.data.model.QuestionType.MULTIPLE_CHOICE,
+                options = listOf("Volt", "Ampère", "Watt", "Ohm"),
+                correctAnswer = "Ampère",
+                explanation = "L'unité d'intensité électrique est l'Ampère (A)",
+                difficulty = Difficulty.EASY,
+                gradeLevel = "Terminale"
+            ))
+            questions.add(com.excell44.educam.data.model.QuizQuestion(
+                id = "phys_seed_002",
+                subject = "Physique",
+                topic = "Électromagnétisme",
+                question = "Selon la loi de Coulomb, la force électrique entre deux charges est proportionnelle à:",
+                questionType = com.excell44.educam.data.model.QuestionType.MULTIPLE_CHOICE,
+                options = listOf("Le produit des charges divisé par le carré de la distance", "La somme des charges divisée par la distance", "Le carré des charges multiplié par la distance", "La différence des charges multipliée par la distance"),
+                correctAnswer = "Le produit des charges divisé par le carré de la distance",
+                explanation = "F = k × q₁ × q₂ / r²",
+                difficulty = Difficulty.MEDIUM,
+                gradeLevel = "Terminale"
+            ))
+            
+            // Questions Chimie
+            questions.add(com.excell44.educam.data.model.QuizQuestion(
+                id = "chim_seed_001",
+                subject = "Chimie",
+                topic = "Structure atomique",
+                question = "Combien y a-t-il d'électrons dans un atome de carbone neutre?",
+                questionType = com.excell44.educam.data.model.QuestionType.MULTIPLE_CHOICE,
+                options = listOf("4", "6", "8", "12"),
+                correctAnswer = "6",
+                explanation = "Le numéro atomique du carbone est 6, donc il a 6 électrons",
+                difficulty = Difficulty.EASY,
+                gradeLevel = "Terminale"
+            ))
+            questions.add(com.excell44.educam.data.model.QuizQuestion(
+                id = "chim_seed_002",
+                subject = "Chimie",
+                topic = "Configuration électronique",
+                question = "Quelle est la configuration électronique de l'oxygène?",
+                questionType = com.excell44.educam.data.model.QuestionType.MULTIPLE_CHOICE,
+                options = listOf("1s² 2s² 2p⁴", "1s² 2s² 2p⁶", "1s² 2s² 2p²", "1s² 2s⁴ 2p²"),
+                correctAnswer = "1s² 2s² 2p⁴",
+                explanation = "Numéro atomique 8: 1s² 2s² 2p⁴",
+                difficulty = Difficulty.MEDIUM,
+                gradeLevel = "Terminale"
+            ))
+            
+            quizQuestionDao.insertQuestions(questions)
+            Logger.i("QuizViewModel", "Successfully seeded ${questions.size} questions to database")
+        } catch (e: Exception) {
+            Logger.e("QuizViewModel", "Failed to seed database", e)
+        }
+    }
+
     fun loadSubjects() {
         // Les sujets sont hardcodés pour l'instant
         // Peut être amélioré avec un repository
@@ -147,7 +268,10 @@ class QuizViewModel @Inject constructor(
                 val questionCount = if (mode == QuizMode.FAST) 10 else 20
                 val questions = quizQuestionDao.getRandomQuestions(subject, "Terminale", questionCount)
 
+                Logger.d("QuizViewModel", "Loaded ${questions.size} questions for subject=$subject, mode=$mode (requested=$questionCount)")
+
                 if (questions.isNotEmpty()) {
+                    Logger.i("QuizViewModel", "Quiz started successfully: ${questions.size} questions loaded")
                     _uiState.value = _uiState.value.copy(
                         isQuizStarted = true,
                         questions = questions,
@@ -160,12 +284,14 @@ class QuizViewModel @Inject constructor(
                         estimatedScoreOutOf20 = null
                     )
                 } else {
+                    Logger.w("QuizViewModel", "No questions found for subject=$subject, gradeLevel=Terminale")
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         errorMessage = "Aucune question disponible pour cette matière"
                     )
                 }
             } catch (e: Exception) {
+                Logger.e("QuizViewModel", "Error starting quiz", e)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     errorMessage = e.message

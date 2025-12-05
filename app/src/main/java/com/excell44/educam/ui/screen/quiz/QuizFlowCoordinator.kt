@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.style.TextAlign
 import com.excell44.educam.data.model.QuizMode
+import com.excell44.educam.util.Logger
 import java.util.UUID
 
 enum class QuizStep {
@@ -115,8 +116,55 @@ fun QuizFlowCoordinator(
         }
         
         QuizStep.EXECUTION -> {
+            // Log diagnostic de l'état actuel
+            LaunchedEffect(uiState.isQuizStarted, uiState.isLoading, uiState.errorMessage, uiQuestions.size) {
+                Logger.d("QuizFlowCoordinator", 
+                    "EXECUTION state: isQuizStarted=${uiState.isQuizStarted}, " +
+                    "isLoading=${uiState.isLoading}, " +
+                    "errorMessage=${uiState.errorMessage}, " +
+                    "uiQuestions.size=${uiQuestions.size}, " +
+                    "dataQuestions.size=${uiState.questions.size}"
+                )
+            }
+            
             when {
+                // PRIORITÉ 1: Afficher les erreurs en premier
+                uiState.errorMessage != null -> {
+                    Logger.w("QuizFlowCoordinator", "Displaying error: ${uiState.errorMessage}")
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(32.dp)
+                        ) {
+                            Text(
+                                text = uiState.errorMessage ?: "Erreur",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.error,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(onClick = { currentStep = QuizStep.MENU }) {
+                                Text("Retour au menu")
+                            }
+                        }
+                    }
+                }
+                
+                // PRIORITÉ 2: Afficher le chargement
+                uiState.isLoading -> {
+                    Logger.d("QuizFlowCoordinator", "Loading questions...")
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator()
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text("Chargement des questions...")
+                        }
+                    }
+                }
+                
+                // PRIORITÉ 3: Démarrer le quiz si prêt
                 uiState.isQuizStarted && uiQuestions.isNotEmpty() -> {
+                    Logger.d("QuizFlowCoordinator", "Starting quiz with ${uiQuestions.size} questions")
                     QuizFlow(
                         questions = uiQuestions,
                         onQuizComplete = { answers ->
@@ -155,35 +203,10 @@ fun QuizFlowCoordinator(
                         viewModel = viewModel
                     )
                 }
-                uiState.isLoading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator()
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text("Chargement des questions...")
-                        }
-                    }
-                }
-                uiState.errorMessage != null -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(32.dp)
-                        ) {
-                            Text(
-                                text = uiState.errorMessage ?: "Erreur",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.error,
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Button(onClick = { currentStep = QuizStep.MENU }) {
-                                Text("Retour au menu")
-                            }
-                        }
-                    }
-                }
+                
+                // PRIORITÉ 4: État par défaut (initialisation)
                 else -> {
+                    Logger.w("QuizFlowCoordinator", "Unexpected state - showing initialization screen")
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator()
