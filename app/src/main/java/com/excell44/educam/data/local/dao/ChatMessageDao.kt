@@ -65,6 +65,10 @@ interface ChatMessageDao {
     @Query("SELECT COUNT(*) FROM chat_messages WHERE userId = :userId AND isFromUser = 0 AND userFeedback >= 0.5")
     suspend fun getPositiveFeedbackCount(userId: String): Int
 
+    // ✅ CORRECTIF P2: Compter messages utilisateur après timestamp (pour limite quotidienne)
+    @Query("SELECT COUNT(*) FROM chat_messages WHERE userId = :userId AND isFromUser = 1 AND timestamp >= :afterTimestamp")
+    suspend fun countUserMessagesAfter(userId: String, afterTimestamp: Long): Int
+
     @Query("SELECT * FROM chat_messages WHERE userId = :userId AND isFromUser = 0 AND userFeedback IS NULL ORDER BY timestamp DESC LIMIT :limit")
     suspend fun getMessagesWithoutFeedback(userId: String, limit: Int = 10): List<ChatMessageEntity>
 }

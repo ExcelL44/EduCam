@@ -34,7 +34,8 @@ data class ChatMessage(
 class ChatViewModel @Inject constructor(
     private val chatDao: ChatMessageDao,
     private val smartyAI: SmartyAI,
-    private val securePrefs: SecurePrefs
+    private val securePrefs: SecurePrefs,
+    private val authStateManager: com.excell44.educam.util.AuthStateManager
 ) : ViewModel() {
 
     private val TAG = "ChatViewModel"
@@ -103,6 +104,24 @@ class ChatViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
+                // ✅ CORRECTIF P2: Limiter messages pour utilisateurs PASSIVE
+                val accountType = authStateManager.getAccountType()
+                
+                if (accountType == "PASSIVE") {
+                    // Compter messages envoyés aujourd'hui
+                    val todayStart = System.currentTimeMillis() - (System.currentTimeMillis() % (24 * 60 * 60 * 1000))
+                    val messagesCount = chatDao.countUserMessagesAfter(userId, todayStart)
+                    
+                    if (messagesCount >= 10) {
+                        Logger.w(TAG, "PASSIVE user hit daily message limit: $userId ($messagesCount/10)")
+                        _uiState.value = _uiState.value.copy(
+                            errorMessage = "Limite de 10 messages atteinte aujourd'hui. Passez Premium pour un accès illimité ! 🚀"
+                        )
+                        return@launch
+                    }
+                    Logger.d(TAG, "PASSIVE user: $messagesCount/10 messages today")
+                }
+                
                 Logger.d(TAG, "Sending message: $message")
 
                 // 1. Sauvegarder le message utilisateur

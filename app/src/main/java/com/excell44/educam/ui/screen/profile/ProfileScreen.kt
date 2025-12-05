@@ -101,6 +101,77 @@ fun ProfileScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
+        // ✅ CORRECTIF P1: Badge Mode Passif pour utilisateurs TRIAL/PASSIVE
+        if (user?.role == "PASSIVE" || userMode == UserMode.TRIAL) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            androidx.compose.material.icons.Icons.Filled.Timer,
+                            contentDescription = "Trial",
+                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "Mode Passif (Essai)",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                            if (user?.trialExpiresAt != null) {
+                                val remaining = user.trialExpiresAt - System.currentTimeMillis()
+                                val daysLeft = (remaining / (24 * 60 * 60 * 1000L)).coerceAtLeast(0)
+                                val hoursLeft = ((remaining % (24 * 60 * 60 * 1000L)) / (60 * 60 * 1000L)).coerceAtLeast(0)
+                                
+                                Text(
+                                    text = if (daysLeft > 0) {
+                                        "$daysLeft jour${if (daysLeft > 1) "s" else ""} restant${if (daysLeft > 1) "s" else ""}"
+                                    } else if (hoursLeft > 0) {
+                                        "$hoursLeft heure${if (hoursLeft > 1) "s" else ""} restant${if (hoursLeft > 1) "s" else ""}"
+                                    } else {
+                                        "Expire bientôt"
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (daysLeft <= 1) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                            }
+                        }
+                    }
+                    
+                    // Badge "3 Quiz/jour"
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                    ) {
+                        Text(
+                            text = "3 Quiz/jour",
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
         // User Mode Indicator
         userMode?.let {
             UserModeIndicator(userMode = it)

@@ -57,6 +57,82 @@ fun NavGraph(
     val isTrial = userMode == com.excell44.educam.data.model.UserMode.TRIAL
     val isAdmin = user?.role == "ADMIN"
 
+    // ✅ CORRECTIF P1: Vérifier expiration trial PASSIVE
+    var showTrialExpiredDialog by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(authState) {
+        if (authState is com.excell44.educam.domain.model.AuthState.Authenticated) {
+            val currentUser = authState.user
+            
+            // Vérifier si user est PASSIVE avec trial expiré
+            if (currentUser.role == "PASSIVE" && 
+                currentUser.trialExpiresAt != null && 
+                currentUser.trialExpiresAt < System.currentTimeMillis()) {
+                
+                android.util.Log.w("NavGraph", "⚠️ TRIAL EXPIRED for user: ${currentUser.pseudo}")
+                showTrialExpiredDialog = true
+            }
+        }
+    }
+    
+    // Dialog expiration trial
+    if (showTrialExpiredDialog) {
+        AlertDialog(
+            onDismissRequest = { /* Empêcher fermeture */ },
+            icon = {
+                Icon(
+                    androidx.compose.material.icons.Icons.Filled.Lock,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
+            title = {
+                Text(
+                    text = "Période d'essai terminée",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Votre essai gratuit de 7 jours est terminé.",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Passez Premium pour continuer à utiliser toutes les fonctionnalités de Bac-X_237 ! 🚀",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { 
+                        // TODO: Navigate to payment screen
+                        android.util.Log.d("NavGraph", "User clicked 'Passer Premium'")
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("🌟 Passer Premium")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showTrialExpiredDialog = false
+                        authViewModel.logout()
+                    }
+                ) {
+                    Text("Se déconnecter")
+                }
+            }
+        )
+    }
+
     android.util.Log.d("🟢 NAV_GRAPH", "📊 Auth state updated: isLoggedIn=$isLoggedIn, userMode=$userMode, userRole=${user?.role}")
     
     // ✅ NAVIGATION IMMEDIATE sur changement d'état d'authentification
