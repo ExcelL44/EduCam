@@ -29,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Timer
 import com.excell44.educam.ui.util.screenPadding
 
 @OptIn(ExperimentalMaterial3Api::class)
