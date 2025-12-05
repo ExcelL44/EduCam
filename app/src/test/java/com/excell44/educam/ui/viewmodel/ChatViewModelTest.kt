@@ -35,6 +35,9 @@ class ChatViewModelTest {
     @Mock
     private lateinit var securePrefs: com.excell44.educam.data.local.SecurePrefs
 
+    @Mock
+    private lateinit var authStateManager: com.excell44.educam.util.AuthStateManager
+
     private lateinit var chatViewModel: ChatViewModel
 
     @Before
@@ -44,7 +47,10 @@ class ChatViewModelTest {
         // Disable logging for tests
         Logger.enableReleaseMode()
 
-        chatViewModel = ChatViewModel(chatDao, smartyAI, securePrefs)
+        // Mock AuthStateManager to return ACTIVE by default
+        whenever(authStateManager.getAccountType()).thenReturn("ACTIVE")
+
+        chatViewModel = ChatViewModel(chatDao, smartyAI, securePrefs, authStateManager)
     }
 
     @After
@@ -125,7 +131,7 @@ class ChatViewModelTest {
     @Test
     fun `clearError should reset error message`() = runTest {
         // Given - simuler un état d'erreur
-        val viewModel = ChatViewModel(chatDao, smartyAI, securePrefs)
+        val viewModel = ChatViewModel(chatDao, smartyAI, securePrefs, authStateManager)
 
         // When
         viewModel.clearError()
